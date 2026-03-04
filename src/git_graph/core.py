@@ -48,6 +48,7 @@ class GitLogConfig:
     highlight_distance_from: Optional[str] = None  # For distance highlighting
     highlight_path: Optional[Tuple[str, str]] = None  # (start_input, end_input)
     highlight_diverging_from: Optional[str] = None  # For divergence analysis
+    highlight_orphans: bool = False
 
 
 class GitCommit(Graphable[CommitMetadata]):
@@ -102,7 +103,6 @@ def parse_ref_names(ref_names: str) -> tuple[List[str], List[str]]:
 
 def get_git_log(repo_path: str, config: GitLogConfig) -> Dict[str, GitCommit]:
     """Retrieve git log and parse into GitCommit objects."""
-    # Format: hash|parents|refs|timestamp|author|message
     format_str = "%H|%P|%D|%at|%an|%s"
     args = ["log", "--all", f"--format={format_str}"]
     if config.simplify:
@@ -282,8 +282,6 @@ def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
             path_graph = graph.subgraph_between(start_node, end_node)
             path_nodes = set(path_graph)
             for commit in path_nodes:
-                # Tag edges that connect nodes within this path
-                # Path highlighting now only modifies edges to avoid node conflicts
                 for parent, _ in graph.internal_depends_on(commit):
                     if parent in path_nodes:
                         commit.set_edge_attribute(parent, "highlight", True)
@@ -317,6 +315,20 @@ def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
             behind_commits = base_reach - other_reach
             for commit in behind_commits:
                 commit.add_tag("behind")
+
+    # 5. Orphan highlighting
+    if config.highlight_orphans:
+        # Reachable from any branch head
+        branch_reachable = set()
+        for commit in graph:
+            if commit.reference.branches:
+                branch_reachable.update(graph.ancestors(commit))
+                branch_reachable.add(commit)
+
+        # Orphans are nodes NOT reachable from any current branch head
+        for commit in graph:
+            if commit not in branch_reachable:
+                commit.add_tag("orphan")
 
 
 def export_graph(
@@ -369,6 +381,16 @@ def export_graph(
                 styles["color"] = "orange"
                 styles["style"] = styles.get("style", "") + ",dashed"
 
+        # Orphan highlight (dashed grey border)
+        if node.is_tagged("orphan"):
+            if engine == Engine.D2:
+                styles["stroke"] = "grey"
+                styles["stroke-dash"] = "3"
+                styles["opacity"] = "0.6"
+            elif engine == Engine.GRAPHVIZ:
+                styles["color"] = "grey"
+                styles["style"] = styles.get("style", "") + ",dashed"
+
         return styles
 
     def get_generic_link_style(
@@ -397,10 +419,13 @@ def export_graph(
                     )
             if node.is_tagged("critical"):
                 style_parts.append("stroke:red,stroke-width:4px")
-
             if node.is_tagged("behind"):
                 style_parts.append(
                     "stroke:orange,stroke-width:2px,stroke-dasharray: 5 5"
+                )
+            if node.is_tagged("orphan"):
+                style_parts.append(
+                    "stroke:grey,stroke-width:1px,stroke-dasharray: 3 3,opacity:0.5"
                 )
             return ",".join(style_parts) if style_parts else None
 

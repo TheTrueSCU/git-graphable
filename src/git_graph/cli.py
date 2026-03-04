@@ -112,6 +112,11 @@ def run_bare_cli(argv: List[str]):
         help="Base branch/hash for divergence/behind analysis",
     )
     parser.add_argument(
+        "--highlight-orphans",
+        action="store_true",
+        help="Highlight dangling/orphan commits",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
@@ -140,6 +145,7 @@ def run_bare_cli(argv: List[str]):
         highlight_distance_from=args.highlight_distance_from,
         highlight_path=highlight_path,
         highlight_diverging_from=args.highlight_diverging_from,
+        highlight_orphans=args.highlight_orphans,
     )
 
     try:
@@ -205,6 +211,9 @@ if HAS_CLI_EXTRAS:
             "--highlight-diverging-from",
             help="Base branch/hash for divergence/behind analysis",
         ),
+        highlight_orphans: bool = typer.Option(
+            False, "--highlight-orphans", help="Highlight dangling/orphan commits"
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
@@ -232,6 +241,7 @@ if HAS_CLI_EXTRAS:
             highlight_distance_from=highlight_distance_from,
             highlight_path=path_tuple,
             highlight_diverging_from=highlight_diverging_from,
+            highlight_orphans=highlight_orphans,
         )
 
         if bare:

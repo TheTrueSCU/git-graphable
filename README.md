@@ -42,6 +42,7 @@ Git Graph provides several ways to highlight commits and relationships. Multiple
 | `--highlight-path` | **Edge** | Thick Orange edge connecting nodes | None |
 | `--highlight-critical` | **Stroke** | Thick Red Solid outline | None |
 | `--highlight-diverging-from` | **Stroke** | Orange Dashed outline | None |
+| `--highlight-orphans` | **Stroke** | Grey Dashed outline | None |
 
 ### Highlighting Priorities
 - **Fill**: If `--highlight-path` is used, it takes priority for the nodes on that path (Engine dependent). Author and Distance highlighting are mutually exclusive.

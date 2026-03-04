@@ -166,6 +166,29 @@ def test_divergence_highlighting(test_repo):
     assert any("base only commit" in str(c.reference.message) for c in behind_commits)
 
 
+def test_orphan_highlighting(test_repo):
+    # Commit 1 (reachable from master)
+    # Already exists in test_repo
+
+    # Create an orphan commit by detached HEAD and committing
+    subprocess.run(
+        ["git", "checkout", "--detach"], cwd=test_repo, check=True, capture_output=True
+    )
+    with open(os.path.join(test_repo, "orphan.txt"), "w") as f:
+        f.write("orphan")
+    subprocess.run(["git", "add", "orphan.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "orphan commit"], cwd=test_repo, check=True)
+
+    # Analyze orphans
+    config = GitLogConfig(highlight_orphans=True)
+    graph = process_repo(test_repo, config)
+
+    # The 'orphan commit' should be tagged as 'orphan'
+    orphans = [c for c in graph if c.is_tagged("orphan")]
+    assert len(orphans) >= 1
+    assert any("orphan commit" in str(c.reference.message) for c in orphans)
+
+
 def test_export_formats(test_repo):
     config = GitLogConfig()
     graph = process_repo(test_repo, config)
