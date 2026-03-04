@@ -131,14 +131,27 @@ def test_cli_divergence(test_repo):
 
 def test_cli_conflicting_highlights(test_repo):
     if app is not None:
+        # Authors + Distance
         result = runner.invoke(
             app, [test_repo, "--highlight-authors", "--highlight-distance-from", "main"]
         )
         assert result.exit_code == 1
-        assert (
-            "Error: Cannot use both --highlight-authors and --highlight-distance-from"
-            in result.stderr
+        assert "Error: Cannot use multiple fill-based highlights" in result.stderr
+
+        # Authors + Stale
+        result = runner.invoke(
+            app, [test_repo, "--highlight-authors", "--highlight-stale", "30"]
         )
+        assert result.exit_code == 1
+        assert "Error: Cannot use multiple fill-based highlights" in result.stderr
+
+        # Distance + Stale
+        result = runner.invoke(
+            app,
+            [test_repo, "--highlight-distance-from", "main", "--highlight-stale", "30"],
+        )
+        assert result.exit_code == 1
+        assert "Error: Cannot use multiple fill-based highlights" in result.stderr
 
 
 def test_cli_image_flag(test_repo):

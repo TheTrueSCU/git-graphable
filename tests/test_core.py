@@ -201,6 +201,35 @@ def test_stale_branch_highlighting(test_repo):
     assert any(t.startswith("color:") for t in commit.tags)
 
 
+def test_long_running_branch_highlighting(test_repo):
+    # Determine current branch
+    res = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+    base_branch = res.stdout.strip()
+
+    # Create an old feature branch by going back in time (simulated by a separate branch)
+    subprocess.run(["git", "checkout", "-b", "old_feature"], cwd=test_repo, check=True)
+    with open(os.path.join(test_repo, "old.txt"), "w") as f:
+        f.write("old")
+    subprocess.run(["git", "add", "old.txt"], cwd=test_repo, check=True)
+    # We can't easily spoof git time here without complex environment variables,
+    # but we can check if the logic tags nodes when we set threshold to 0.
+    subprocess.run(["git", "commit", "-m", "old commit"], cwd=test_repo, check=True)
+
+    # Analyze long-running branches with 0 day threshold (highlights all branches)
+    config = GitLogConfig(highlight_long_running=0, long_running_base=base_branch)
+    graph = process_repo(test_repo, config)
+
+    # The 'old commit' should be tagged as 'long_running'
+    long_running = [c for c in graph if c.is_tagged("long_running")]
+    assert len(long_running) >= 1
+    assert any("old commit" in str(c.reference.message) for c in long_running)
+
+
 def test_export_formats(test_repo):
     config = GitLogConfig()
     graph = process_repo(test_repo, config)

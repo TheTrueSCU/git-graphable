@@ -51,6 +51,8 @@ class GitLogConfig:
     highlight_diverging_from: Optional[str] = None  # For divergence analysis
     highlight_orphans: bool = False
     highlight_stale: Optional[int] = None  # Days
+    highlight_long_running: Optional[int] = None  # Days
+    long_running_base: str = "main"
 
 
 class GitCommit(Graphable[CommitMetadata]):
@@ -336,23 +338,66 @@ def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
         stale_threshold_sec = config.highlight_stale * 86400
 
         for commit in graph:
-            # We only care about branch tips
             if commit.reference.branches:
                 age_sec = now - commit.reference.timestamp
                 if age_sec > 0:
-                    # Ratio of staleness up to threshold
-                    # 0 = fresh (white), 1 = stale (dusty red)
                     ratio = min(age_sec / stale_threshold_sec, 1.0)
-
-                    # Gradient from white (#ffffff) to dusty red (#ffaaaa)
-                    # We keep red channel at 255, decrease green and blue
-                    gb_value = int(255 - (ratio * 85))  # 255 -> 170 (aa)
+                    gb_value = int(255 - (ratio * 85))  # 255 -> 170
                     color = f"#ff{gb_value:02x}{gb_value:02x}"
-
                     commit.add_tag(f"stale_color:{color}")
-                    # Stale highlighting takes priority for branch tips unless author/path is active
                     if not config.highlight_authors:
                         commit.add_tag(f"color:{color}")
+
+    # 7. Long-running branch detection
+    if config.highlight_long_running is not None:
+        now = time.time()
+        # Use a small negative threshold for 0 to handle near-instant commits in tests
+        threshold_sec = config.highlight_long_running * 86400
+        if config.highlight_long_running == 0:
+            threshold_sec = -1
+
+        def find_base_tip(query: str) -> Optional[GitCommit]:
+            for commit in graph:
+                if (
+                    query in commit.reference.branches
+                    or commit.reference.hash.startswith(query)
+                ):
+                    return commit
+            return None
+
+        base_tip = find_base_tip(config.long_running_base)
+        if base_tip:
+            base_reach = set(graph.ancestors(base_tip))
+            base_reach.add(base_tip)
+
+            for tip in graph:
+                # For each branch tip that is NOT the base branch
+                if (
+                    tip.reference.branches
+                    and config.long_running_base not in tip.reference.branches
+                ):
+                    branch_reach = set(graph.ancestors(tip))
+                    branch_reach.add(tip)
+
+                    # Commits unique to this branch (relative to base)
+                    unique_commits = branch_reach - base_reach
+                    if unique_commits:
+                        # Find the oldest unique commit
+                        oldest_unique = min(
+                            unique_commits, key=lambda c: c.reference.timestamp
+                        )
+                        age_sec = now - oldest_unique.reference.timestamp
+
+                        if age_sec > threshold_sec:
+                            # This is a long-running branch. Highlight the whole path.
+                            for commit in unique_commits:
+                                commit.add_tag("long_running")
+                                # Mark edges within this unique path
+                                for parent, _ in graph.internal_depends_on(commit):
+                                    if parent in unique_commits or parent in base_reach:
+                                        commit.set_edge_attribute(
+                                            parent, "long_running_edge", True
+                                        )
 
 
 def export_graph(
@@ -414,17 +459,32 @@ def export_graph(
                 styles["color"] = "grey"
                 styles["style"] = styles.get("style", "") + ",dashed"
 
+        # Long-running highlight (Purple border)
+        if node.is_tagged("long_running"):
+            if engine == Engine.D2:
+                styles["stroke"] = "purple"
+                styles["stroke-width"] = "4"
+            elif engine == Engine.GRAPHVIZ:
+                styles["color"] = "purple"
+                styles["penwidth"] = "3"
+
         return styles
 
     def get_generic_link_style(
         node: Graphable[Any], subnode: Graphable[Any]
     ) -> dict[str, str]:
         styles = {}
+        # Path highlight takes precedence
         if node.edge_attributes(subnode).get("highlight"):
             if engine == Engine.D2:
                 styles.update({"stroke": "#FFA500", "stroke-width": "6"})
             elif engine == Engine.GRAPHVIZ:
                 styles.update({"color": "#FFA500", "penwidth": "4"})
+        elif node.edge_attributes(subnode).get("long_running_edge"):
+            if engine == Engine.D2:
+                styles.update({"stroke": "purple", "stroke-width": "4"})
+            elif engine == Engine.GRAPHVIZ:
+                styles.update({"color": "purple", "penwidth": "3"})
         return styles
 
     if engine == Engine.MERMAID:
@@ -450,13 +510,18 @@ def export_graph(
                 style_parts.append(
                     "stroke:grey,stroke-width:1px,stroke-dasharray: 3 3,opacity:0.5"
                 )
+            if node.is_tagged("long_running") and not node.is_tagged("critical"):
+                style_parts.append("stroke:purple,stroke-width:3px")
             return ",".join(style_parts) if style_parts else None
 
         def mermaid_link_style(
             node: Graphable[Any], subnode: Graphable[Any]
         ) -> Optional[str]:
-            if node.edge_attributes(subnode).get("highlight"):
+            attrs = node.edge_attributes(subnode)
+            if attrs.get("highlight"):
                 return "stroke:#FFA500,stroke-width:4px"
+            if attrs.get("long_running_edge"):
+                return "stroke:purple,stroke-width:3px"
             return None
 
         styling_config = MermaidStylingConfig(

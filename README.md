@@ -37,17 +37,19 @@ Git Graph provides several ways to highlight commits and relationships. Multiple
 
 | Option | Target | Effect | Conflicts With |
 | :--- | :--- | :--- | :--- |
-| `--highlight-authors` | **Fill** | Unique color per author | `--highlight-distance-from` |
-| `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | `--highlight-authors` |
+| `--highlight-authors` | **Fill** | Unique color per author | Distance, Stale |
+| `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | Authors, Stale |
+| `--highlight-stale` | **Fill** | Gradient white to red by age | Authors, Distance |
 | `--highlight-path` | **Edge** | Thick Orange edge connecting nodes | None |
 | `--highlight-critical` | **Stroke** | Thick Red Solid outline | None |
 | `--highlight-diverging-from` | **Stroke** | Orange Dashed outline | None |
 | `--highlight-orphans` | **Stroke** | Grey Dashed outline | None |
-| `--highlight-stale` | **Fill** | Gradient white to red by age | `--highlight-authors` |
+| `--highlight-long-running` | **Stroke/Edge** | Purple outline and thick Purple edge | None |
 
 ### Highlighting Priorities
-- **Fill**: If `--highlight-path` is used, it takes priority for the nodes on that path (Engine dependent). Author and Distance highlighting are mutually exclusive.
-- **Stroke**: Critical outlines take priority over Divergence outlines.
+- **Fill**: `--highlight-authors`, `--highlight-distance-from`, and `--highlight-stale` are mutually exclusive.
+- **Edge**: Path highlighting (Thick Orange) takes priority over Long-Running highlighting (Thick Purple).
+- **Stroke**: Critical outlines (Thick Red) take priority over all other outlines (Divergence, Orphan, Long-Running).
 
 ## Advanced Examples
 

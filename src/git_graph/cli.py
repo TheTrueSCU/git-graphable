@@ -58,6 +58,25 @@ def handle_output(
         webbrowser.open(f"file://{os.path.abspath(temp_path)}")
 
 
+def validate_highlights(
+    highlight_authors: bool,
+    highlight_distance_from: Optional[str],
+    highlight_stale: Optional[int],
+) -> Optional[str]:
+    """Check for conflicting fill-based highlight options."""
+    active = []
+    if highlight_authors:
+        active.append("--highlight-authors")
+    if highlight_distance_from:
+        active.append("--highlight-distance-from")
+    if highlight_stale is not None:
+        active.append("--highlight-stale")
+
+    if len(active) > 1:
+        return f"Error: Cannot use multiple fill-based highlights at once: {', '.join(active)}"
+    return None
+
+
 # --- Bare Argument Parser CLI ---
 def run_bare_cli(argv: List[str]):
     parser = argparse.ArgumentParser(
@@ -122,16 +141,26 @@ def run_bare_cli(argv: List[str]):
         help="Threshold in days to highlight stale branch tips",
     )
     parser.add_argument(
+        "--highlight-long-running",
+        type=int,
+        help="Threshold in days to highlight long-running branches",
+    )
+    parser.add_argument(
+        "--long-running-base",
+        default="main",
+        help="Base branch for long-running analysis",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
     args = parser.parse_args(argv)
 
-    if args.highlight_authors and args.highlight_distance_from:
-        print(
-            "Error: Cannot use both --highlight-authors and --highlight-distance-from at the same time.",
-            file=sys.stderr,
-        )
+    error = validate_highlights(
+        args.highlight_authors, args.highlight_distance_from, args.highlight_stale
+    )
+    if error:
+        print(error, file=sys.stderr)
         sys.exit(1)
 
     engine = Engine(args.engine)
@@ -152,6 +181,8 @@ def run_bare_cli(argv: List[str]):
         highlight_diverging_from=args.highlight_diverging_from,
         highlight_orphans=args.highlight_orphans,
         highlight_stale=args.highlight_stale,
+        highlight_long_running=args.highlight_long_running,
+        long_running_base=args.long_running_base,
     )
 
     try:
@@ -225,17 +256,24 @@ if HAS_CLI_EXTRAS:
             "--highlight-stale",
             help="Threshold in days to highlight stale branch tips",
         ),
+        highlight_long_running: Optional[int] = typer.Option(
+            None,
+            "--highlight-long-running",
+            help="Threshold in days to highlight long-running branches",
+        ),
+        long_running_base: str = typer.Option(
+            "main", "--long-running-base", help="Base branch for long-running analysis"
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
     ):
         """Git graph to Mermaid/Graphviz/D2/PlantUML converter."""
-        if highlight_authors and highlight_distance_from:
-            typer.secho(
-                "Error: Cannot use both --highlight-authors and --highlight-distance-from at the same time.",
-                fg=typer.colors.RED,
-                err=True,
-            )
+        error = validate_highlights(
+            highlight_authors, highlight_distance_from, highlight_stale
+        )
+        if error:
+            typer.secho(error, fg=typer.colors.RED, err=True)
             raise typer.Exit(code=1)
 
         path_tuple = None
@@ -254,6 +292,8 @@ if HAS_CLI_EXTRAS:
             highlight_diverging_from=highlight_diverging_from,
             highlight_orphans=highlight_orphans,
             highlight_stale=highlight_stale,
+            highlight_long_running=highlight_long_running,
+            long_running_base=long_running_base,
         )
 
         if bare:
