@@ -1,4 +1,4 @@
-from git_graph.models import Tag
+from git_graphable.models import Tag
 
 
 def test_tag_enum_values():

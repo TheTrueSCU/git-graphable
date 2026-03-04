@@ -1,6 +1,12 @@
-# Git Graph
+# Git Graphable
 
 A powerful Python tool to convert Git commit history into beautiful, interactive flowcharts using the `graphable` library. Supporting Mermaid, D2, Graphviz, and PlantUML.
+
+## Git Plugin Support
+When installed in your PATH, you can use this as a native Git plugin:
+```bash
+git graphable .
+```
 
 ## Features
 
@@ -24,18 +30,18 @@ For a complete reference of all command-line options, see the [USAGE.md](USAGE.m
 
 ```bash
 # Basic usage (opens a Mermaid image)
-uv run git-graph .
+uv run git-graphable .
 
 # Specify an engine and output file
-uv run git-graph https://github.com/TheTrueSCU/graphable/ --engine d2 -o graph.svg
+uv run git-graphable https://github.com/TheTrueSCU/graphable/ --engine d2 -o graph.svg
 
 # Simplify the graph (only show branches/tags)
-uv run git-graph . --simplify
+uv run git-graphable . --simplify
 ```
 
 ## Highlighting Options
 
-Git Graph provides several ways to highlight commits and relationships. Multiple options can be combined to layer information.
+Git Graphable provides several ways to highlight commits and relationships. Multiple options can be combined to layer information.
 
 | Option | Target | Effect | Conflicts With |
 | :--- | :--- | :--- | :--- |
@@ -58,19 +64,19 @@ Git Graph provides several ways to highlight commits and relationships. Multiple
 ### Divergence Analysis (Hygiene)
 Highlight commits that exist in `main` but are missing from your feature branches:
 ```bash
-uv run git-graph . --highlight-diverging-from main
+uv run git-graphable . --highlight-diverging-from main
 ```
 
 ### Path Highlighting
 See the exact sequence of commits between a feature branch and a specific tag:
 ```bash
-uv run git-graph . --highlight-path develop..v1.0.0
+uv run git-graphable . --highlight-path develop..v1.0.0
 ```
 
 ### Large Repositories
 For repositories with long histories, use the `--limit` flag to keep the graph readable and avoid engine rendering limits:
 ```bash
-uv run git-graph . --limit 100 --highlight-authors
+uv run git-graphable . --limit 100 --highlight-authors
 ```
 
 ## Development

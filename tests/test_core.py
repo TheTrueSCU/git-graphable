@@ -5,14 +5,14 @@ import tempfile
 
 import pytest
 
-from git_graph.core import (
+from git_graphable.core import (
     CommitMetadata,
     GitCommit,
     GitLogConfig,
     generate_summary,
     process_repo,
 )
-from git_graph.models import Tag
+from git_graphable.models import Tag
 
 
 @pytest.fixture

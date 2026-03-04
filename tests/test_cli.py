@@ -6,7 +6,7 @@ import tempfile
 import pytest
 from typer.testing import CliRunner
 
-from git_graph.cli import app
+from git_graphable.cli import app
 
 runner = CliRunner()
 

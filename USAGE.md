@@ -1,11 +1,11 @@
-# `git-graph`
+# `git-graphable`
 
 Git graph to Mermaid/Graphviz/D2/PlantUML converter.
 
 **Usage**:
 
 ```console
-$ git-graph [OPTIONS] PATH
+$ git-graphable [OPTIONS] PATH
 ```
 
 **Arguments**:

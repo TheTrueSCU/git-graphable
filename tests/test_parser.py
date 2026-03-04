@@ -5,8 +5,8 @@ import tempfile
 
 import pytest
 
-from git_graph.core import GitLogConfig
-from git_graph.parser import get_git_log
+from git_graphable.core import GitLogConfig
+from git_graphable.parser import get_git_log
 
 
 @pytest.fixture

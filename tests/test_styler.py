@@ -6,9 +6,9 @@ import tempfile
 import pytest
 from graphable.enums import Engine
 
-from git_graph.cli import get_extension
-from git_graph.core import GitLogConfig, process_repo
-from git_graph.styler import export_graph
+from git_graphable.cli import get_extension
+from git_graphable.core import GitLogConfig, process_repo
+from git_graphable.styler import export_graph
 
 
 @pytest.fixture

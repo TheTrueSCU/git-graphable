@@ -17,7 +17,7 @@ _cleanfiles type:
 
 [group('docs')]
 usage:
-    PYTHONPATH=src uv run typer git_graph.cli utils docs --name git-graph --output USAGE.md
+    PYTHONPATH=src uv run typer git_graphable.cli utils docs --name git-graphable --output USAGE.md
 
 [group('env')]
 @clean:
@@ -89,4 +89,4 @@ typing:
 
 [group('run')]
 @run *args:
-    uv run git-graph {{ args }}
+    uv run git-graphable {{ args }}

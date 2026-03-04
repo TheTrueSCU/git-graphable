@@ -3,7 +3,7 @@ dependencies = [
     "graphable>=0.6.0",
 ]
 description = "Add your description here"
-name = "git-graph"
+name = "git-graphable"
 readme = "README.md"
 requires-python = ">=3.13"
 version = "0.1.0"
@@ -34,14 +34,17 @@ cli = [
 ]
 
 [project.scripts]
-git-graph = "git_graph.cli:main"
+git-graphable = "git_graphable.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/git_graphable"]
 
 [tool.uv]
 package = true
 
 [tool.coverage.run]
 omit = [
-    "src/git_graph/cli.py",
+    "src/git_graphable/cli.py",
 ]
 
 [tool.coverage.report]

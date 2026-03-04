@@ -5,8 +5,8 @@ import tempfile
 
 import pytest
 
-from git_graph import GitLogConfig, process_repo
-from git_graph.models import Tag
+from git_graphable import GitLogConfig, process_repo
+from git_graphable.models import Tag
 
 
 @pytest.fixture
