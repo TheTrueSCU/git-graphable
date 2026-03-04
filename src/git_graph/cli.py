@@ -18,7 +18,8 @@ try:
 except ImportError:
     HAS_CLI_EXTRAS = False
 
-from .core import GitCommit, GitLogConfig, export_graph, generate_summary, process_repo
+from .core import GitCommit, GitLogConfig, generate_summary, process_repo
+from .styler import export_graph
 
 
 def get_extension(engine: Engine, as_image: bool) -> str:

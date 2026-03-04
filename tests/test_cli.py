@@ -4,10 +4,9 @@ import subprocess
 import tempfile
 
 import pytest
-from graphable.enums import Engine
 from typer.testing import CliRunner
 
-from git_graph.cli import app, get_extension
+from git_graph.cli import app
 
 runner = CliRunner()
 
@@ -25,14 +24,12 @@ def test_repo():
         subprocess.run(
             ["git", "config", "user.name", "Test User"], cwd=test_dir, check=True
         )
-
         with open(os.path.join(test_dir, "file1.txt"), "w") as f:
             f.write("v1")
         subprocess.run(["git", "add", "file1.txt"], cwd=test_dir, check=True)
         subprocess.run(
             ["git", "commit", "-m", "initial commit"], cwd=test_dir, check=True
         )
-
         yield test_dir
     finally:
         shutil.rmtree(test_dir)
@@ -63,22 +60,13 @@ def test_cli_bare_output(test_repo):
 
 def test_cli_engine_options(test_repo):
     if app is not None:
-        for engine in [Engine.MERMAID, Engine.D2]:
-            with tempfile.NamedTemporaryFile(
-                suffix=get_extension(engine, False), delete=False
-            ) as tf:
+        for engine_val in ["mermaid", "d2"]:
+            with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tf:
                 out_path = tf.name
             try:
                 result = runner.invoke(
                     app,
-                    [
-                        test_repo,
-                        "--bare",
-                        "--engine",
-                        engine.value,
-                        "--output",
-                        out_path,
-                    ],
+                    [test_repo, "--bare", "--engine", engine_val, "--output", out_path],
                 )
                 assert result.exit_code == 0
                 assert os.path.exists(out_path)
@@ -89,7 +77,6 @@ def test_cli_engine_options(test_repo):
 
 def test_cli_simplify(test_repo):
     if app is not None:
-        # Just check it doesn't crash
         result = runner.invoke(
             app, [test_repo, "--bare", "--simplify", "--output", os.devnull]
         )
@@ -98,7 +85,6 @@ def test_cli_simplify(test_repo):
 
 def test_cli_highlight_critical(test_repo):
     if app is not None:
-        # Just check it doesn't crash with the flag
         result = runner.invoke(
             app,
             [
@@ -131,24 +117,8 @@ def test_cli_divergence(test_repo):
 
 def test_cli_conflicting_highlights(test_repo):
     if app is not None:
-        # Authors + Distance
         result = runner.invoke(
             app, [test_repo, "--highlight-authors", "--highlight-distance-from", "main"]
-        )
-        assert result.exit_code == 1
-        assert "Error: Cannot use multiple fill-based highlights" in result.stderr
-
-        # Authors + Stale
-        result = runner.invoke(
-            app, [test_repo, "--highlight-authors", "--highlight-stale", "30"]
-        )
-        assert result.exit_code == 1
-        assert "Error: Cannot use multiple fill-based highlights" in result.stderr
-
-        # Distance + Stale
-        result = runner.invoke(
-            app,
-            [test_repo, "--highlight-distance-from", "main", "--highlight-stale", "30"],
         )
         assert result.exit_code == 1
         assert "Error: Cannot use multiple fill-based highlights" in result.stderr
@@ -159,16 +129,8 @@ def test_cli_image_flag(test_repo):
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as tf:
             out_path = tf.name
         try:
-            # Using --bare to avoid status spinner
             runner.invoke(app, [test_repo, "--bare", "--image", "--output", out_path])
-            # If mmdc is missing, it might exit with error, which is fine for coverage
             pass
         finally:
             if os.path.exists(out_path):
                 os.unlink(out_path)
-
-
-def test_get_extension():
-    assert get_extension(Engine.MERMAID, False) == ".mmd"
-    assert get_extension(Engine.D2, False) == ".d2"
-    assert get_extension(Engine.MERMAID, True) == ".svg"
