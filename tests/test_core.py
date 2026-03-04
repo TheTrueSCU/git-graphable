@@ -6,7 +6,13 @@ import tempfile
 import pytest
 from graphable.enums import Engine
 
-from git_graph import CommitMetadata, GitCommit, export_graph, process_repo
+from git_graph import (
+    CommitMetadata,
+    GitCommit,
+    GitLogConfig,
+    export_graph,
+    process_repo,
+)
 
 
 @pytest.fixture
@@ -42,25 +48,26 @@ def test_repo():
 
 def test_process_repo_and_tags(test_repo):
     # Process
-    graph = process_repo(test_repo)
+    config = GitLogConfig()
+    graph = process_repo(test_repo, config)
     assert len(graph) == 1
 
     commit = list(graph)[0]
     assert commit.is_tagged("git_commit")
     assert commit.is_tagged("author:Test User")
-    # git init might create master or main
     has_branch_tag = any(t.startswith("branch:") for t in commit.tags)
     assert has_branch_tag
     assert commit.is_tagged("tag:v1.0")
 
 
 def test_export_formats(test_repo):
-    graph = process_repo(test_repo)
+    config = GitLogConfig()
+    graph = process_repo(test_repo, config)
 
     with tempfile.TemporaryDirectory() as tmp_out:
         # Test Mermaid export
         mermaid_file = os.path.join(tmp_out, "test.mmd")
-        export_graph(graph, mermaid_file, engine=Engine.MERMAID)
+        export_graph(graph, mermaid_file, config, engine=Engine.MERMAID)
         assert os.path.exists(mermaid_file)
         with open(mermaid_file, "r") as f:
             content = f.read()
@@ -69,11 +76,10 @@ def test_export_formats(test_repo):
 
         # Test D2 export
         d2_file = os.path.join(tmp_out, "test.d2")
-        export_graph(graph, d2_file, engine=Engine.D2)
+        export_graph(graph, d2_file, config, engine=Engine.D2)
         assert os.path.exists(d2_file)
         with open(d2_file, "r") as f:
             content = f.read()
-            # D2 labels are quoted in our implementation
             assert '"' in content
             assert "Test User" in content
 

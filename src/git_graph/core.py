@@ -82,12 +82,23 @@ def parse_ref_names(ref_names: str) -> tuple[List[str], List[str]]:
     return branches, tags
 
 
-def get_git_log(repo_path: str, simplify: bool = False) -> Dict[str, GitCommit]:
+@dataclass
+class GitLogConfig:
+    """Configuration for retrieving git log."""
+
+    simplify: bool = False
+    limit: Optional[int] = None
+    date_format: str = "%Y%m%d%H%M%S"
+
+
+def get_git_log(repo_path: str, config: GitLogConfig) -> Dict[str, GitCommit]:
     """Retrieve git log and parse into GitCommit objects."""
     format_str = "%H|%P|%D|%at|%an"
     args = ["log", "--all", f"--format={format_str}"]
-    if simplify:
+    if config.simplify:
         args.append("--simplify-by-decoration")
+    if config.limit:
+        args.append(f"-n {config.limit}")
 
     output = run_git_command(args, cwd=repo_path)
 
@@ -180,48 +191,50 @@ def get_node_text(
 def export_graph(
     graph: Graph[GitCommit],
     output_path: str,
+    config: GitLogConfig,
     engine: Engine = Engine.MERMAID,
-    date_format: str = "%Y%m%d%H%M%S",
     as_image: bool = False,
 ) -> None:
     """Export the graph to a file using the specified engine."""
 
     def label_fnc(n):
-        return get_node_text(n, date_format, engine)
+        return get_node_text(n, config.date_format, engine)
 
     def node_ref_fnc(n):
         return n.reference.hash
 
     if engine == Engine.MERMAID:
-        config = MermaidStylingConfig(
+        styling_config = MermaidStylingConfig(
             node_ref_fnc=node_ref_fnc, node_text_fnc=label_fnc
         )
         fnc = export_topology_mermaid_image if as_image else export_topology_mermaid_mmd
-        graph.export(fnc, output_path, config=config)
+        graph.export(fnc, output_path, config=styling_config)
     elif engine == Engine.GRAPHVIZ:
-        config = GraphvizStylingConfig(
+        styling_config = GraphvizStylingConfig(
             node_ref_fnc=node_ref_fnc, node_label_fnc=label_fnc
         )
         fnc = (
             export_topology_graphviz_image if as_image else export_topology_graphviz_dot
         )
-        graph.export(fnc, output_path, config=config)
+        graph.export(fnc, output_path, config=styling_config)
     elif engine == Engine.D2:
-        config = D2StylingConfig(node_ref_fnc=node_ref_fnc, node_label_fnc=label_fnc)
+        styling_config = D2StylingConfig(
+            node_ref_fnc=node_ref_fnc, node_label_fnc=label_fnc
+        )
         fnc = export_topology_d2_image if as_image else export_topology_d2
-        graph.export(fnc, output_path, config=config)
+        graph.export(fnc, output_path, config=styling_config)
     elif engine == Engine.PLANTUML:
-        config = PlantUmlStylingConfig(
+        styling_config = PlantUmlStylingConfig(
             node_ref_fnc=node_ref_fnc, node_label_fnc=label_fnc
         )
         fnc = export_topology_plantuml_image if as_image else export_topology_plantuml
-        graph.export(fnc, output_path, config=config)
+        graph.export(fnc, output_path, config=styling_config)
     else:
         # Fallback to generic write
         graph.write(output_path)
 
 
-def process_repo(input_path: str, simplify: bool = False) -> Graph[GitCommit]:
+def process_repo(input_path: str, config: GitLogConfig) -> Graph[GitCommit]:
     """Clones (if URL) and processes the repo, returning a Graph of GitCommits."""
     repo_path = input_path
     temp_dir = None
@@ -242,7 +255,7 @@ def process_repo(input_path: str, simplify: bool = False) -> Graph[GitCommit]:
         if not os.path.exists(os.path.join(repo_path, ".git")):
             raise RuntimeError(f"{repo_path} is not a git repository.")
 
-        commits_dict = get_git_log(repo_path, simplify=simplify)
+        commits_dict = get_git_log(repo_path, config=config)
 
         for sha, commit in commits_dict.items():
             for p_sha in commit.reference.parents:

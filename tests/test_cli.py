@@ -42,7 +42,6 @@ def test_cli_help():
     if app is not None:
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        # Use partial string as rich might wrap it
         assert "converter" in result.stdout
 
 
@@ -99,17 +98,13 @@ def test_cli_simplify(test_repo):
 
 def test_cli_image_flag(test_repo):
     if app is not None:
-        # We don't want to actually run mmdc/d2 in tests if they might not be there
-        # but we can at least check the logic path
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as tf:
             out_path = tf.name
         try:
             # Using --bare to avoid status spinner
             runner.invoke(app, [test_repo, "--bare", "--image", "--output", out_path])
             # If mmdc is missing, it might exit with error, which is fine for coverage
-            # as long as the logic path is hit.
             pass
-
         finally:
             if os.path.exists(out_path):
                 os.unlink(out_path)

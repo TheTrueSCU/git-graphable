@@ -16,7 +16,7 @@ try:
 except ImportError:
     HAS_CLI_EXTRAS = False
 
-from .core import export_graph, process_repo
+from .core import GitLogConfig, export_graph, process_repo
 
 
 def get_extension(engine: Engine, as_image: bool) -> str:
@@ -37,7 +37,7 @@ def handle_output(
     graph,
     engine: Engine,
     output: Optional[str],
-    date_format: str,
+    config: GitLogConfig,
     as_image: bool = False,
 ):
     """Handles exporting and optionally opening the graph."""
@@ -45,7 +45,7 @@ def handle_output(
         # If output path is provided, we use the specified as_image flag or infer from extension
         image_exts = [".png", ".svg", ".jpg", ".jpeg", ".pdf"]
         is_image = as_image or any(output.lower().endswith(ext) for ext in image_exts)
-        export_graph(graph, output, engine, date_format, as_image=is_image)
+        export_graph(graph, output, config, engine, as_image=is_image)
         print(f"Exported to {output}")
     else:
         # Create temp file and open as image
@@ -53,7 +53,7 @@ def handle_output(
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tf:
             temp_path = tf.name
 
-        export_graph(graph, temp_path, engine, date_format, as_image=True)
+        export_graph(graph, temp_path, config, engine, as_image=True)
         print(f"Opening temporary image: {temp_path}")
         webbrowser.open(f"file://{os.path.abspath(temp_path)}")
 
@@ -88,15 +88,29 @@ def run_bare_cli(argv: List[str]):
         help="Pass --simplify-by-decoration to git log",
     )
     parser.add_argument(
+        "--limit", type=int, help="Limit the number of commits to process"
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
     args = parser.parse_args(argv)
     engine = Engine(args.engine)
+    config = GitLogConfig(
+        simplify=args.simplify, limit=args.limit, date_format=args.date_format
+    )
 
     try:
-        graph = process_repo(args.path, args.simplify)
-        handle_output(graph, engine, args.output, args.date_format, as_image=args.image)
+        graph = process_repo(args.path, config)
+
+        # Safety check
+        if engine == Engine.MERMAID and len(graph) > 500:
+            print(
+                f"Warning: Graph contains {len(graph)} nodes. Mermaid might exceed size limits.",
+                file=sys.stderr,
+            )
+
+        handle_output(graph, engine, args.output, config, as_image=args.image)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -125,15 +139,25 @@ if HAS_CLI_EXTRAS:
         simplify: bool = typer.Option(
             False, "--simplify", help="Pass --simplify-by-decoration to git log"
         ),
+        limit: Optional[int] = typer.Option(
+            None, "--limit", help="Limit the number of commits to process"
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
     ):
         """Git graph to Mermaid/Graphviz/D2/PlantUML converter."""
+        config = GitLogConfig(simplify=simplify, limit=limit, date_format=date_format)
+
         if bare:
             try:
-                graph = process_repo(path, simplify)
-                handle_output(graph, engine, output, date_format, as_image=image)
+                graph = process_repo(path, config)
+                if engine == Engine.MERMAID and len(graph) > 500:
+                    print(
+                        f"Warning: Graph contains {len(graph)} nodes. Mermaid might exceed size limits.",
+                        file=sys.stderr,
+                    )
+                handle_output(graph, engine, output, config, as_image=image)
             except Exception as e:
                 print(f"Error: {e}", file=sys.stderr)
                 sys.exit(1)
@@ -144,8 +168,14 @@ if HAS_CLI_EXTRAS:
             f"[bold green]Processing repository using {engine.value} engine..."
         ):
             try:
-                graph = process_repo(path, simplify)
-                handle_output(graph, engine, output, date_format, as_image=image)
+                graph = process_repo(path, config)
+
+                if engine == Engine.MERMAID and len(graph) > 500:
+                    console.print(
+                        f"[bold yellow]Warning:[/] Graph contains {len(graph)} nodes. Mermaid might exceed size limits."
+                    )
+
+                handle_output(graph, engine, output, config, as_image=image)
             except Exception as e:
                 console.print(f"[bold red]Error:[/] {e}")
                 sys.exit(1)
