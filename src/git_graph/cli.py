@@ -3,20 +3,22 @@ import os
 import sys
 import tempfile
 import webbrowser
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from graphable.enums import Engine
 
-# Try to import rich/typer
+# Try to import rich
 try:
     import typer
     from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
 
     HAS_CLI_EXTRAS = True
 except ImportError:
     HAS_CLI_EXTRAS = False
 
-from .core import GitLogConfig, export_graph, process_repo
+from .core import GitCommit, GitLogConfig, export_graph, generate_summary, process_repo
 
 
 def get_extension(engine: Engine, as_image: bool) -> str:
@@ -56,6 +58,49 @@ def handle_output(
         export_graph(graph, temp_path, config, engine, as_image=True)
         print(f"Opening temporary image: {temp_path}")
         webbrowser.open(f"file://{os.path.abspath(temp_path)}")
+
+
+def display_summary(summary: Dict[str, List[GitCommit]], bare: bool = False):
+    """Displays a summary of flagged commits."""
+    if bare:
+        print("\n--- Git Hygiene Summary ---")
+        for category, commits in summary.items():
+            if commits:
+                print(f"{category}: {len(commits)} commits")
+                for c in commits[:5]:  # Show first 5
+                    branches = (
+                        f" ({', '.join(c.reference.branches)})"
+                        if c.reference.branches
+                        else ""
+                    )
+                    print(
+                        f"  - {c.reference.hash[:7]}{branches}: {c.reference.message}"
+                    )
+                if len(commits) > 5:
+                    print(f"  ... and {len(commits) - 5} more")
+    else:
+        console = Console()
+        table = Table(title="Git Hygiene Summary", box=None)
+        table.add_column("Category", style="cyan", no_wrap=True)
+        table.add_column("Count", style="magenta")
+        table.add_column("Examples (SHA - Message)", style="green")
+
+        for category, commits in summary.items():
+            if commits:
+                examples = []
+                for c in commits[:3]:
+                    examples.append(
+                        f"{c.reference.hash[:7]} - {c.reference.message[:50]}"
+                    )
+                example_str = "\n".join(examples)
+                if len(commits) > 3:
+                    example_str += f"\n... and {len(commits) - 3} more"
+                table.add_row(category, str(len(commits)), example_str)
+
+        if table.row_count > 0:
+            console.print(Panel(table, border_style="blue"))
+        else:
+            console.print("[bold green]History looks clean! No issues flagged.[/]")
 
 
 def validate_highlights(
@@ -196,6 +241,7 @@ def run_bare_cli(argv: List[str]):
             )
 
         handle_output(graph, engine, args.output, config, as_image=args.image)
+        display_summary(generate_summary(graph), bare=True)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -305,6 +351,7 @@ if HAS_CLI_EXTRAS:
                         file=sys.stderr,
                     )
                 handle_output(graph, engine, output, config, as_image=image)
+                display_summary(generate_summary(graph), bare=True)
             except Exception as e:
                 print(f"Error: {e}", file=sys.stderr)
                 sys.exit(1)
@@ -323,6 +370,7 @@ if HAS_CLI_EXTRAS:
                     )
 
                 handle_output(graph, engine, output, config, as_image=image)
+                display_summary(generate_summary(graph), bare=False)
             except Exception as e:
                 console.print(f"[bold red]Error:[/] {e}")
                 sys.exit(1)

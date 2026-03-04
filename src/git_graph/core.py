@@ -351,7 +351,6 @@ def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
     # 7. Long-running branch detection
     if config.highlight_long_running is not None:
         now = time.time()
-        # Use a small negative threshold for 0 to handle near-instant commits in tests
         threshold_sec = config.highlight_long_running * 86400
         if config.highlight_long_running == 0:
             threshold_sec = -1
@@ -371,7 +370,6 @@ def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
             base_reach.add(base_tip)
 
             for tip in graph:
-                # For each branch tip that is NOT the base branch
                 if (
                     tip.reference.branches
                     and config.long_running_base not in tip.reference.branches
@@ -379,25 +377,48 @@ def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                     branch_reach = set(graph.ancestors(tip))
                     branch_reach.add(tip)
 
-                    # Commits unique to this branch (relative to base)
                     unique_commits = branch_reach - base_reach
                     if unique_commits:
-                        # Find the oldest unique commit
                         oldest_unique = min(
                             unique_commits, key=lambda c: c.reference.timestamp
                         )
                         age_sec = now - oldest_unique.reference.timestamp
 
                         if age_sec > threshold_sec:
-                            # This is a long-running branch. Highlight the whole path.
                             for commit in unique_commits:
                                 commit.add_tag("long_running")
-                                # Mark edges within this unique path
                                 for parent, _ in graph.internal_depends_on(commit):
                                     if parent in unique_commits or parent in base_reach:
                                         commit.set_edge_attribute(
                                             parent, "long_running_edge", True
                                         )
+
+
+def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
+    """Generate a summary of flagged commits."""
+    summary = {
+        "Critical": [],
+        "Behind Base": [],
+        "Orphan": [],
+        "Stale": [],
+        "Long-Running": [],
+    }
+
+    for commit in graph:
+        if commit.is_tagged("critical"):
+            summary["Critical"].append(commit)
+        if commit.is_tagged("behind"):
+            summary["Behind Base"].append(commit)
+        if commit.is_tagged("orphan"):
+            summary["Orphan"].append(commit)
+        if commit.is_tagged("stale_color"):  # Use the existence of stale_color tag
+            summary["Stale"].append(commit)
+        if commit.is_tagged("long_running"):
+            # Only count branch tips for long-running summary to avoid redundancy
+            if commit.reference.branches:
+                summary["Long-Running"].append(commit)
+
+    return summary
 
 
 def export_graph(
@@ -459,7 +480,6 @@ def export_graph(
                 styles["color"] = "grey"
                 styles["style"] = styles.get("style", "") + ",dashed"
 
-        # Long-running highlight (Purple border)
         if node.is_tagged("long_running"):
             if engine == Engine.D2:
                 styles["stroke"] = "purple"
@@ -474,7 +494,6 @@ def export_graph(
         node: Graphable[Any], subnode: Graphable[Any]
     ) -> dict[str, str]:
         styles = {}
-        # Path highlight takes precedence
         if node.edge_attributes(subnode).get("highlight"):
             if engine == Engine.D2:
                 styles.update({"stroke": "#FFA500", "stroke-width": "6"})

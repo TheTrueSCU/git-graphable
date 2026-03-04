@@ -230,6 +230,18 @@ def test_long_running_branch_highlighting(test_repo):
     assert any("old commit" in str(c.reference.message) for c in long_running)
 
 
+def test_generate_summary(test_repo):
+    config = GitLogConfig(highlight_critical=["master", "main"])
+    graph = process_repo(test_repo, config)
+
+    from git_graph.core import generate_summary
+
+    summary = generate_summary(graph)
+
+    assert "Critical" in summary
+    assert len(summary["Critical"]) >= 1
+
+
 def test_export_formats(test_repo):
     config = GitLogConfig()
     graph = process_repo(test_repo, config)
