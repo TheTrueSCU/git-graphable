@@ -117,6 +117,11 @@ def run_bare_cli(argv: List[str]):
         help="Highlight dangling/orphan commits",
     )
     parser.add_argument(
+        "--highlight-stale",
+        type=int,
+        help="Threshold in days to highlight stale branch tips",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
@@ -146,6 +151,7 @@ def run_bare_cli(argv: List[str]):
         highlight_path=highlight_path,
         highlight_diverging_from=args.highlight_diverging_from,
         highlight_orphans=args.highlight_orphans,
+        highlight_stale=args.highlight_stale,
     )
 
     try:
@@ -214,6 +220,11 @@ if HAS_CLI_EXTRAS:
         highlight_orphans: bool = typer.Option(
             False, "--highlight-orphans", help="Highlight dangling/orphan commits"
         ),
+        highlight_stale: Optional[int] = typer.Option(
+            None,
+            "--highlight-stale",
+            help="Threshold in days to highlight stale branch tips",
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
@@ -242,6 +253,7 @@ if HAS_CLI_EXTRAS:
             highlight_path=path_tuple,
             highlight_diverging_from=highlight_diverging_from,
             highlight_orphans=highlight_orphans,
+            highlight_stale=highlight_stale,
         )
 
         if bare:

@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -49,6 +50,7 @@ class GitLogConfig:
     highlight_path: Optional[Tuple[str, str]] = None  # (start_input, end_input)
     highlight_diverging_from: Optional[str] = None  # For divergence analysis
     highlight_orphans: bool = False
+    highlight_stale: Optional[int] = None  # Days
 
 
 class GitCommit(Graphable[CommitMetadata]):
@@ -259,7 +261,7 @@ def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                     intensity = int(230 * (dist / max_dist)) if max_dist > 0 else 0
                     color = f"#{intensity:02x}{intensity:02x}ff"
                     commit.add_tag(f"distance_color:{color}")
-                    if not config.highlight_authors:
+                    if not config.highlight_authors and not config.highlight_stale:
                         commit.add_tag(f"color:{color}")
 
     # 3. Path highlighting
@@ -318,17 +320,39 @@ def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
 
     # 5. Orphan highlighting
     if config.highlight_orphans:
-        # Reachable from any branch head
         branch_reachable = set()
         for commit in graph:
             if commit.reference.branches:
                 branch_reachable.update(graph.ancestors(commit))
                 branch_reachable.add(commit)
 
-        # Orphans are nodes NOT reachable from any current branch head
         for commit in graph:
             if commit not in branch_reachable:
                 commit.add_tag("orphan")
+
+    # 6. Stale branch detection
+    if config.highlight_stale:
+        now = time.time()
+        stale_threshold_sec = config.highlight_stale * 86400
+
+        for commit in graph:
+            # We only care about branch tips
+            if commit.reference.branches:
+                age_sec = now - commit.reference.timestamp
+                if age_sec > 0:
+                    # Ratio of staleness up to threshold
+                    # 0 = fresh (white), 1 = stale (dusty red)
+                    ratio = min(age_sec / stale_threshold_sec, 1.0)
+
+                    # Gradient from white (#ffffff) to dusty red (#ffaaaa)
+                    # We keep red channel at 255, decrease green and blue
+                    gb_value = int(255 - (ratio * 85))  # 255 -> 170 (aa)
+                    color = f"#ff{gb_value:02x}{gb_value:02x}"
+
+                    commit.add_tag(f"stale_color:{color}")
+                    # Stale highlighting takes priority for branch tips unless author/path is active
+                    if not config.highlight_authors:
+                        commit.add_tag(f"color:{color}")
 
 
 def export_graph(
@@ -381,7 +405,6 @@ def export_graph(
                 styles["color"] = "orange"
                 styles["style"] = styles.get("style", "") + ",dashed"
 
-        # Orphan highlight (dashed grey border)
         if node.is_tagged("orphan"):
             if engine == Engine.D2:
                 styles["stroke"] = "grey"

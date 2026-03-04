@@ -189,6 +189,18 @@ def test_orphan_highlighting(test_repo):
     assert any("orphan commit" in str(c.reference.message) for c in orphans)
 
 
+def test_stale_branch_highlighting(test_repo):
+    # Commit 1 is already there, but let's check its timestamp
+    # In our test environment it's very fresh
+    config = GitLogConfig(highlight_stale=30)
+    graph = process_repo(test_repo, config)
+    commit = list(graph)[0]
+
+    # It should have a stale_color tag (even if very fresh, it's a gradient)
+    assert any(t.startswith("stale_color:") for t in commit.tags)
+    assert any(t.startswith("color:") for t in commit.tags)
+
+
 def test_export_formats(test_repo):
     config = GitLogConfig()
     graph = process_repo(test_repo, config)
