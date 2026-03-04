@@ -5,7 +5,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from graphable import Graph, Graphable
 from graphable.enums import Engine
@@ -33,18 +33,36 @@ class CommitMetadata:
     tags: List[str] = field(default_factory=list)
     timestamp: int = 0
     author: str = ""
+    message: str = ""
+
+
+@dataclass
+class GitLogConfig:
+    """Configuration for retrieving git log."""
+
+    simplify: bool = False
+    limit: Optional[int] = None
+    date_format: str = "%Y%m%d%H%M%S"
+    highlight_critical: List[str] = field(default_factory=list)
+    highlight_authors: bool = False
+    highlight_distance_from: Optional[str] = None  # For distance highlighting
+    highlight_path: Optional[Tuple[str, str]] = None  # (start_input, end_input)
+    highlight_diverging_from: Optional[str] = None  # For divergence analysis
 
 
 class GitCommit(Graphable[CommitMetadata]):
     """A Git commit represented as a graphable object."""
 
-    def __init__(self, metadata: CommitMetadata):
+    def __init__(self, metadata: CommitMetadata, config: GitLogConfig):
         super().__init__(metadata)
 
         # Add metadata as tags for filtering/formatting
         self.add_tag(f"author:{metadata.author}")
         for branch in metadata.branches:
             self.add_tag(f"branch:{branch}")
+            if branch in config.highlight_critical:
+                self.add_tag("critical")
+
         for tag in metadata.tags:
             self.add_tag(f"tag:{tag}")
 
@@ -82,18 +100,10 @@ def parse_ref_names(ref_names: str) -> tuple[List[str], List[str]]:
     return branches, tags
 
 
-@dataclass
-class GitLogConfig:
-    """Configuration for retrieving git log."""
-
-    simplify: bool = False
-    limit: Optional[int] = None
-    date_format: str = "%Y%m%d%H%M%S"
-
-
 def get_git_log(repo_path: str, config: GitLogConfig) -> Dict[str, GitCommit]:
     """Retrieve git log and parse into GitCommit objects."""
-    format_str = "%H|%P|%D|%at|%an"
+    # Format: hash|parents|refs|timestamp|author|message
+    format_str = "%H|%P|%D|%at|%an|%s"
     args = ["log", "--all", f"--format={format_str}"]
     if config.simplify:
         args.append("--simplify-by-decoration")
@@ -107,7 +117,7 @@ def get_git_log(repo_path: str, config: GitLogConfig) -> Dict[str, GitCommit]:
         if not line:
             continue
         parts = line.split("|")
-        if len(parts) < 5:
+        if len(parts) < 6:
             continue
 
         sha = parts[0]
@@ -115,6 +125,7 @@ def get_git_log(repo_path: str, config: GitLogConfig) -> Dict[str, GitCommit]:
         refs = parts[2]
         timestamp = parts[3]
         author = parts[4]
+        message = parts[5]
 
         branches, tags = parse_ref_names(refs)
 
@@ -125,8 +136,9 @@ def get_git_log(repo_path: str, config: GitLogConfig) -> Dict[str, GitCommit]:
             tags=tags,
             timestamp=int(timestamp) if timestamp.isdigit() else 0,
             author=author,
+            message=message,
         )
-        commits[sha] = GitCommit(metadata)
+        commits[sha] = GitCommit(metadata, config)
 
     return commits
 
@@ -139,12 +151,10 @@ def get_node_text(
 
     def sanitize(s: str) -> str:
         if engine == Engine.MERMAID:
-            # Mermaid unquoted labels are fragile
             for char in "[](){}|":
                 s = s.replace(char, " ")
             return " ".join(s.split())
         elif engine == Engine.D2:
-            # D2 labels will be quoted, but we should escape internal quotes
             return s.replace('"', '\\"')
         return s
 
@@ -159,11 +169,10 @@ def get_node_text(
 
     display_label = f"{meta.hash[:7]}"
 
-    # Use different separators/newlines based on engine
     sep = " - "
     newline = " - "
     if engine == Engine.D2:
-        newline = "\\n"  # D2 supports \n in labels
+        newline = "\\n"
     elif engine == Engine.GRAPHVIZ:
         newline = "\\n"
     elif engine == Engine.PLANTUML:
@@ -182,10 +191,132 @@ def get_node_text(
     label = f"{display_label}{newline}{author}{newline}{dt_str}"
 
     if engine == Engine.D2:
-        # Wrap in quotes for D2 since graphable doesn't
         return f'"{label}"'
 
     return label
+
+
+def apply_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+    """Apply highlighting tags based on configuration."""
+
+    # 1. Author highlighting
+    if config.highlight_authors:
+        authors = sorted(list(set(c.reference.author for c in graph)))
+        palette = [
+            "#FFD700",
+            "#C0C0C0",
+            "#CD7F32",
+            "#ADD8E6",
+            "#90EE90",
+            "#F08080",
+            "#E6E6FA",
+            "#FFE4E1",
+        ]
+        author_to_color = {
+            author: palette[i % len(palette)] for i, author in enumerate(authors)
+        }
+
+        for commit in graph:
+            color = author_to_color.get(commit.reference.author)
+            if color:
+                commit.add_tag(f"color:{color}")
+
+    # 2. Distance highlighting
+    if config.highlight_distance_from:
+
+        def find_base_node(query: str) -> Optional[GitCommit]:
+            for commit in graph:
+                if (
+                    query in commit.reference.branches
+                    or commit.reference.hash.startswith(query)
+                ):
+                    return commit
+            return None
+
+        base_commit = find_base_node(config.highlight_distance_from)
+
+        if base_commit:
+            distances = {base_commit: 0}
+            queue = [(base_commit, 0)]
+            visited = {base_commit}
+
+            while queue:
+                current, dist = queue.pop(0)
+                for parent, _ in graph.internal_depends_on(current):
+                    if parent not in visited:
+                        visited.add(parent)
+                        distances[parent] = dist + 1
+                        queue.append((parent, dist + 1))
+                for child, _ in graph.internal_dependents(current):
+                    if child not in visited:
+                        visited.add(child)
+                        distances[child] = dist + 1
+                        queue.append((child, dist + 1))
+
+            if distances:
+                max_dist = max(distances.values())
+                for commit, dist in distances.items():
+                    intensity = int(230 * (dist / max_dist)) if max_dist > 0 else 0
+                    color = f"#{intensity:02x}{intensity:02x}ff"
+                    commit.add_tag(f"distance_color:{color}")
+                    if not config.highlight_authors:
+                        commit.add_tag(f"color:{color}")
+
+    # 3. Path highlighting
+    if config.highlight_path:
+        start_input, end_input = config.highlight_path
+
+        def find_node(query: str) -> Optional[GitCommit]:
+            for commit in graph:
+                if (
+                    query in commit.reference.branches
+                    or commit.reference.hash.startswith(query)
+                ):
+                    return commit
+            return None
+
+        start_node = find_node(start_input)
+        end_node = find_node(end_input)
+
+        if start_node and end_node:
+            path_graph = graph.subgraph_between(start_node, end_node)
+            path_nodes = set(path_graph)
+            for commit in path_nodes:
+                # Tag edges that connect nodes within this path
+                # Path highlighting now only modifies edges to avoid node conflicts
+                for parent, _ in graph.internal_depends_on(commit):
+                    if parent in path_nodes:
+                        commit.set_edge_attribute(parent, "highlight", True)
+
+    # 4. Divergence highlighting
+    if config.highlight_diverging_from:
+
+        def find_divergence_node(query: str) -> Optional[GitCommit]:
+            for commit in graph:
+                if (
+                    query in commit.reference.branches
+                    or commit.reference.hash.startswith(query)
+                ):
+                    return commit
+            return None
+
+        base_node = find_divergence_node(config.highlight_diverging_from)
+
+        if base_node:
+            base_reach = set(graph.ancestors(base_node))
+            base_reach.add(base_node)
+            other_reach = set()
+            for commit in graph:
+                if (
+                    commit.reference.branches
+                    and config.highlight_diverging_from not in commit.reference.branches
+                ):
+                    other_reach.update(graph.ancestors(commit))
+                    other_reach.add(commit)
+
+            behind_commits = base_reach - other_reach
+            for commit in behind_commits:
+                commit.add_tag("behind")
 
 
 def export_graph(
@@ -203,15 +334,97 @@ def export_graph(
     def node_ref_fnc(n):
         return n.reference.hash
 
+    def get_generic_style(node: Graphable[Any]) -> dict[str, str]:
+        styles = {}
+        for tag in node.tags:
+            if tag.startswith("color:"):
+                color = tag.split(":", 1)[1]
+                if engine == Engine.D2:
+                    styles.update(
+                        {
+                            "fill": color,
+                            "font-color": "black"
+                            if color.startswith("#F") or color.startswith("#E")
+                            else "white",
+                        }
+                    )
+                elif engine == Engine.GRAPHVIZ:
+                    styles.update({"fillcolor": color, "style": "filled"})
+
+        if node.is_tagged("critical"):
+            if engine == Engine.D2:
+                styles["stroke"] = "red"
+                styles["stroke-width"] = "6"
+                styles["double-border"] = "true"
+            elif engine == Engine.GRAPHVIZ:
+                styles["color"] = "red"
+                styles["penwidth"] = "5"
+                styles["style"] = styles.get("style", "") + ",bold"
+
+        if node.is_tagged("behind"):
+            if engine == Engine.D2:
+                styles["stroke"] = "orange"
+                styles["stroke-dash"] = "5"
+            elif engine == Engine.GRAPHVIZ:
+                styles["color"] = "orange"
+                styles["style"] = styles.get("style", "") + ",dashed"
+
+        return styles
+
+    def get_generic_link_style(
+        node: Graphable[Any], subnode: Graphable[Any]
+    ) -> dict[str, str]:
+        styles = {}
+        if node.edge_attributes(subnode).get("highlight"):
+            if engine == Engine.D2:
+                styles.update({"stroke": "#FFA500", "stroke-width": "6"})
+            elif engine == Engine.GRAPHVIZ:
+                styles.update({"color": "#FFA500", "penwidth": "4"})
+        return styles
+
     if engine == Engine.MERMAID:
+
+        def mermaid_style(node: Graphable[Any]) -> Optional[str]:
+            style_parts = []
+            for tag in node.tags:
+                if tag.startswith("color:"):
+                    color = tag.split(":", 1)[1]
+                    style_parts.append(f"fill:{color}")
+                    style_parts.append(
+                        "color:black"
+                        if color.startswith("#F") or color.startswith("#E")
+                        else "color:white"
+                    )
+            if node.is_tagged("critical"):
+                style_parts.append("stroke:red,stroke-width:4px")
+
+            if node.is_tagged("behind"):
+                style_parts.append(
+                    "stroke:orange,stroke-width:2px,stroke-dasharray: 5 5"
+                )
+            return ",".join(style_parts) if style_parts else None
+
+        def mermaid_link_style(
+            node: Graphable[Any], subnode: Graphable[Any]
+        ) -> Optional[str]:
+            if node.edge_attributes(subnode).get("highlight"):
+                return "stroke:#FFA500,stroke-width:4px"
+            return None
+
         styling_config = MermaidStylingConfig(
-            node_ref_fnc=node_ref_fnc, node_text_fnc=label_fnc
+            node_ref_fnc=node_ref_fnc,
+            node_text_fnc=label_fnc,
+            node_style_fnc=mermaid_style,
+            link_style_fnc=mermaid_link_style,
         )
         fnc = export_topology_mermaid_image if as_image else export_topology_mermaid_mmd
         graph.export(fnc, output_path, config=styling_config)
     elif engine == Engine.GRAPHVIZ:
         styling_config = GraphvizStylingConfig(
-            node_ref_fnc=node_ref_fnc, node_label_fnc=label_fnc
+            node_ref_fnc=node_ref_fnc,
+            node_label_fnc=label_fnc,
+            node_attr_fnc=get_generic_style,
+            edge_attr_fnc=get_generic_link_style,
         )
         fnc = (
             export_topology_graphviz_image if as_image else export_topology_graphviz_dot
@@ -219,7 +432,10 @@ def export_graph(
         graph.export(fnc, output_path, config=styling_config)
     elif engine == Engine.D2:
         styling_config = D2StylingConfig(
-            node_ref_fnc=node_ref_fnc, node_label_fnc=label_fnc
+            node_ref_fnc=node_ref_fnc,
+            node_label_fnc=label_fnc,
+            node_style_fnc=get_generic_style,
+            edge_style_fnc=get_generic_link_style,
         )
         fnc = export_topology_d2_image if as_image else export_topology_d2
         graph.export(fnc, output_path, config=styling_config)
@@ -230,7 +446,6 @@ def export_graph(
         fnc = export_topology_plantuml_image if as_image else export_topology_plantuml
         graph.export(fnc, output_path, config=styling_config)
     else:
-        # Fallback to generic write
         graph.write(output_path)
 
 
@@ -262,7 +477,9 @@ def process_repo(input_path: str, config: GitLogConfig) -> Graph[GitCommit]:
                 if p_sha in commits_dict:
                     commit.requires(commits_dict[p_sha])
 
-        return Graph(list(commits_dict.values()))
+        graph = Graph(list(commits_dict.values()))
+        apply_highlights(graph, config)
+        return graph
 
     finally:
         if temp_dir and os.path.exists(temp_dir):

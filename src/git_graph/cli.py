@@ -91,13 +91,55 @@ def run_bare_cli(argv: List[str]):
         "--limit", type=int, help="Limit the number of commits to process"
     )
     parser.add_argument(
+        "--highlight-critical",
+        action="append",
+        default=[],
+        help="Branch names to highlight as critical",
+    )
+    parser.add_argument(
+        "--highlight-authors",
+        action="store_true",
+        help="Assign colors to different authors",
+    )
+    parser.add_argument(
+        "--highlight-distance-from", help="Base branch/hash for distance highlighting"
+    )
+    parser.add_argument(
+        "--highlight-path", help="Highlight path between two SHAs (format: START..END)"
+    )
+    parser.add_argument(
+        "--highlight-diverging-from",
+        help="Base branch/hash for divergence/behind analysis",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
     args = parser.parse_args(argv)
+
+    if args.highlight_authors and args.highlight_distance_from:
+        print(
+            "Error: Cannot use both --highlight-authors and --highlight-distance-from at the same time.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     engine = Engine(args.engine)
+
+    highlight_path = None
+    if args.highlight_path and ".." in args.highlight_path:
+        parts = args.highlight_path.split("..")
+        highlight_path = (parts[0], parts[1])
+
     config = GitLogConfig(
-        simplify=args.simplify, limit=args.limit, date_format=args.date_format
+        simplify=args.simplify,
+        limit=args.limit,
+        date_format=args.date_format,
+        highlight_critical=args.highlight_critical,
+        highlight_authors=args.highlight_authors,
+        highlight_distance_from=args.highlight_distance_from,
+        highlight_path=highlight_path,
+        highlight_diverging_from=args.highlight_diverging_from,
     )
 
     try:
@@ -142,12 +184,55 @@ if HAS_CLI_EXTRAS:
         limit: Optional[int] = typer.Option(
             None, "--limit", help="Limit the number of commits to process"
         ),
+        highlight_critical: List[str] = typer.Option(
+            [], "--highlight-critical", help="Branch names to highlight as critical"
+        ),
+        highlight_authors: bool = typer.Option(
+            False, "--highlight-authors", help="Assign colors to different authors"
+        ),
+        highlight_distance_from: Optional[str] = typer.Option(
+            None,
+            "--highlight-distance-from",
+            help="Base branch/hash for distance highlighting",
+        ),
+        highlight_path: Optional[str] = typer.Option(
+            None,
+            "--highlight-path",
+            help="Highlight path between two SHAs (START..END)",
+        ),
+        highlight_diverging_from: Optional[str] = typer.Option(
+            None,
+            "--highlight-diverging-from",
+            help="Base branch/hash for divergence/behind analysis",
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
     ):
         """Git graph to Mermaid/Graphviz/D2/PlantUML converter."""
-        config = GitLogConfig(simplify=simplify, limit=limit, date_format=date_format)
+        if highlight_authors and highlight_distance_from:
+            typer.secho(
+                "Error: Cannot use both --highlight-authors and --highlight-distance-from at the same time.",
+                fg=typer.colors.RED,
+                err=True,
+            )
+            raise typer.Exit(code=1)
+
+        path_tuple = None
+        if highlight_path and ".." in highlight_path:
+            parts = highlight_path.split("..")
+            path_tuple = (parts[0], parts[1])
+
+        config = GitLogConfig(
+            simplify=simplify,
+            limit=limit,
+            date_format=date_format,
+            highlight_critical=highlight_critical,
+            highlight_authors=highlight_authors,
+            highlight_distance_from=highlight_distance_from,
+            highlight_path=path_tuple,
+            highlight_diverging_from=highlight_diverging_from,
+        )
 
         if bare:
             try:

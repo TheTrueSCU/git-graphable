@@ -60,6 +60,112 @@ def test_process_repo_and_tags(test_repo):
     assert commit.is_tagged("tag:v1.0")
 
 
+def test_critical_branches(test_repo):
+    # Determine branch name
+    res = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+    branch = res.stdout.strip()
+
+    config = GitLogConfig(highlight_critical=[branch])
+    graph = process_repo(test_repo, config)
+    commit = list(graph)[0]
+
+    assert commit.is_tagged("critical")
+
+
+def test_author_highlighting(test_repo):
+    config = GitLogConfig(highlight_authors=True)
+    graph = process_repo(test_repo, config)
+    commit = list(graph)[0]
+
+    # Author highlighting adds color tag
+    assert any(t.startswith("color:") for t in commit.tags)
+
+
+def test_distance_highlighting(test_repo):
+    res = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+    branch = res.stdout.strip()
+
+    config = GitLogConfig(highlight_distance_from=branch)
+    graph = process_repo(test_repo, config)
+    commit = list(graph)[0]
+
+    assert any(t.startswith("distance_color:") for t in commit.tags)
+    assert any(t.startswith("color:") for t in commit.tags)
+
+
+def test_path_highlighting_edges(test_repo):
+    # Create a second commit so we have an edge
+    with open(os.path.join(test_repo, "file2.txt"), "w") as f:
+        f.write("v2")
+    subprocess.run(["git", "add", "file2.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "second commit"], cwd=test_repo, check=True)
+
+    # Get SHAs
+    res = subprocess.run(
+        ["git", "log", "--format=%H"], cwd=test_repo, capture_output=True, text=True
+    )
+    shas = res.stdout.strip().split("\n")
+
+    config = GitLogConfig(highlight_path=(shas[1], shas[0]))
+    graph = process_repo(test_repo, config)
+
+    # Find nodes
+    nodes = {c.reference.hash: c for c in graph}
+    child = nodes[shas[0]]
+    parent = nodes[shas[1]]
+
+    # Check edge attribute
+    assert child.edge_attributes(parent).get("highlight") is True
+
+
+def test_divergence_highlighting(test_repo):
+    # Determine current branch (e.g. master)
+    res = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+    base_branch = res.stdout.strip()
+
+    # Create a new commit on base branch
+    with open(os.path.join(test_repo, "base_only.txt"), "w") as f:
+        f.write("base only")
+    subprocess.run(["git", "add", "base_only.txt"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "base only commit"], cwd=test_repo, check=True
+    )
+
+    # Create a feature branch from the PREVIOUS commit
+    subprocess.run(
+        ["git", "checkout", "HEAD^"], cwd=test_repo, check=True, capture_output=True
+    )
+    subprocess.run(["git", "checkout", "-b", "feature"], cwd=test_repo, check=True)
+    with open(os.path.join(test_repo, "feature.txt"), "w") as f:
+        f.write("feature")
+    subprocess.run(["git", "add", "feature.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "feature commit"], cwd=test_repo, check=True)
+
+    # Analyze divergence from base_branch
+    config = GitLogConfig(highlight_diverging_from=base_branch)
+    graph = process_repo(test_repo, config)
+
+    # The 'base only commit' should be tagged as 'behind'
+    behind_commits = [c for c in graph if c.is_tagged("behind")]
+    assert len(behind_commits) >= 1
+    assert any("base only commit" in str(c.reference.message) for c in behind_commits)
+
+
 def test_export_formats(test_repo):
     config = GitLogConfig()
     graph = process_repo(test_repo, config)
@@ -94,12 +200,14 @@ def test_metadata_dataclass():
 
 
 def test_git_commit_init():
+    config = GitLogConfig(highlight_critical=["main"])
     meta = CommitMetadata(
         hash="abc", parents=[], author="User", branches=["main"], tags=["v1"]
     )
-    commit = GitCommit(meta)
+    commit = GitCommit(meta, config)
     assert commit.reference == meta
     assert commit.is_tagged("author:User")
     assert commit.is_tagged("branch:main")
+    assert commit.is_tagged("critical")
     assert commit.is_tagged("tag:v1")
     assert commit.is_tagged("git_commit")

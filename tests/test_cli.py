@@ -96,6 +96,51 @@ def test_cli_simplify(test_repo):
         assert result.exit_code == 0
 
 
+def test_cli_highlight_critical(test_repo):
+    if app is not None:
+        # Just check it doesn't crash with the flag
+        result = runner.invoke(
+            app,
+            [
+                test_repo,
+                "--bare",
+                "--highlight-critical",
+                "main",
+                "--output",
+                os.devnull,
+            ],
+        )
+        assert result.exit_code == 0
+
+
+def test_cli_divergence(test_repo):
+    if app is not None:
+        result = runner.invoke(
+            app,
+            [
+                test_repo,
+                "--bare",
+                "--highlight-diverging-from",
+                "main",
+                "--output",
+                os.devnull,
+            ],
+        )
+        assert result.exit_code == 0
+
+
+def test_cli_conflicting_highlights(test_repo):
+    if app is not None:
+        result = runner.invoke(
+            app, [test_repo, "--highlight-authors", "--highlight-distance-from", "main"]
+        )
+        assert result.exit_code == 1
+        assert (
+            "Error: Cannot use both --highlight-authors and --highlight-distance-from"
+            in result.stderr
+        )
+
+
 def test_cli_image_flag(test_repo):
     if app is not None:
         with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as tf:
