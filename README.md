@@ -85,3 +85,8 @@ Run tests and linting:
 ```bash
 just check
 ```
+
+### CI/CD
+This project uses GitHub Actions for continuous integration and automated publishing:
+- **CI**: Runs `just check` on all pushes and PRs to `main`.
+- **Publish**: Automatically builds and publishes to PyPI when a version tag (`v*`) is pushed.
