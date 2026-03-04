@@ -20,6 +20,8 @@ uv sync --all-extras
 
 ## Usage
 
+For a complete reference of all command-line options, see the [USAGE.md](USAGE.md) file.
+
 ```bash
 # Basic usage (opens a Mermaid image)
 uv run git-graph .

@@ -24,6 +24,7 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.4",
     "ty>=0.0.20",
+    "typer-cli>=0.24.0",
 ]
 
 [project.optional-dependencies]

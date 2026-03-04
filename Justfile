@@ -15,6 +15,10 @@ _cleandir name:
 _cleanfiles type:
     @find . -type f -name "*.{{ type }}" -delete
 
+[group('docs')]
+usage:
+    PYTHONPATH=src uv run typer git_graph.cli utils docs --name git-graph --output USAGE.md
+
 [group('env')]
 @clean:
     just _cleandir build
