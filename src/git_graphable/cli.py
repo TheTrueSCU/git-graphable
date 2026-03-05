@@ -301,6 +301,16 @@ def run_bare_cli(argv: List[str]):
         help="Map Git author to Ticket assignee (format: git_name:ticket_name)",
     )
     parser.add_argument(
+        "--highlight-longevity-mismatch",
+        action="store_true",
+        help="Highlight large gap between issue creation and first commit",
+    )
+    parser.add_argument(
+        "--longevity-days",
+        type=int,
+        help="Threshold in days for longevity mismatch detection",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="Exit with non-zero if hygiene score is below threshold",
@@ -389,6 +399,10 @@ def run_bare_cli(argv: List[str]):
         "author_mapping": dict(m.split(":", 1) for m in args.author_mapping)
         if args.author_mapping
         else {},
+        "highlight_longevity_mismatch": args.highlight_longevity_mismatch
+        if args.highlight_longevity_mismatch
+        else None,
+        "longevity_threshold_days": args.longevity_days,
         "min_hygiene_score": args.min_score,
     }
 
@@ -586,6 +600,14 @@ if HAS_CLI_EXTRAS:
             "--author-mapping",
             help="Map Git author to Ticket assignee (format: git_name:ticket_name)",
         ),
+        highlight_longevity_mismatch: bool = typer.Option(
+            False,
+            "--highlight-longevity-mismatch",
+            help="Highlight large gap between issue creation and first commit",
+        ),
+        longevity_days: Optional[int] = typer.Option(
+            None, "--longevity-days", help="Threshold in days for longevity mismatch"
+        ),
         check: bool = typer.Option(
             False,
             "--check",
@@ -664,6 +686,10 @@ if HAS_CLI_EXTRAS:
             "author_mapping": dict(m.split(":", 1) for m in author_mapping)
             if author_mapping
             else {},
+            "highlight_longevity_mismatch": highlight_longevity_mismatch
+            if highlight_longevity_mismatch
+            else None,
+            "longevity_threshold_days": longevity_days,
             "min_hygiene_score": min_score,
         }
 

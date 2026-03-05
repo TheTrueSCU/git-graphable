@@ -17,6 +17,7 @@ class IssueInfo:
     id: str
     status: str
     assignee: Optional[str] = None
+    created_at: Optional[str] = None  # ISO 8601 timestamp
 
 
 class IssueTracker(ABC):
@@ -44,7 +45,14 @@ class GitHubIssueEngine(IssueTracker):
                 if not issue_id.isdigit():
                     continue
 
-                cmd = ["gh", "issue", "view", issue_id, "--json", "state,assignees"]
+                cmd = [
+                    "gh",
+                    "issue",
+                    "view",
+                    issue_id,
+                    "--json",
+                    "state,assignees,createdAt",
+                ]
                 result = subprocess.run(cmd, capture_output=True, text=True, check=True)
                 data = json.loads(result.stdout)
                 state = data.get("state", "").upper()
@@ -57,9 +65,10 @@ class GitHubIssueEngine(IssueTracker):
 
                 assignees = data.get("assignees", [])
                 assignee = assignees[0].get("login") if assignees else None
+                created_at = data.get("createdAt")
 
                 results[issue_id] = IssueInfo(
-                    id=issue_id, status=status, assignee=assignee
+                    id=issue_id, status=status, assignee=assignee, created_at=created_at
                 )
             except Exception:
                 results[issue_id] = IssueInfo(id=issue_id, status=IssueStatus.UNKNOWN)
@@ -85,9 +94,7 @@ class JiraIssueEngine(IssueTracker):
         results = {}
         for issue_id in issue_ids:
             try:
-                request_url = (
-                    f"{self.url}/rest/api/2/issue/{issue_id}?fields=status,assignee"
-                )
+                request_url = f"{self.url}/rest/api/2/issue/{issue_id}?fields=status,assignee,created"
                 req = urllib.request.Request(request_url)
                 req.add_header("Authorization", f"Bearer {self.token}")
 
@@ -103,9 +110,13 @@ class JiraIssueEngine(IssueTracker):
                     assignee = (
                         assignee_data.get("displayName") if assignee_data else None
                     )
+                    created_at = data["fields"].get("created")
 
                     results[issue_id] = IssueInfo(
-                        id=issue_id, status=status, assignee=assignee
+                        id=issue_id,
+                        status=status,
+                        assignee=assignee,
+                        created_at=created_at,
                     )
             except Exception:
                 results[issue_id] = IssueInfo(id=issue_id, status=IssueStatus.UNKNOWN)
@@ -127,10 +138,11 @@ class ScriptIssueEngine(IssueTracker):
                     cmd_str, shell=True, capture_output=True, text=True, check=True
                 )
                 output = result.stdout.strip()
-                # Simple parsing logic for script output: "STATUS,ASSIGNEE"
+                # Simple parsing logic for script output: "STATUS,ASSIGNEE,CREATED_AT"
                 parts = output.split(",")
                 raw_status = parts[0].upper()
                 assignee = parts[1].strip() if len(parts) > 1 else None
+                created_at = parts[2].strip() if len(parts) > 2 else None
 
                 status = IssueStatus.UNKNOWN
                 if "OPEN" in raw_status:
@@ -139,7 +151,7 @@ class ScriptIssueEngine(IssueTracker):
                     status = IssueStatus.CLOSED
 
                 results[issue_id] = IssueInfo(
-                    id=issue_id, status=status, assignee=assignee
+                    id=issue_id, status=status, assignee=assignee, created_at=created_at
                 )
             except Exception:
                 results[issue_id] = IssueInfo(id=issue_id, status=IssueStatus.UNKNOWN)

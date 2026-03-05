@@ -106,6 +106,8 @@ def get_node_text(
             display_label += " [NOT-RELEASED]"
         if tag == Tag.COLLABORATION_GAP.value:
             display_label += " [COLLAB-GAP]"
+        if tag == Tag.LONGEVITY_MISMATCH.value:
+            display_label += " [LONGEVITY]"
 
     sep = " - "
     newline = " - "

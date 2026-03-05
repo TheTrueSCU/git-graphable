@@ -94,6 +94,7 @@ def _apply_issue_highlights(
     if (
         not config.highlight_issue_inconsistencies
         and not config.highlight_collaboration_gaps
+        and not config.highlight_longevity_mismatch
     ):
         return
 
@@ -153,6 +154,7 @@ def _apply_issue_highlights(
 
         ext_status = info.status
         ext_assignee = (info.assignee or "").lower()
+        ext_created = info.created_at
 
         for commit in commits:
             # A. Status Comparison
@@ -187,6 +189,31 @@ def _apply_issue_highlights(
                 if git_author != ext_assignee:
                     commit.add_tag(Tag.COLLABORATION_GAP.value)
                     commit.add_tag(f"issue_assignee:{ext_assignee}")
+
+            # C. Longevity Mismatch
+            if config.highlight_longevity_mismatch and ext_created:
+                try:
+                    # Convert ext_created (ISO 8601) to timestamp
+                    # Python 3.11+ has fromisoformat, but we support 3.13 so good.
+                    # GitHub/Jira return ISO strings like 2023-01-01T12:00:00Z
+                    from datetime import datetime
+
+                    # Handle Z if present
+                    clean_ts = ext_created.replace("Z", "+00:00")
+                    created_dt = datetime.fromisoformat(clean_ts)
+                    issue_ts = created_dt.timestamp()
+
+                    commit_ts = commit.reference.timestamp
+
+                    # Calculate difference in days
+                    diff_sec = abs(commit_ts - issue_ts)
+                    diff_days = diff_sec / 86400
+
+                    if diff_days > config.longevity_threshold_days:
+                        commit.add_tag(Tag.LONGEVITY_MISMATCH.value)
+                        commit.add_tag(f"longevity_gap:{int(diff_days)}")
+                except Exception:
+                    pass  # Ignore parsing errors
 
 
 def _apply_silo_highlights(graph: Graph[GitCommit], config: GitLogConfig):

@@ -18,6 +18,7 @@ class Tag(str, Enum):
     ISSUE_INCONSISTENCY = "issue_inconsistency"
     RELEASE_INCONSISTENCY = "release_inconsistency"
     COLLABORATION_GAP = "collaboration_gap"
+    LONGEVITY_MISMATCH = "longevity_mismatch"
 
     # Specific PR states
     PR_OPEN = "pr:open"

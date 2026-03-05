@@ -409,6 +409,55 @@ def test_collaboration_gap_detection(test_repo):
         assert len(gaps) >= 1
 
 
+def test_longevity_mismatch_detection(test_repo):
+    # 1. Create a commit now
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "late.txt"), "w") as f:
+        f.write("late")
+    subprocess.run(["git", "add", "late.txt"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "feat: PROJ-OLD finally started"],
+        cwd=test_repo,
+        check=True,
+    )
+
+    # 2. Mock Issue created 30 days ago
+    from datetime import datetime, timedelta, timezone
+
+    old_date = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+
+    from git_graphable.issues import IssueInfo, IssueStatus
+
+    with patch("git_graphable.issues.get_issue_engine") as mock_get_engine:
+        mock_engine = MagicMock()
+        mock_engine.get_issue_info.return_value = {
+            "PROJ-OLD": IssueInfo(
+                id="PROJ-OLD", status=IssueStatus.OPEN, created_at=old_date
+            )
+        }
+        mock_get_engine.return_value = mock_engine
+
+        config = GitLogConfig(
+            highlight_longevity_mismatch=True,
+            issue_pattern=r"PROJ-[A-Z]+",
+            issue_engine="jira",
+            longevity_threshold_days=14,
+        )
+
+        graph = process_repo(test_repo, config)
+
+        # Explicitly apply highlights
+        from git_graphable.highlighter import apply_highlights
+
+        apply_highlights(graph, config, repo_path=test_repo)
+
+        mismatches = [c for c in graph if c.is_tagged(Tag.LONGEVITY_MISMATCH.value)]
+        assert len(mismatches) >= 1
+        assert any("PROJ-OLD" in str(c.reference.message) for c in mismatches)
+
+
 def test_cli_check_mode(test_repo):
     # Create a messy repo
     subprocess.run(

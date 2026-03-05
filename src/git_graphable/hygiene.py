@@ -23,6 +23,7 @@ class HygieneScorer:
         self._check_issue_inconsistencies()
         self._check_release_inconsistencies()
         self._check_collaboration_gaps()
+        self._check_longevity_mismatches()
 
         # Ensure score doesn't go below 0
         final_score = max(0, self.score)
@@ -175,4 +176,17 @@ class HygieneScorer:
             deduction = min(25, len(gaps) * 5)
             self._add_deduction(
                 deduction, f"Git author doesn't match issue assignee ({len(gaps)})"
+            )
+
+    def _check_longevity_mismatches(self):
+        # Longevity Mismatches
+        mismatches = [
+            c for c in self.graph if c.is_tagged(Tag.LONGEVITY_MISMATCH.value)
+        ]
+        if mismatches:
+            # -5% per instance, capped at 20%
+            deduction = min(20, len(mismatches) * 5)
+            self._add_deduction(
+                deduction,
+                f"Significant gap between issue creation and code commit ({len(mismatches)})",
             )

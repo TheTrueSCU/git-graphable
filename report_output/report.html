@@ -438,7 +438,7 @@
     <div class="report-metadata" style="background: #f2f4f7;">
     <h2 onclick="this.nextElementSibling.classList.toggle('hidden')" style="cursor: pointer; font-size: 12px; ">
         Execution Metadata (click to toggle)
-         <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('eydyZXBvcnRfdGl0bGUnOiAncmVwb3J0X291dHB1dCcsICdlbnZpcm9ubWVudCc6ICdQYXNzIC0tcnAtZW52IHRvIHBvcHVsYXRlIGVudmlyb25tZW50JywgJ2JyYW5jaCc6ICdQYXNzIC0tZ2l0LWJyYW5jaCB0byBwb3B1bGF0ZSBnaXQgbWV0YWRhdGEnLCAnY29tbWl0JzogJ1Bhc3MgLS1naXQtY29tbWl0IHRvIHBvcHVsYXRlIGdpdCBtZXRhZGF0YScsICdweXRob25fdmVyc2lvbic6ICczLjEzLjExJywgJ2dlbmVyYXRlZF9hdCc6ICcyMDI2LTAzLTA1VDEzOjQyOjU5LjgxMjkzMCd9', this)" title="Copy metadata">
+         <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('eydyZXBvcnRfdGl0bGUnOiAncmVwb3J0X291dHB1dCcsICdlbnZpcm9ubWVudCc6ICdQYXNzIC0tcnAtZW52IHRvIHBvcHVsYXRlIGVudmlyb25tZW50JywgJ2JyYW5jaCc6ICdQYXNzIC0tZ2l0LWJyYW5jaCB0byBwb3B1bGF0ZSBnaXQgbWV0YWRhdGEnLCAnY29tbWl0JzogJ1Bhc3MgLS1naXQtY29tbWl0IHRvIHBvcHVsYXRlIGdpdCBtZXRhZGF0YScsICdweXRob25fdmVyc2lvbic6ICczLjEzLjExJywgJ2dlbmVyYXRlZF9hdCc6ICcyMDI2LTAzLTA1VDE0OjA0OjA4Ljk5MTk5MSd9', this)" title="Copy metadata">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -451,7 +451,7 @@
         <tr><th>Environment</th><td>Pass --rp-env to populate environment</td></tr>
         <tr><th>Branch</th><td>Pass --git-branch to populate git metadata</td></tr>
         <tr><th>Commit</th><td>Pass --git-commit to populate git metadata</td></tr>
-        <tr><th>Generated At</th><td>2026-03-05T13:42:59.812930</td></tr>
+        <tr><th>Generated At</th><td>2026-03-05T14:04:08.991991</td></tr>
         <tr><th>Python version</th><td>3.13.11</td></tr>
     </table>
 </div>
@@ -537,21 +537,21 @@
             border: 1px solid #a83232; 
             border-radius: 5px; margin-bottom: 1rem;">
               Total tests: 1, Failures: 1, Errors: 0.
-              The slowest test was <strong>test_collaboration_gap_detection</strong> at 0.06s.
+              The slowest test was <strong>test_longevity_mismatch_detection</strong> at 0.04s.
             </div>
             <div id="tests-container">
     
-<div class="test test-card" data-name="test_collaboration_gap_detection" data-link="" data-markers="">
+<div class="test test-card" data-name="test_longevity_mismatch_detection" data-link="" data-markers="">
   <div class="header failed" onclick="toggleDetails(this)">
     <div class="header-section test-info">
       <span class="toggle"></span>
-      <strong>test_collaboration_gap_detection</strong>
+      <strong>test_longevity_mismatch_detection</strong>
       <span>— FAILED</span>
     </div>
     <div class="header-section meta">
       <span class="nodeid-badge" style="display: flex; align-items: center; gap: 6px;">
-        <code style="font-size: 0.6em; color: #555;">tests/test_hygiene.py::test_collaboration_gap_detection</code>
-          <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('dGVzdHMvdGVzdF9oeWdpZW5lLnB5Ojp0ZXN0X2NvbGxhYm9yYXRpb25fZ2FwX2RldGVjdGlvbg==', this)" title="Copy nodeid">
+        <code style="font-size: 0.6em; color: #555;">tests/test_hygiene.py::test_longevity_mismatch_detection</code>
+          <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('dGVzdHMvdGVzdF9oeWdpZW5lLnB5Ojp0ZXN0X2xvbmdldml0eV9taXNtYXRjaF9kZXRlY3Rpb24=', this)" title="Copy nodeid">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -565,7 +565,7 @@
     <div class="header-section badges-and-timing">
       <span style="display:inline-block; min-width:40px;"></span>
       <span style="display:inline-block; min-width:45px;"></span>
-      <span class="timestamp">⏱ 0.06s</span>
+      <span class="timestamp">⏱ 0.04s</span>
     </div>
   </div>
 
@@ -584,68 +584,55 @@
 E            +  where 0 = len([])</pre></div>
                     
         
-                    <div class="trace-content"><strong>Trace:</strong> <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('dGVzdF9yZXBvID0gJy90bXAvdG1wMHhxcTM3bm8nCgogICAgZGVmIHRlc3RfY29sbGFib3JhdGlvbl9nYXBfZGV0ZWN0aW9uKHRlc3RfcmVwbyk6CiAgICAgICAgIyAxLiBDcmVhdGUgYSBiYXNlbGluZSBvbiBtYXN0ZXIKICAgICAgICBzdWJwcm9jZXNzLnJ1bigKICAgICAgICAgICAgWyJnaXQiLCAiY29uZmlnIiwgImNvbW1pdC5ncGdzaWduIiwgImZhbHNlIl0sIGN3ZD10ZXN0X3JlcG8sIGNoZWNrPVRydWUKICAgICAgICApCiAgICAgICAgIyBBZGQgYSBjb21taXQgdG8gbWFzdGVyIHNvIGZlYXR1cmUgYnJhbmNoIGlzICdhaGVhZCcKICAgICAgICB3aXRoIG9wZW4ob3MucGF0aC5qb2luKHRlc3RfcmVwbywgImJhc2UudHh0IiksICJ3IikgYXMgZjoKICAgICAgICAgICAgZi53cml0ZSgiYmFzZSIpCiAgICAgICAgc3VicHJvY2Vzcy5ydW4oWyJnaXQiLCAiYWRkIiwgImJhc2UudHh0Il0sIGN3ZD10ZXN0X3JlcG8sIGNoZWNrPVRydWUpCiAgICAgICAgc3VicHJvY2Vzcy5ydW4oWyJnaXQiLCAiY29tbWl0IiwgIi1tIiwgImJhc2UgY29tbWl0Il0sIGN3ZD10ZXN0X3JlcG8sIGNoZWNrPVRydWUpCiAgICAKICAgICAgICAjIDIuIENyZWF0ZSBmZWF0dXJlIGJyYW5jaCBhbmQgY29tbWl0IHdpdGggc3BlY2lmaWMgYXV0aG9yCiAgICAgICAgc3VicHJvY2Vzcy5ydW4oCiAgICAgICAgICAgIFsiZ2l0IiwgImNoZWNrb3V0IiwgIi1iIiwgImZlYXR1cmUvUFJPSi05OTkiXSwgY3dkPXRlc3RfcmVwbywgY2hlY2s9VHJ1ZQogICAgICAgICkKICAgICAgICBzdWJwcm9jZXNzLnJ1bigKICAgICAgICAgICAgWyJnaXQiLCAiY29uZmlnIiwgInVzZXIubmFtZSIsICJHaXQgQXV0aG9yIl0sIGN3ZD10ZXN0X3JlcG8sIGNoZWNrPVRydWUKICAgICAgICApCiAgICAgICAgd2l0aCBvcGVuKG9zLnBhdGguam9pbih0ZXN0X3JlcG8sICJjb2xsYWIudHh0IiksICJ3IikgYXMgZjoKICAgICAgICAgICAgZi53cml0ZSgiY29sbGFiIikKICAgICAgICBzdWJwcm9jZXNzLnJ1bihbImdpdCIsICJhZGQiLCAiY29sbGFiLnR4dCJdLCBjd2Q9dGVzdF9yZXBvLCBjaGVjaz1UcnVlKQogICAgICAgIHN1YnByb2Nlc3MucnVuKAogICAgICAgICAgICBbImdpdCIsICJjb21taXQiLCAiLW0iLCAiZml4OiBQUk9KLTk5OSBoZWxwIl0sIGN3ZD10ZXN0X3JlcG8sIGNoZWNrPVRydWUKICAgICAgICApCiAgICAKICAgICAgICAjIDMuIE1vY2sgSXNzdWUgYXNzaWduZWUgYXMgJ0lzc3VlIE93bmVyJyAoTWlzbWF0Y2ggd2l0aCAnR2l0IEF1dGhvcicgb3IgaXRzIG1hcHBpbmcpCiAgICAgICAgZnJvbSBnaXRfZ3JhcGhhYmxlLmlzc3VlcyBpbXBvcnQgSXNzdWVJbmZvLCBJc3N1ZVN0YXR1cwogICAgCiAgICAgICAgd2l0aCBwYXRjaCgiZ2l0X2dyYXBoYWJsZS5pc3N1ZXMuZ2V0X2lzc3VlX2VuZ2luZSIpIGFzIG1vY2tfZ2V0X2VuZ2luZToKICAgICAgICAgICAgbW9ja19lbmdpbmUgPSBNYWdpY01vY2soKQogICAgICAgICAgICBtb2NrX2VuZ2luZS5nZXRfaXNzdWVfaW5mby5yZXR1cm5fdmFsdWUgPSB7CiAgICAgICAgICAgICAgICAiUFJPSi05OTkiOiBJc3N1ZUluZm8oCiAgICAgICAgICAgICAgICAgICAgaWQ9IlBST0otOTk5Iiwgc3RhdHVzPUlzc3VlU3RhdHVzLk9QRU4sIGFzc2lnbmVlPSJJc3N1ZSBPd25lciIKICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgfQogICAgICAgICAgICBtb2NrX2dldF9lbmdpbmUucmV0dXJuX3ZhbHVlID0gbW9ja19lbmdpbmUKICAgIAogICAgICAgICAgICBjb25maWcgPSBHaXRMb2dDb25maWcoCiAgICAgICAgICAgICAgICBoaWdobGlnaHRfY29sbGFib3JhdGlvbl9nYXBzPVRydWUsCiAgICAgICAgICAgICAgICBpc3N1ZV9wYXR0ZXJuPXIiUFJPSi1bMC05XSsiLAogICAgICAgICAgICAgICAgaXNzdWVfZW5naW5lPSJqaXJhIiwKICAgICAgICAgICAgICAgIGRldmVsb3BtZW50X2JyYW5jaD0ibWFzdGVyIiwKICAgICAgICAgICAgICAgIGF1dGhvcl9tYXBwaW5nPXsiR2l0IEF1dGhvciI6ICJTb21lIE90aGVyIFBlcnNvbiJ9CiAgICAgICAgICAgICkKICAgIAogICAgICAgICAgICBncmFwaCA9IHByb2Nlc3NfcmVwbyh0ZXN0X3JlcG8sIGNvbmZpZykKICAgIAogICAgICAgICAgICAjIEV4cGxpY2l0bHkgYXBwbHkgaGlnaGxpZ2h0cyB0byBlbnN1cmUgdGhleSBydW4gd2l0aCBjb3JyZWN0IHJlcG9fcGF0aAogICAgICAgICAgICBmcm9tIGdpdF9ncmFwaGFibGUuaGlnaGxpZ2h0ZXIgaW1wb3J0IGFwcGx5X2hpZ2hsaWdodHMKICAgICAgICAgICAgYXBwbHlfaGlnaGxpZ2h0cyhncmFwaCwgY29uZmlnLCByZXBvX3BhdGg9dGVzdF9yZXBvKQogICAgCiAgICAgICAgICAgIGdhcHMgPSBbYyBmb3IgYyBpbiBncmFwaCBpZiBjLmlzX3RhZ2dlZChUYWcuQ09MTEFCT1JBVElPTl9HQVAudmFsdWUpXQo+ICAgICAgICAgICBhc3NlcnQgbGVuKGdhcHMpID49IDE=', this)" title="Copy trace">
+                    <div class="trace-content"><strong>Trace:</strong> <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('dGVzdF9yZXBvID0gJy90bXAvdG1wem14ZDB6XzcnCgogICAgZGVmIHRlc3RfbG9uZ2V2aXR5X21pc21hdGNoX2RldGVjdGlvbih0ZXN0X3JlcG8pOgogICAgICAgICMgMS4gQ3JlYXRlIGEgY29tbWl0IG5vdwogICAgICAgIHN1YnByb2Nlc3MucnVuKAogICAgICAgICAgICBbImdpdCIsICJjb25maWciLCAiY29tbWl0LmdwZ3NpZ24iLCAiZmFsc2UiXSwgY3dkPXRlc3RfcmVwbywgY2hlY2s9VHJ1ZQogICAgICAgICkKICAgICAgICB3aXRoIG9wZW4ob3MucGF0aC5qb2luKHRlc3RfcmVwbywgImxhdGUudHh0IiksICJ3IikgYXMgZjoKICAgICAgICAgICAgZi53cml0ZSgibGF0ZSIpCiAgICAgICAgc3VicHJvY2Vzcy5ydW4oWyJnaXQiLCAiYWRkIiwgImxhdGUudHh0Il0sIGN3ZD10ZXN0X3JlcG8sIGNoZWNrPVRydWUpCiAgICAgICAgc3VicHJvY2Vzcy5ydW4oWyJnaXQiLCAiY29tbWl0IiwgIi1tIiwgImZlYXQ6IFBST0otT0xEIGZpbmFsbHkgc3RhcnRlZCJdLCBjd2Q9dGVzdF9yZXBvLCBjaGVjaz1UcnVlKQogICAgCiAgICAgICAgIyAyLiBNb2NrIElzc3VlIGNyZWF0ZWQgMzAgZGF5cyBhZ28KICAgICAgICBmcm9tIGRhdGV0aW1lIGltcG9ydCBkYXRldGltZSwgdGltZWRlbHRhLCB0aW1lem9uZQogICAgCiAgICAgICAgb2xkX2RhdGUgPSAoZGF0ZXRpbWUubm93KHRpbWV6b25lLnV0YykgLSB0aW1lZGVsdGEoZGF5cz0zMCkpLmlzb2Zvcm1hdCgpCiAgICAKICAgICAgICBmcm9tIGdpdF9ncmFwaGFibGUuaXNzdWVzIGltcG9ydCBJc3N1ZUluZm8sIElzc3VlU3RhdHVzCiAgICAgICAgd2l0aCBwYXRjaCgiZ2l0X2dyYXBoYWJsZS5pc3N1ZXMuZ2V0X2lzc3VlX2VuZ2luZSIpIGFzIG1vY2tfZ2V0X2VuZ2luZToKICAgICAgICAgICAgbW9ja19lbmdpbmUgPSBNYWdpY01vY2soKQogICAgICAgICAgICBtb2NrX2VuZ2luZS5nZXRfaXNzdWVfaW5mby5yZXR1cm5fdmFsdWUgPSB7CiAgICAgICAgICAgICAgICAiUFJPSi1PTEQiOiBJc3N1ZUluZm8oCiAgICAgICAgICAgICAgICAgICAgaWQ9IlBST0otT0xEIiwgc3RhdHVzPUlzc3VlU3RhdHVzLk9QRU4sIGNyZWF0ZWRfYXQ9b2xkX2RhdGUKICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgfQogICAgICAgICAgICBtb2NrX2dldF9lbmdpbmUucmV0dXJuX3ZhbHVlID0gbW9ja19lbmdpbmUKICAgIAogICAgICAgICAgICBjb25maWcgPSBHaXRMb2dDb25maWcoCiAgICAgICAgICAgICAgICBoaWdobGlnaHRfbG9uZ2V2aXR5X21pc21hdGNoPVRydWUsCiAgICAgICAgICAgICAgICBpc3N1ZV9wYXR0ZXJuPXIiUFJPSi1bQS1aXSsiLAogICAgICAgICAgICAgICAgaXNzdWVfZW5naW5lPSJqaXJhIiwKICAgICAgICAgICAgICAgIGxvbmdldml0eV90aHJlc2hvbGRfZGF5cz0xNAogICAgICAgICAgICApCiAgICAKICAgICAgICAgICAgZ3JhcGggPSBwcm9jZXNzX3JlcG8odGVzdF9yZXBvLCBjb25maWcpCiAgICAKICAgICAgICAgICAgIyBFeHBsaWNpdGx5IGFwcGx5IGhpZ2hsaWdodHMKICAgICAgICAgICAgZnJvbSBnaXRfZ3JhcGhhYmxlLmhpZ2hsaWdodGVyIGltcG9ydCBhcHBseV9oaWdobGlnaHRzCiAgICAgICAgICAgIGFwcGx5X2hpZ2hsaWdodHMoZ3JhcGgsIGNvbmZpZywgcmVwb19wYXRoPXRlc3RfcmVwbykKICAgIAogICAgICAgICAgICBtaXNtYXRjaGVzID0gW2MgZm9yIGMgaW4gZ3JhcGggaWYgYy5pc190YWdnZWQoVGFnLkxPTkdFVklUWV9NSVNNQVRDSC52YWx1ZSldCj4gICAgICAgICAgIGFzc2VydCBsZW4obWlzbWF0Y2hlcykgPj0gMQ==', this)" title="Copy trace">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
                 </button>
             
-                    <pre>test_repo = '/tmp/tmp0xqq37no'
+                    <pre>test_repo = '/tmp/tmpzmxd0z_7'
 
-    def test_collaboration_gap_detection(test_repo):
-        # 1. Create a baseline on master
+    def test_longevity_mismatch_detection(test_repo):
+        # 1. Create a commit now
         subprocess.run(
             ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
         )
-        # Add a commit to master so feature branch is 'ahead'
-        with open(os.path.join(test_repo, "base.txt"), "w") as f:
-            f.write("base")
-        subprocess.run(["git", "add", "base.txt"], cwd=test_repo, check=True)
-        subprocess.run(["git", "commit", "-m", "base commit"], cwd=test_repo, check=True)
+        with open(os.path.join(test_repo, "late.txt"), "w") as f:
+            f.write("late")
+        subprocess.run(["git", "add", "late.txt"], cwd=test_repo, check=True)
+        subprocess.run(["git", "commit", "-m", "feat: PROJ-OLD finally started"], cwd=test_repo, check=True)
     
-        # 2. Create feature branch and commit with specific author
-        subprocess.run(
-            ["git", "checkout", "-b", "feature/PROJ-999"], cwd=test_repo, check=True
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Git Author"], cwd=test_repo, check=True
-        )
-        with open(os.path.join(test_repo, "collab.txt"), "w") as f:
-            f.write("collab")
-        subprocess.run(["git", "add", "collab.txt"], cwd=test_repo, check=True)
-        subprocess.run(
-            ["git", "commit", "-m", "fix: PROJ-999 help"], cwd=test_repo, check=True
-        )
+        # 2. Mock Issue created 30 days ago
+        from datetime import datetime, timedelta, timezone
     
-        # 3. Mock Issue assignee as 'Issue Owner' (Mismatch with 'Git Author' or its mapping)
+        old_date = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    
         from git_graphable.issues import IssueInfo, IssueStatus
-    
         with patch("git_graphable.issues.get_issue_engine") as mock_get_engine:
             mock_engine = MagicMock()
             mock_engine.get_issue_info.return_value = {
-                "PROJ-999": IssueInfo(
-                    id="PROJ-999", status=IssueStatus.OPEN, assignee="Issue Owner"
+                "PROJ-OLD": IssueInfo(
+                    id="PROJ-OLD", status=IssueStatus.OPEN, created_at=old_date
                 )
             }
             mock_get_engine.return_value = mock_engine
     
             config = GitLogConfig(
-                highlight_collaboration_gaps=True,
-                issue_pattern=r"PROJ-[0-9]+",
+                highlight_longevity_mismatch=True,
+                issue_pattern=r"PROJ-[A-Z]+",
                 issue_engine="jira",
-                development_branch="master",
-                author_mapping={"Git Author": "Some Other Person"}
+                longevity_threshold_days=14
             )
     
             graph = process_repo(test_repo, config)
     
-            # Explicitly apply highlights to ensure they run with correct repo_path
+            # Explicitly apply highlights
             from git_graphable.highlighter import apply_highlights
             apply_highlights(graph, config, repo_path=test_repo)
     
-            gaps = [c for c in graph if c.is_tagged(Tag.COLLABORATION_GAP.value)]
->           assert len(gaps) >= 1</pre></div>
+            mismatches = [c for c in graph if c.is_tagged(Tag.LONGEVITY_MISMATCH.value)]
+>           assert len(mismatches) >= 1</pre></div>
                     
         
         
