@@ -2,10 +2,12 @@ import os
 import shutil
 import subprocess
 import tempfile
+from unittest.mock import patch
 
 import pytest
 
 from git_graphable.core import GitLogConfig, process_repo
+from git_graphable.github import PullRequestInfo
 from git_graphable.models import Tag
 
 
@@ -21,6 +23,9 @@ def test_repo():
         )
         subprocess.run(
             ["git", "config", "user.name", "Test User"], cwd=test_dir, check=True
+        )
+        subprocess.run(
+            ["git", "config", "commit.gpgsign", "false"], cwd=test_dir, check=True
         )
         with open(os.path.join(test_dir, "file1.txt"), "w") as f:
             f.write("v1")
@@ -65,6 +70,63 @@ def test_wip_custom_keywords(test_repo):
     wip_commits = [c for c in graph if c.is_tagged(Tag.WIP.value)]
     assert len(wip_commits) >= 1
     assert "experimental change" in str(wip_commits[0].reference.message)
+
+
+def test_squash_merge_detection(test_repo):
+    # Get current SHA
+    res = subprocess.run(
+        ["git", "log", "--format=%H", "-n", "1"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+    main_sha = res.stdout.strip()
+
+    # Create a feature branch and a commit
+    subprocess.run(
+        ["git", "checkout", "-b", "feature/squash-me"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "squash.txt"), "w") as f:
+        f.write("squash")
+    subprocess.run(["git", "add", "squash.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "feature commit"], cwd=test_repo, check=True)
+
+    res = subprocess.run(
+        ["git", "log", "--format=%H", "-n", "1"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+    feature_sha = res.stdout.strip()
+
+    # Now we simulate that feature_sha was squashed into main_sha
+    pr = PullRequestInfo(
+        number=123,
+        title="Squash PR",
+        state="MERGED",
+        is_draft=False,
+        head_ref_name="feature/squash-me",
+        head_ref_oid=feature_sha,
+        merge_commit_oid=main_sha,
+        mergeable="MERGEABLE",
+    )
+
+    with patch("git_graphable.github.get_repo_prs") as mock_get_prs:
+        mock_get_prs.return_value = [pr]
+
+        config = GitLogConfig(highlight_squashed=True)
+        graph = process_repo(test_repo, config)
+
+        nodes = {c.reference.hash: c for c in graph}
+        main_node = nodes[main_sha]
+        feature_node = nodes[feature_sha]
+
+        assert Tag.SQUASH_COMMIT.value in main_node.tags
+        assert Tag.SQUASHED.value in feature_node.tags
+        assert (
+            main_node.edge_attributes(feature_node).get(Tag.EDGE_LOGICAL_MERGE.value)
+            is True
+        )
 
 
 def test_direct_push_detection(test_repo):

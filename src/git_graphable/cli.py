@@ -267,6 +267,11 @@ def run_bare_cli(argv: List[str]):
         help="Highlight non-merge commits on protected branches",
     )
     parser.add_argument(
+        "--highlight-squashed",
+        action="store_true",
+        help="Highlight squashed PRs and logically link them",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
@@ -318,6 +323,9 @@ def run_bare_cli(argv: List[str]):
         "wip_keywords": args.wip_keywords,
         "highlight_direct_pushes": args.highlight_direct_pushes
         if args.highlight_direct_pushes
+        else None,
+        "highlight_squashed": args.highlight_squashed
+        if args.highlight_squashed
         else None,
     }
 
@@ -435,6 +443,11 @@ if HAS_CLI_EXTRAS:
             "--highlight-direct-pushes",
             help="Highlight non-merge commits on protected branches",
         ),
+        highlight_squashed: bool = typer.Option(
+            False,
+            "--highlight-squashed",
+            help="Highlight squashed PRs and logically link them",
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
@@ -481,6 +494,7 @@ if HAS_CLI_EXTRAS:
             "highlight_direct_pushes": highlight_direct_pushes
             if highlight_direct_pushes
             else None,
+            "highlight_squashed": highlight_squashed if highlight_squashed else None,
         }
 
         config = load_config(path, config_path, overrides)

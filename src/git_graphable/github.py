@@ -10,6 +10,7 @@ class PullRequestInfo:
     title: str
     state: str
     is_draft: bool
+    head_ref_name: str
     head_ref_oid: str
     merge_commit_oid: Optional[str]
     mergeable: str
@@ -34,7 +35,7 @@ def get_repo_prs(repo_path: str) -> List[PullRequestInfo]:
             "--limit",
             "1000",
             "--json",
-            "number,title,state,isDraft,headRefOid,mergeCommit,mergeable",
+            "number,title,state,isDraft,headRefName,headRefOid,mergeCommit,mergeable",
         ]
         result = subprocess.run(
             cmd, cwd=repo_path, capture_output=True, text=True, check=True
@@ -52,6 +53,7 @@ def get_repo_prs(repo_path: str) -> List[PullRequestInfo]:
                     title=item["title"],
                     state=item["state"],
                     is_draft=item["isDraft"],
+                    head_ref_name=item["headRefName"],
                     head_ref_oid=item["headRefOid"],
                     merge_commit_oid=merge_commit_oid,
                     mergeable=item["mergeable"],

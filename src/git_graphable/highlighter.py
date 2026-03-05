@@ -21,6 +21,67 @@ def apply_highlights(
     _apply_long_running_highlights(graph, config)
     _apply_wip_highlights(graph, config)
     _apply_direct_push_highlights(graph, config)
+    _apply_squash_highlights(graph, config, repo_path)
+
+
+def _apply_squash_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str]
+):
+    """Detect and highlight 'logical' merges from squashed GitHub PRs."""
+    if not config.highlight_squashed or not repo_path:
+        return
+
+    from .github import get_repo_prs
+
+    prs = get_repo_prs(repo_path)
+    # Filter for merged PRs that have a head branch name
+    merged_prs = [pr for pr in prs if pr.state == "MERGED" and pr.merge_commit_oid]
+
+    commits_by_hash = {c.reference.hash: c for c in graph}
+
+    for pr in merged_prs:
+        if pr.merge_commit_oid in commits_by_hash:
+            squash_commit = commits_by_hash[pr.merge_commit_oid]
+
+            # Label the squash commit
+            squash_commit.add_tag(Tag.SQUASH_COMMIT.value)
+
+            # Find the original feature branch commits if they still exist locally.
+            # They would be tagged with the branch name.
+            branch_tag = f"{Tag.BRANCH.value}{pr.head_ref_name}"
+
+            # Find commits that have this branch tag but are NOT reachable
+            # from the squash commit's ancestors (meaning they were squashed).
+            squash_ancestors = set(graph.ancestors(squash_commit))
+
+            potential_squashed = [
+                c
+                for c in graph
+                if branch_tag in c.tags
+                and c not in squash_ancestors
+                and c != squash_commit
+            ]
+
+            if potential_squashed:
+                # Find the 'tip' of the squashed commits
+                # (The one with no children in the potential_squashed set)
+                tips = []
+                for c in potential_squashed:
+                    is_tip = True
+                    for child, _ in graph.internal_dependents(c):
+                        if child in potential_squashed:
+                            is_tip = False
+                            break
+                    if is_tip:
+                        tips.append(c)
+
+                # Link each tip logically to the squash commit
+                for tip in tips:
+                    squash_commit.set_edge_attribute(
+                        tip, Tag.EDGE_LOGICAL_MERGE.value, True
+                    )
+                    # Also tag the tip as squashed
+                    tip.add_tag(Tag.SQUASHED.value)
 
 
 def _apply_wip_highlights(graph: Graph[GitCommit], config: GitLogConfig):

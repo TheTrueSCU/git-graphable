@@ -77,6 +77,10 @@ def get_node_text(
             display_label += " [WIP]"
         if tag == Tag.DIRECT_PUSH.value:
             display_label += " [DIRECT]"
+        if tag == Tag.SQUASH_COMMIT.value:
+            display_label += " [SQUASH]"
+        if tag == Tag.SQUASHED.value:
+            display_label += " [SQUASHED]"
 
     sep = " - "
     newline = " - "
@@ -196,6 +200,13 @@ def get_generic_link_style(
             styles.update({"stroke": "purple", "stroke-width": "4"})
         elif engine == Engine.GRAPHVIZ:
             styles.update({"color": "purple", "penwidth": "3"})
+    elif node.edge_attributes(subnode).get(Tag.EDGE_LOGICAL_MERGE.value):
+        if engine == Engine.D2:
+            styles.update(
+                {"stroke": "#808080", "stroke-width": "2", "stroke-dash": "5"}
+            )
+        elif engine == Engine.GRAPHVIZ:
+            styles.update({"color": "#808080", "style": "dashed", "penwidth": "1"})
     return styles
 
 
@@ -262,6 +273,8 @@ def export_graph(
                 return "stroke:#FFA500,stroke-width:4px"
             if attrs.get(Tag.EDGE_LONG_RUNNING.value):
                 return "stroke:purple,stroke-width:3px"
+            if attrs.get(Tag.EDGE_LOGICAL_MERGE.value):
+                return "stroke:#808080,stroke-width:2px,stroke-dasharray: 5 5"
             return None
 
         styling_config = MermaidStylingConfig(

@@ -28,6 +28,9 @@ def test_repo():
         subprocess.run(
             ["git", "config", "user.name", "Test User"], cwd=test_dir, check=True
         )
+        subprocess.run(
+            ["git", "config", "commit.gpgsign", "false"], cwd=test_dir, check=True
+        )
         with open(os.path.join(test_dir, "file1.txt"), "w") as f:
             f.write("v1")
         subprocess.run(["git", "add", "file1.txt"], cwd=test_dir, check=True)

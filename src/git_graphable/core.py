@@ -47,6 +47,7 @@ class GitLogConfig:
         default_factory=lambda: ["wip", "todo", "fixup!", "squash!", "temp", "bug"]
     )
     highlight_direct_pushes: bool = False
+    highlight_squashed: bool = False
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
@@ -136,6 +137,7 @@ def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
         "PR: Closed": [],
         "WIP": [],
         "Direct Pushes": [],
+        "Squashed PRs": [],
     }
 
     for commit in graph:
@@ -163,6 +165,8 @@ def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
             summary["WIP"].append(commit)
         if commit.is_tagged(Tag.DIRECT_PUSH.value):
             summary["Direct Pushes"].append(commit)
+        if commit.is_tagged(Tag.SQUASH_COMMIT.value):
+            summary["Squashed PRs"].append(commit)
 
     return summary
 
