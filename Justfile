@@ -1,7 +1,7 @@
 set dotenv-load
 
-GIT_BRANCH:=`git branch --show-current`
-GIT_COMMIT:=`git rev-parse HEAD`
+GIT_BRANCH:=`git branch --show-current | xargs echo -n | grep . || echo "unknown"`
+GIT_COMMIT:=`git rev-parse HEAD | xargs echo -n | grep . || echo "unknown"`
 
 @_:
     just --list
@@ -88,5 +88,18 @@ typing:
     uv run ty check
 
 [group('run')]
+pr title body="":
+    #!/usr/bin/env bash
+    CURRENT_BRANCH=$(git branch --show-current)
+    if [ "$CURRENT_BRANCH" == "main" ]; then
+        echo "Error: You are on the 'main' branch. Please create a feature branch first!"
+        exit 1
+    fi
+    just check
+    git push -u origin "$CURRENT_BRANCH"
+    gh pr create --repo TheTrueSCU/git-graphable --head "$CURRENT_BRANCH" --title "{{ title }}" --body "{{ body }}"
+
+[group('run')]
 @run *args:
     uv run git-graphable {{ args }}
+
