@@ -250,6 +250,23 @@ def run_bare_cli(argv: List[str]):
         help="Highlight commits based on GitHub PR status",
     )
     parser.add_argument(
+        "--highlight-wip",
+        action="store_true",
+        help="Highlight WIP/TODO commits",
+    )
+    parser.add_argument(
+        "--wip-keyword",
+        action="append",
+        dest="wip_keywords",
+        default=[],
+        help="Additional keyword to trigger WIP highlighting",
+    )
+    parser.add_argument(
+        "--highlight-direct-pushes",
+        action="store_true",
+        help="Highlight non-merge commits on protected branches",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
@@ -296,6 +313,11 @@ def run_bare_cli(argv: List[str]):
         "long_running_base": args.long_running_base,
         "highlight_pr_status": args.highlight_pr_status
         if args.highlight_pr_status
+        else None,
+        "highlight_wip": args.highlight_wip if args.highlight_wip else None,
+        "wip_keywords": args.wip_keywords,
+        "highlight_direct_pushes": args.highlight_direct_pushes
+        if args.highlight_direct_pushes
         else None,
     }
 
@@ -402,6 +424,17 @@ if HAS_CLI_EXTRAS:
             "--highlight-pr-status",
             help="Highlight commits based on GitHub PR status",
         ),
+        highlight_wip: bool = typer.Option(
+            False, "--highlight-wip", help="Highlight WIP/TODO commits"
+        ),
+        wip_keywords: List[str] = typer.Option(
+            [], "--wip-keyword", help="Additional keyword to trigger WIP highlighting"
+        ),
+        highlight_direct_pushes: bool = typer.Option(
+            False,
+            "--highlight-direct-pushes",
+            help="Highlight non-merge commits on protected branches",
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
@@ -443,6 +476,11 @@ if HAS_CLI_EXTRAS:
             "long_running_days": long_running_days,
             "long_running_base": long_running_base,
             "highlight_pr_status": highlight_pr_status if highlight_pr_status else None,
+            "highlight_wip": highlight_wip if highlight_wip else None,
+            "wip_keywords": wip_keywords,
+            "highlight_direct_pushes": highlight_direct_pushes
+            if highlight_direct_pushes
+            else None,
         }
 
         config = load_config(path, config_path, overrides)

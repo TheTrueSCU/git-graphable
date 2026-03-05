@@ -49,22 +49,30 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 
 | Option | Target | Effect | Conflicts With |
 | :--- | :--- | :--- | :--- |
-| `--highlight-authors` | **Fill** | Unique color per author | PR Status, Distance, Stale |
-| `--highlight-pr-status` | **Fill/Stroke**| Color by PR state (Merged=Purple, Open=Green) | Authors, Distance, Stale |
-| `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | Authors, PR Status, Stale |
-| `--highlight-stale` | **Fill** | Gradient white to red by age | Authors, PR Status, Distance |
+| `--highlight-authors` | **Fill** | Unique color per author | PR Status, Distance, Stale, WIP |
+| `--highlight-pr-status` | **Fill/Stroke**| Color by PR state (Merged=Purple, Open=Green) | Authors, Distance, Stale, WIP |
+| `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | Authors, PR Status, Stale, WIP |
+| `--highlight-stale` | **Fill** | Gradient white to red by age | Authors, PR Status, Distance, WIP |
+| `--highlight-wip` | **Fill** | Yellow fill for WIP/TODO commits | Authors, PR Status, Distance, Stale |
 | `--highlight-path` | **Edge** | Thick Orange edge connecting nodes | None |
 | `--highlight-critical` | **Stroke** | Thick Red Solid outline | None |
 | `--highlight-diverging-from` | **Stroke** | Orange Dashed outline | None |
 | `--highlight-orphans` | **Stroke** | Grey Dashed outline | None |
 | `--highlight-long-running` | **Stroke/Edge** | Purple outline and thick Purple edge | None |
+| `--highlight-direct-pushes` | **Stroke** | Thick Red Dashed outline | None |
 
 ### Highlighting Priorities
-- **Fill**: `--highlight-authors`, `--highlight-pr-status`, `--highlight-distance-from`, and `--highlight-stale` are mutually exclusive.
+- **Fill**: `--highlight-authors`, `--highlight-pr-status`, `--highlight-distance-from`, `--highlight-stale`, and `--highlight-wip` are mutually exclusive.
 - **Edge**: Path highlighting (Thick Orange) takes priority over Long-Running highlighting (Thick Purple).
-- **Stroke**: Critical outlines (Thick Red) take priority over PR Conflicts (Thick Red), which take priority over all other outlines (Divergence, Orphan, Long-Running).
+- **Stroke**: Critical outlines (Thick Red Solid) take priority over Direct Pushes (Thick Red Dashed), which take priority over PR Conflicts (Thick Red Solid), which take priority over all other outlines (Divergence, Orphan, Long-Running).
 
 ## Advanced Examples
+
+### Hygiene Analysis
+Identify problematic patterns like direct pushes to `main` or messy WIP commits:
+```bash
+uv run git-graphable . --highlight-direct-pushes --highlight-wip
+```
 
 ### PR Status Highlighting
 View the current state of all PRs in your repository graph:
@@ -105,6 +113,9 @@ date_format = "%Y-%m-%d"
 highlight_critical = true
 critical_branches = ["main", "prod"]
 highlight_pr_status = true
+highlight_wip = true
+wip_keywords = ["wip", "todo", "fixme", "temp"]
+highlight_direct_pushes = true
 ```
 
 ### Example `pyproject.toml`

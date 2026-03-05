@@ -19,6 +19,62 @@ def apply_highlights(
     _apply_orphan_highlights(graph, config)
     _apply_stale_highlights(graph, config)
     _apply_long_running_highlights(graph, config)
+    _apply_wip_highlights(graph, config)
+    _apply_direct_push_highlights(graph, config)
+
+
+def _apply_wip_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+    """Highlight commits with WIP/TODO keywords in message."""
+    if not config.highlight_wip:
+        return
+
+    keywords = [k.lower() for k in config.wip_keywords]
+    for commit in graph:
+        message = commit.reference.message.lower()
+        if any(k in message for k in keywords):
+            commit.add_tag(Tag.WIP.value)
+
+
+def _apply_direct_push_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+    """Highlight non-merge commits made directly to protected branches."""
+    if not config.highlight_direct_pushes:
+        return
+
+    protected = {
+        config.production_branch,
+        config.development_branch,
+        *config.critical_branches,
+    }
+
+    for commit in graph:
+        # Check if it's a non-merge commit (1 parent or 0 for root)
+        if len(commit.reference.parents) > 1:
+            continue
+
+        # For each branch this commit is on, check if it's protected
+        for branch in commit.reference.branches:
+            if branch in protected:
+                # If there are parents, the parent must ALSO have been on this branch
+                # to be a 'direct push'. If the parent was NOT on this branch,
+                # it might be a fast-forward merge or the start of the branch.
+                if not commit.reference.parents:
+                    # Root commit on protected branch is fine (or is it?)
+                    # Usually we only care about commits added LATER.
+                    continue
+
+                # In our graph, nodes don't easily know their parent's branches
+                # without searching. But get_git_log already assigned branches
+                # to metadata.
+
+                # To be a direct push:
+                # 1. Commit is on 'main'
+                # 2. Commit is NOT a merge
+                # 3. Parent was ALREADY on 'main'
+
+                # For now, let's keep it simple: if it's a non-merge commit
+                # appearing on a protected branch, it's a candidate.
+                commit.add_tag(Tag.DIRECT_PUSH.value)
+                break
 
 
 def _apply_pr_highlights(

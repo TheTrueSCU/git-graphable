@@ -73,6 +73,11 @@ def get_node_text(
         if tag == Tag.PR_CONFLICT.value:
             display_label += " (CONFLICT)"
 
+        if tag == Tag.WIP.value:
+            display_label += " [WIP]"
+        if tag == Tag.DIRECT_PUSH.value:
+            display_label += " [DIRECT]"
+
     sep = " - "
     newline = " - "
     if engine in [Engine.D2, Engine.GRAPHVIZ, Engine.PLANTUML]:
@@ -98,6 +103,14 @@ def get_node_text(
 
 def get_generic_style(node: Graphable[Any], engine: Engine) -> dict[str, str]:
     styles = {}
+
+    # WIP highlighting (Yellow fill)
+    if node.is_tagged(Tag.WIP.value):
+        if engine == Engine.D2:
+            styles.update({"fill": "#ffff00", "font-color": "black"})
+        elif engine == Engine.GRAPHVIZ:
+            styles.update({"fillcolor": "#ffff00", "style": "filled"})
+
     for tag in node.tags:
         if tag.startswith(Tag.COLOR.value):
             color = tag.split(":", 1)[1]
@@ -156,6 +169,16 @@ def get_generic_style(node: Graphable[Any], engine: Engine) -> dict[str, str]:
             styles["color"] = "red"
             styles["penwidth"] = "6"
 
+    if node.is_tagged(Tag.DIRECT_PUSH.value):
+        if engine == Engine.D2:
+            styles["stroke"] = "#ff0000"
+            styles["stroke-width"] = "10"
+            styles["stroke-dash"] = "2"
+        elif engine == Engine.GRAPHVIZ:
+            styles["color"] = "#ff0000"
+            styles["penwidth"] = "8"
+            styles["style"] = styles.get("style", "") + ",dashed"
+
     return styles
 
 
@@ -195,6 +218,11 @@ def export_graph(
 
         def mermaid_style(node: Graphable[Any]) -> Optional[str]:
             style_parts = []
+
+            # WIP
+            if node.is_tagged(Tag.WIP.value):
+                style_parts.append("fill:#ffff00,color:black")
+
             for tag in node.tags:
                 if tag.startswith(Tag.COLOR.value):
                     color = tag.split(":", 1)[1]
@@ -220,6 +248,10 @@ def export_graph(
                 style_parts.append("stroke:purple,stroke-width:3px")
             if node.is_tagged(Tag.PR_CONFLICT.value):
                 style_parts.append("stroke:red,stroke-width:6px")
+            if node.is_tagged(Tag.DIRECT_PUSH.value):
+                style_parts.append(
+                    "stroke:#ff0000,stroke-width:8px,stroke-dasharray: 2 2"
+                )
             return ",".join(style_parts) if style_parts else None
 
         def mermaid_link_style(

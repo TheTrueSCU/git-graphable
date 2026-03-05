@@ -9,6 +9,8 @@ class Tag(str, Enum):
     LONG_RUNNING = "long_running"
     PATH_HIGHLIGHT = "path_highlight"
     PR_STATUS = "pr_status"
+    WIP = "wip"
+    DIRECT_PUSH = "direct_push"
 
     # Specific PR states
     PR_OPEN = "pr:open"
