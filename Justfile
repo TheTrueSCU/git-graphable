@@ -114,3 +114,4 @@ generate-examples:
     uv run git-graphable examples/repos/repo-complex-hygiene --engine mermaid -o examples/assets/complex.mmd --highlight-back-merges --bare
     uv run git-graphable examples/repos/repo-issue-desync --engine mermaid -o examples/assets/issue_desync.mmd --highlight-issue-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED" --bare
     uv run git-graphable examples/repos/repo-release-desync --engine mermaid -o examples/assets/release_desync.mmd --highlight-release-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED" --bare
+    uv run git-graphable examples/repos/repo-collab-gap --engine mermaid -o examples/assets/collab_gap.mmd --highlight-collaboration-gaps --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo OPEN,Bob" --bare

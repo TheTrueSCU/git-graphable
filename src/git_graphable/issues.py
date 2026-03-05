@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 
@@ -11,19 +12,31 @@ class IssueStatus:
     UNKNOWN = "UNKNOWN"
 
 
+@dataclass
+class IssueInfo:
+    id: str
+    status: str
+    assignee: Optional[str] = None
+
+
 class IssueTracker(ABC):
     """Base class for issue tracker integrations."""
 
     @abstractmethod
-    def get_statuses(self, issue_ids: List[str]) -> Dict[str, str]:
-        """Fetch statuses for a list of issue IDs. Returns ID -> IssueStatus map."""
+    def get_issue_info(self, issue_ids: List[str]) -> Dict[str, IssueInfo]:
+        """Fetch info for a list of issue IDs. Returns ID -> IssueInfo map."""
         pass
+
+    def get_statuses(self, issue_ids: List[str]) -> Dict[str, str]:
+        """Backward compatible helper."""
+        info = self.get_issue_info(issue_ids)
+        return {iid: item.status for iid, item in info.items()}
 
 
 class GitHubIssueEngine(IssueTracker):
     """GitHub Issues integration using 'gh' CLI."""
 
-    def get_statuses(self, issue_ids: List[str]) -> Dict[str, str]:
+    def get_issue_info(self, issue_ids: List[str]) -> Dict[str, IssueInfo]:
         results = {}
         for issue_id in issue_ids:
             try:
@@ -31,19 +44,25 @@ class GitHubIssueEngine(IssueTracker):
                 if not issue_id.isdigit():
                     continue
 
-                cmd = ["gh", "issue", "view", issue_id, "--json", "state"]
+                cmd = ["gh", "issue", "view", issue_id, "--json", "state,assignees"]
                 result = subprocess.run(cmd, capture_output=True, text=True, check=True)
                 data = json.loads(result.stdout)
                 state = data.get("state", "").upper()
 
+                status = IssueStatus.UNKNOWN
                 if state == "OPEN":
-                    results[issue_id] = IssueStatus.OPEN
+                    status = IssueStatus.OPEN
                 elif state in ["CLOSED", "MERGED"]:
-                    results[issue_id] = IssueStatus.CLOSED
-                else:
-                    results[issue_id] = IssueStatus.UNKNOWN
+                    status = IssueStatus.CLOSED
+
+                assignees = data.get("assignees", [])
+                assignee = assignees[0].get("login") if assignees else None
+
+                results[issue_id] = IssueInfo(
+                    id=issue_id, status=status, assignee=assignee
+                )
             except Exception:
-                results[issue_id] = IssueStatus.UNKNOWN
+                results[issue_id] = IssueInfo(id=issue_id, status=IssueStatus.UNKNOWN)
         return results
 
 
@@ -55,16 +74,20 @@ class JiraIssueEngine(IssueTracker):
         self.token = os.environ.get(token_env)
         self.closed_statuses = [s.lower() for s in closed_statuses]
 
-    def get_statuses(self, issue_ids: List[str]) -> Dict[str, str]:
+    def get_issue_info(self, issue_ids: List[str]) -> Dict[str, IssueInfo]:
         if not self.token:
-            return {iid: IssueStatus.UNKNOWN for iid in issue_ids}
+            return {
+                iid: IssueInfo(id=iid, status=IssueStatus.UNKNOWN) for iid in issue_ids
+            }
 
         import urllib.request
 
         results = {}
         for issue_id in issue_ids:
             try:
-                request_url = f"{self.url}/rest/api/2/issue/{issue_id}?fields=status"
+                request_url = (
+                    f"{self.url}/rest/api/2/issue/{issue_id}?fields=status,assignee"
+                )
                 req = urllib.request.Request(request_url)
                 req.add_header("Authorization", f"Bearer {self.token}")
 
@@ -72,12 +95,20 @@ class JiraIssueEngine(IssueTracker):
                     data = json.loads(response.read().decode())
                     status_name = data["fields"]["status"]["name"].lower()
 
+                    status = IssueStatus.OPEN
                     if status_name in self.closed_statuses:
-                        results[issue_id] = IssueStatus.CLOSED
-                    else:
-                        results[issue_id] = IssueStatus.OPEN
+                        status = IssueStatus.CLOSED
+
+                    assignee_data = data["fields"].get("assignee")
+                    assignee = (
+                        assignee_data.get("displayName") if assignee_data else None
+                    )
+
+                    results[issue_id] = IssueInfo(
+                        id=issue_id, status=status, assignee=assignee
+                    )
             except Exception:
-                results[issue_id] = IssueStatus.UNKNOWN
+                results[issue_id] = IssueInfo(id=issue_id, status=IssueStatus.UNKNOWN)
         return results
 
 
@@ -87,7 +118,7 @@ class ScriptIssueEngine(IssueTracker):
     def __init__(self, script_template: str):
         self.template = script_template
 
-    def get_statuses(self, issue_ids: List[str]) -> Dict[str, str]:
+    def get_issue_info(self, issue_ids: List[str]) -> Dict[str, IssueInfo]:
         results = {}
         for issue_id in issue_ids:
             try:
@@ -95,16 +126,23 @@ class ScriptIssueEngine(IssueTracker):
                 result = subprocess.run(
                     cmd_str, shell=True, capture_output=True, text=True, check=True
                 )
-                status = result.stdout.strip().upper()
+                output = result.stdout.strip()
+                # Simple parsing logic for script output: "STATUS,ASSIGNEE"
+                parts = output.split(",")
+                raw_status = parts[0].upper()
+                assignee = parts[1].strip() if len(parts) > 1 else None
 
-                if "OPEN" in status:
-                    results[issue_id] = IssueStatus.OPEN
-                elif "CLOSED" in status or "DONE" in status:
-                    results[issue_id] = IssueStatus.CLOSED
-                else:
-                    results[issue_id] = IssueStatus.UNKNOWN
+                status = IssueStatus.UNKNOWN
+                if "OPEN" in raw_status:
+                    status = IssueStatus.OPEN
+                elif "CLOSED" in raw_status or "DONE" in raw_status:
+                    status = IssueStatus.CLOSED
+
+                results[issue_id] = IssueInfo(
+                    id=issue_id, status=status, assignee=assignee
+                )
             except Exception:
-                results[issue_id] = IssueStatus.UNKNOWN
+                results[issue_id] = IssueInfo(id=issue_id, status=IssueStatus.UNKNOWN)
         return results
 
 

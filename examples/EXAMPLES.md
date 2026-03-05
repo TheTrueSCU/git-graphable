@@ -43,11 +43,6 @@ Demonstrates common hygiene issues: WIP commits, direct pushes to protected bran
 git-graphable repo-messy --highlight-wip --highlight-direct-pushes --highlight-stale
 ```
 
-**Hygiene Report:**
-- **Overall Score**: 76% (C)
-- **Direct Pushes**: -15%
-- **WIP Commits**: -9%
-
 **Output:**
 ```mermaid
 flowchart TD
@@ -210,7 +205,25 @@ da82e4fcb1de2cb38054d4f1b308503617669a32["da82e4f [NOT-RELEASED] - main - Demo U
 
 ---
 
-## 7. Topological Analysis
+## 7. Collaboration Gap
+Highlights when the Git commit author doesn't match the assigned issue owner in the tracker.
+
+**Command:**
+```bash
+git-graphable repo-collab-gap --highlight-collaboration-gaps --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo OPEN,Bob"
+```
+
+**Output:**
+```mermaid
+flowchart TD
+2d3352aa7125b38b108e80bfe564906b0d774703["2d3352a - main - Demo User - 20260305134831"]
+cfe995cef9235d83039c5391d29ff4e64d7db222["cfe995c [COLLAB-GAP] - feature/PROJ-777 - Alice - 20260305134831"]
+2d3352aa7125b38b108e80bfe564906b0d774703 --> cfe995cef9235d83039c5391d29ff4e64d7db222
+```
+
+---
+
+## 8. Topological Analysis
 Demonstrates features like orphan/dangling commits and divergence.
 
 **Command:**
@@ -233,7 +246,7 @@ style ebeaa6afb7b85a2d84d8aa5279ca3ad50f54a987 stroke:orange,stroke-width:2px,st
 
 ---
 
-## 8. CI Mode (Gating)
+## 9. CI Mode (Gating)
 Demonstrates how to use `git-graphable` as a CI gate.
 
 **Command (Fails):**

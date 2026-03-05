@@ -290,6 +290,17 @@ def run_bare_cli(argv: List[str]):
         help="External status name that counts as Released",
     )
     parser.add_argument(
+        "--highlight-collaboration-gaps",
+        action="store_true",
+        help="Highlight when Git author doesn't match Ticket assignee",
+    )
+    parser.add_argument(
+        "--author-mapping",
+        action="append",
+        default=[],
+        help="Map Git author to Ticket assignee (format: git_name:ticket_name)",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="Exit with non-zero if hygiene score is below threshold",
@@ -372,6 +383,12 @@ def run_bare_cli(argv: List[str]):
         if args.highlight_release_inconsistencies
         else None,
         "released_statuses": args.released_statuses,
+        "highlight_collaboration_gaps": args.highlight_collaboration_gaps
+        if args.highlight_collaboration_gaps
+        else None,
+        "author_mapping": dict(m.split(":", 1) for m in args.author_mapping)
+        if args.author_mapping
+        else {},
         "min_hygiene_score": args.min_score,
     }
 
@@ -559,6 +576,16 @@ if HAS_CLI_EXTRAS:
         released_statuses: List[str] = typer.Option(
             [], "--released-status", help="External status name that counts as Released"
         ),
+        highlight_collaboration_gaps: bool = typer.Option(
+            False,
+            "--highlight-collaboration-gaps",
+            help="Highlight when Git author doesn't match Ticket assignee",
+        ),
+        author_mapping: List[str] = typer.Option(
+            [],
+            "--author-mapping",
+            help="Map Git author to Ticket assignee (format: git_name:ticket_name)",
+        ),
         check: bool = typer.Option(
             False,
             "--check",
@@ -631,6 +658,12 @@ if HAS_CLI_EXTRAS:
             if highlight_release_inconsistencies
             else None,
             "released_statuses": released_statuses,
+            "highlight_collaboration_gaps": highlight_collaboration_gaps
+            if highlight_collaboration_gaps
+            else None,
+            "author_mapping": dict(m.split(":", 1) for m in author_mapping)
+            if author_mapping
+            else {},
             "min_hygiene_score": min_score,
         }
 

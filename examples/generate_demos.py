@@ -212,6 +212,22 @@ def generate_release_desync():
     run_git(["checkout", "main"], path)
 
 
+def generate_collaboration_gap():
+    print("Generating repo-collab-gap...")
+    path = create_base_repo("repo-collab-gap")
+
+    # Alice works on a ticket assigned to Bob
+    run_git(["checkout", "-b", "feature/PROJ-777"], path)
+    run_git(["config", "user.name", "Alice"], path)
+    run_git(["config", "user.email", "alice@example.com"], path)
+
+    (path / "collab.txt").write_text("collab")
+    run_git(["add", "collab.txt"], path)
+    run_git(["commit", "-m", "feat: implementing PROJ-777"], path)
+
+    run_git(["checkout", "main"], path)
+
+
 def main():
     REPOS_DIR.mkdir(exist_ok=True)
     ASSETS_DIR.mkdir(exist_ok=True)
@@ -223,6 +239,7 @@ def main():
     generate_squash_and_backmerge()
     generate_issue_desync()
     generate_release_desync()
+    generate_collaboration_gap()
 
     print("\nDone! Demo repositories created in examples/repos/")
 

@@ -1,0 +1,30 @@
+{
+  "filters": {
+    "failed": 1,
+    "untracked": 1,
+    "total": 1,
+    "passed": 0,
+    "marker_counts": {}
+  },
+  "results": [
+    {
+      "test": "test_collaboration_gap_detection",
+      "nodeid": "tests/test_hygiene.py::test_collaboration_gap_detection",
+      "status": "failed",
+      "duration": 0.0648415500036208,
+      "trace": "test_repo = '/tmp/tmp0xqq37no'\n\n    def test_collaboration_gap_detection(test_repo):\n        # 1. Create a baseline on master\n        subprocess.run(\n            [\"git\", \"config\", \"commit.gpgsign\", \"false\"], cwd=test_repo, check=True\n        )\n        # Add a commit to master so feature branch is 'ahead'\n        with open(os.path.join(test_repo, \"base.txt\"), \"w\") as f:\n            f.write(\"base\")\n        subprocess.run([\"git\", \"add\", \"base.txt\"], cwd=test_repo, check=True)\n        subprocess.run([\"git\", \"commit\", \"-m\", \"base commit\"], cwd=test_repo, check=True)\n    \n        # 2. Create feature branch and commit with specific author\n        subprocess.run(\n            [\"git\", \"checkout\", \"-b\", \"feature/PROJ-999\"], cwd=test_repo, check=True\n        )\n        subprocess.run(\n            [\"git\", \"config\", \"user.name\", \"Git Author\"], cwd=test_repo, check=True\n        )\n        with open(os.path.join(test_repo, \"collab.txt\"), \"w\") as f:\n            f.write(\"collab\")\n        subprocess.run([\"git\", \"add\", \"collab.txt\"], cwd=test_repo, check=True)\n        subprocess.run(\n            [\"git\", \"commit\", \"-m\", \"fix: PROJ-999 help\"], cwd=test_repo, check=True\n        )\n    \n        # 3. Mock Issue assignee as 'Issue Owner' (Mismatch with 'Git Author' or its mapping)\n        from git_graphable.issues import IssueInfo, IssueStatus\n    \n        with patch(\"git_graphable.issues.get_issue_engine\") as mock_get_engine:\n            mock_engine = MagicMock()\n            mock_engine.get_issue_info.return_value = {\n                \"PROJ-999\": IssueInfo(\n                    id=\"PROJ-999\", status=IssueStatus.OPEN, assignee=\"Issue Owner\"\n                )\n            }\n            mock_get_engine.return_value = mock_engine\n    \n            config = GitLogConfig(\n                highlight_collaboration_gaps=True,\n                issue_pattern=r\"PROJ-[0-9]+\",\n                issue_engine=\"jira\",\n                development_branch=\"master\",\n                author_mapping={\"Git Author\": \"Some Other Person\"}\n            )\n    \n            graph = process_repo(test_repo, config)\n    \n            # Explicitly apply highlights to ensure they run with correct repo_path\n            from git_graphable.highlighter import apply_highlights\n            apply_highlights(graph, config, repo_path=test_repo)\n    \n            gaps = [c for c in graph if c.is_tagged(Tag.COLLABORATION_GAP.value)]\n>           assert len(gaps) >= 1",
+      "error": "E           assert 0 >= 1\nE            +  where 0 = len([])",
+      "markers": [],
+      "file": "tests/test_hygiene.py",
+      "line": 352,
+      "stdout": "",
+      "stderr": "",
+      "timestamp": "2026-03-05T21:43:00.070659Z",
+      "screenshot": "screenshots",
+      "logs": [],
+      "worker": "main",
+      "links": [],
+      "flaky": false
+    }
+  ]
+}

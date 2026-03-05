@@ -66,6 +66,8 @@ class GitLogConfig:
     issue_script: Optional[str] = None
     highlight_release_inconsistencies: bool = False
     released_statuses: List[str] = field(default_factory=lambda: ["Released"])
+    highlight_collaboration_gaps: bool = False
+    author_mapping: Dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
@@ -161,6 +163,7 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
         "Contributor Silos": [],
         "Issue Inconsistencies": [],
         "Release Inconsistencies": [],
+        "Collaboration Gaps": [],
     }
 
     for commit in graph:
@@ -198,6 +201,8 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
             summary["Issue Inconsistencies"].append(commit)
         if commit.is_tagged(Tag.RELEASE_INCONSISTENCY.value):
             summary["Release Inconsistencies"].append(commit)
+        if commit.is_tagged(Tag.COLLABORATION_GAP.value):
+            summary["Collaboration Gaps"].append(commit)
 
     # Calculate Hygiene Score
     scorer = HygieneScorer(graph, config)

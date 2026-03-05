@@ -279,16 +279,17 @@ def test_issue_inconsistency_detection(test_repo):
     )
 
     # 3. Mock Issue as CLOSED
-    from git_graphable.issues import IssueStatus
+    from git_graphable.issues import IssueInfo, IssueStatus
 
     with (
         patch("git_graphable.github.get_repo_prs") as mock_get_prs,
         patch("git_graphable.issues.get_issue_engine") as mock_get_engine,
     ):
         mock_get_prs.return_value = [pr]
-
         mock_engine = MagicMock()
-        mock_engine.get_statuses.return_value = {"JIRA-123": IssueStatus.CLOSED}
+        mock_engine.get_issue_info.return_value = {
+            "JIRA-123": IssueInfo(id="JIRA-123", status=IssueStatus.CLOSED)
+        }
         mock_get_engine.return_value = mock_engine
 
         config = GitLogConfig(
@@ -326,19 +327,14 @@ def test_release_inconsistency_detection(test_repo):
         check=True,
     )
 
-    subprocess.run(
-        ["git", "log", "--format=%H", "-n", "1"],
-        cwd=test_repo,
-        capture_output=True,
-        text=True,
-    )
-
     # 2. Mock Issue as CLOSED (Released)
-    from git_graphable.issues import IssueStatus
+    from git_graphable.issues import IssueInfo, IssueStatus
 
     with patch("git_graphable.issues.get_issue_engine") as mock_get_engine:
         mock_engine = MagicMock()
-        mock_engine.get_statuses.return_value = {"PROJ-789": IssueStatus.CLOSED}
+        mock_engine.get_issue_info.return_value = {
+            "PROJ-789": IssueInfo(id="PROJ-789", status=IssueStatus.CLOSED)
+        }
         mock_get_engine.return_value = mock_engine
 
         config = GitLogConfig(
@@ -356,6 +352,61 @@ def test_release_inconsistency_detection(test_repo):
         ]
         assert len(inconsistent) >= 1
         assert any("PROJ-789" in str(c.reference.message) for c in inconsistent)
+
+
+def test_collaboration_gap_detection(test_repo):
+    # 1. Create a baseline on master
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+    # Add a commit to master so feature branch is 'ahead'
+    with open(os.path.join(test_repo, "base.txt"), "w") as f:
+        f.write("base")
+    subprocess.run(["git", "add", "base.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "base commit"], cwd=test_repo, check=True)
+
+    # 2. Create feature branch and commit with specific author
+    subprocess.run(
+        ["git", "checkout", "-b", "feature/PROJ-999"], cwd=test_repo, check=True
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Git Author"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "collab.txt"), "w") as f:
+        f.write("collab")
+    subprocess.run(["git", "add", "collab.txt"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "fix: PROJ-999 help"], cwd=test_repo, check=True
+    )
+
+    # 3. Mock Issue assignee as 'Different Person' (Mismatch with 'Git Author')
+    from git_graphable.issues import IssueInfo, IssueStatus
+
+    with patch("git_graphable.issues.get_issue_engine") as mock_get_engine:
+        mock_engine = MagicMock()
+        mock_engine.get_issue_info.return_value = {
+            "PROJ-999": IssueInfo(
+                id="PROJ-999", status=IssueStatus.OPEN, assignee="Different Person"
+            )
+        }
+        mock_get_engine.return_value = mock_engine
+
+        config = GitLogConfig(
+            highlight_collaboration_gaps=True,
+            issue_pattern=r"PROJ-[0-9]+",
+            issue_engine="jira",
+            development_branch="master",
+        )
+
+        graph = process_repo(test_repo, config)
+
+        # Explicitly apply highlights
+        from git_graphable.highlighter import apply_highlights
+
+        apply_highlights(graph, config, repo_path=test_repo)
+
+        gaps = [c for c in graph if c.is_tagged(Tag.COLLABORATION_GAP.value)]
+        assert len(gaps) >= 1
 
 
 def test_cli_check_mode(test_repo):

@@ -22,6 +22,7 @@ class HygieneScorer:
         self._check_contributor_silos()
         self._check_issue_inconsistencies()
         self._check_release_inconsistencies()
+        self._check_collaboration_gaps()
 
         # Ensure score doesn't go below 0
         final_score = max(0, self.score)
@@ -164,4 +165,14 @@ class HygieneScorer:
             self._add_deduction(
                 deduction,
                 f"Issues marked 'Released' but not tagged in Git ({len(inconsistencies)})",
+            )
+
+    def _check_collaboration_gaps(self):
+        # Collaboration Gaps
+        gaps = [c for c in self.graph if c.is_tagged(Tag.COLLABORATION_GAP.value)]
+        if gaps:
+            # -5% per instance, capped at 25%
+            deduction = min(25, len(gaps) * 5)
+            self._add_deduction(
+                deduction, f"Git author doesn't match issue assignee ({len(gaps)})"
             )

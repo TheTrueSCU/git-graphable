@@ -104,6 +104,8 @@ def get_node_text(
             display_label += " [ISSUE-DESYNC]"
         if tag == Tag.RELEASE_INCONSISTENCY.value:
             display_label += " [NOT-RELEASED]"
+        if tag == Tag.COLLABORATION_GAP.value:
+            display_label += " [COLLAB-GAP]"
 
     sep = " - "
     newline = " - "

@@ -69,36 +69,16 @@ def _apply_release_highlights(
     if not issue_to_commits:
         return
 
-    # 3. Fetch issue statuses
+    # 3. Fetch issue info
     engine = get_issue_engine(config)
     if not engine:
         return
 
-    issue_statuses = engine.get_statuses(list(issue_to_commits.keys()))
-
-    # 4. Use ScriptEngine to check for 'Released' status if it's not Jira
-    # Actually, for simplicity, let's just assume Jira/Script engines return
-    # enough info to decide if it's 'Released'.
-
-    # Let's improve JiraEngine to return raw status for release check
-    # But for now, we'll just check if the ID is considered 'Released' by the tracker
-    # Actually, let's assume if it's in released_names it's released.
-    # The IssueTracker interface currently returns OPEN/CLOSED/UNKNOWN.
-    # We might need to extend get_statuses to return the actual status name for release check.
-
-    # REFINEMENT: Let's assume for now that if the IssueTracker says CLOSED,
-    # and the user says "Closed means Released in my workflow", they can use
-    # released_statuses configuration.
-    # Actually, let's just compare if it's 'CLOSED' in our internal map for now
-    # if the user specifically asked for release validation.
-
-    # BETTER: Let's assume the IssueTracker engines can return 'RELEASED' if we want.
-    # For now, let's just use the 'CLOSED' status as a proxy for 'Done/Released'
-    # and check if it's NOT tagged.
+    issue_info_map = engine.get_issue_info(list(issue_to_commits.keys()))
 
     for issue_id, commits in issue_to_commits.items():
-        ext_status = issue_statuses.get(issue_id, IssueStatus.UNKNOWN)
-        if ext_status != IssueStatus.CLOSED:
+        info = issue_info_map.get(issue_id)
+        if not info or info.status != IssueStatus.CLOSED:
             continue
 
         # It's 'Closed/Released' in tracker. Is it tagged in Git?
@@ -111,7 +91,13 @@ def _apply_issue_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str]
 ):
     """Highlight inconsistencies between Git/PR status and Issue Tracker status."""
-    if not config.highlight_issue_inconsistencies or not config.issue_pattern:
+    if (
+        not config.highlight_issue_inconsistencies
+        and not config.highlight_collaboration_gaps
+    ):
+        return
+
+    if not config.issue_pattern:
         return
 
     import re
@@ -137,15 +123,14 @@ def _apply_issue_highlights(
     if not issue_to_commits:
         return
 
-    # 2. Fetch statuses
+    # 2. Fetch issue info
     engine = get_issue_engine(config)
     if not engine:
         return
 
-    issue_statuses = engine.get_statuses(list(issue_to_commits.keys()))
+    issue_info_map = engine.get_issue_info(list(issue_to_commits.keys()))
 
     # 3. Compare and Tag
-    # To determine if a branch is 'OPEN' in Git without a PR, we check if it's diverged from base
     def find_node(query: str) -> Optional[GitCommit]:
         for commit in graph:
             if query in commit.reference.branches or commit.reference.hash.startswith(
@@ -162,34 +147,46 @@ def _apply_issue_highlights(
         base_reach.add(base_tip)
 
     for issue_id, commits in issue_to_commits.items():
-        ext_status = issue_statuses.get(issue_id, IssueStatus.UNKNOWN)
-        if ext_status == IssueStatus.UNKNOWN:
+        info = issue_info_map.get(issue_id)
+        if not info or info.status == IssueStatus.UNKNOWN:
             continue
 
+        ext_status = info.status
+        ext_assignee = (info.assignee or "").lower()
+
         for commit in commits:
-            # Determine Git/PR status
-            git_status = IssueStatus.UNKNOWN
-
-            # Explicit PR tags take priority
-            if commit.is_tagged(Tag.PR_OPEN.value):
-                git_status = IssueStatus.OPEN
-            elif commit.is_tagged(Tag.PR_MERGED.value) or commit.is_tagged(
-                Tag.PR_CLOSED.value
-            ):
-                git_status = IssueStatus.CLOSED
-            else:
-                # If no PR, infer from topology: if it's a branch tip NOT in base, it's 'OPEN'
-                if (
-                    commit.reference.branches
-                    and base_branch not in commit.reference.branches
+            # A. Status Comparison
+            if config.highlight_issue_inconsistencies:
+                git_status = IssueStatus.UNKNOWN
+                # Explicit PR tags take priority
+                if commit.is_tagged(Tag.PR_OPEN.value):
+                    git_status = IssueStatus.OPEN
+                elif commit.is_tagged(Tag.PR_MERGED.value) or commit.is_tagged(
+                    Tag.PR_CLOSED.value
                 ):
-                    if commit not in base_reach:
-                        git_status = IssueStatus.OPEN
+                    git_status = IssueStatus.CLOSED
+                else:
+                    # If no PR, infer from topology: if it's a branch tip NOT in base, it's 'OPEN'
+                    if (
+                        commit.reference.branches
+                        and base_branch not in commit.reference.branches
+                    ):
+                        if commit not in base_reach:
+                            git_status = IssueStatus.OPEN
 
-            # If we have both, compare
-            if git_status != IssueStatus.UNKNOWN and git_status != ext_status:
-                commit.add_tag(Tag.ISSUE_INCONSISTENCY.value)
-                commit.add_tag(f"issue_status:{ext_status.lower()}")
+                if git_status != IssueStatus.UNKNOWN and git_status != ext_status:
+                    commit.add_tag(Tag.ISSUE_INCONSISTENCY.value)
+                    commit.add_tag(f"issue_status:{ext_status.lower()}")
+
+            # B. Assignee Comparison (Collaboration Gap)
+            if config.highlight_collaboration_gaps and ext_assignee:
+                author_raw = commit.reference.author
+                # Map author if alias exists
+                git_author = config.author_mapping.get(author_raw, author_raw).lower()
+
+                if git_author != ext_assignee:
+                    commit.add_tag(Tag.COLLABORATION_GAP.value)
+                    commit.add_tag(f"issue_assignee:{ext_assignee}")
 
 
 def _apply_silo_highlights(graph: Graph[GitCommit], config: GitLogConfig):
