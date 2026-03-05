@@ -2,10 +2,12 @@ import os
 import shutil
 import subprocess
 import tempfile
+from unittest.mock import patch
 
 import pytest
 
 from git_graphable import GitLogConfig, process_repo
+from git_graphable.github import PullRequestInfo
 from git_graphable.models import Tag
 
 
@@ -31,6 +33,37 @@ def test_repo():
         yield test_dir
     finally:
         shutil.rmtree(test_dir)
+
+
+def test_pr_status_highlighting(test_repo):
+    res = subprocess.run(
+        ["git", "log", "--format=%H", "-n", "1"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+    sha = res.stdout.strip()
+
+    pr = PullRequestInfo(
+        number=1,
+        title="PR 1",
+        state="OPEN",
+        is_draft=False,
+        head_ref_oid=sha,
+        merge_commit_oid=None,
+        mergeable="MERGEABLE",
+    )
+
+    with patch("git_graphable.github.get_repo_prs") as mock_get_prs:
+        mock_get_prs.return_value = [pr]
+
+        config = GitLogConfig(highlight_pr_status=True)
+        graph = process_repo(test_repo, config)
+
+        commit = next(c for c in graph if c.reference.hash == sha)
+        assert Tag.PR_STATUS.value in commit.tags
+        assert Tag.PR_OPEN.value in commit.tags
+        assert any(t == f"{Tag.COLOR.value}#28a745" for t in commit.tags)
 
 
 def test_author_highlighting(test_repo):

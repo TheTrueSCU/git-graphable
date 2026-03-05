@@ -34,6 +34,7 @@ class GitLogConfig:
     highlight_stale: Optional[int] = None  # Days
     highlight_long_running: Optional[int] = None  # Days
     long_running_base: str = "main"
+    highlight_pr_status: bool = False
 
 
 class GitCommit(Graphable[CommitMetadata]):
@@ -66,6 +67,9 @@ def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
         "Orphan": [],
         "Stale": [],
         "Long-Running": [],
+        "PR: Open": [],
+        "PR: Merged": [],
+        "PR: Closed": [],
     }
 
     for commit in graph:
@@ -81,6 +85,13 @@ def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
             # Only count branch tips for long-running summary to avoid redundancy
             if commit.reference.branches:
                 summary["Long-Running"].append(commit)
+
+        if commit.is_tagged(Tag.PR_OPEN.value):
+            summary["PR: Open"].append(commit)
+        if commit.is_tagged(Tag.PR_MERGED.value):
+            summary["PR: Merged"].append(commit)
+        if commit.is_tagged(Tag.PR_CLOSED.value):
+            summary["PR: Closed"].append(commit)
 
     return summary
 
@@ -119,7 +130,7 @@ def process_repo(input_path: str, config: GitLogConfig) -> Graph[GitCommit]:
                     commit.requires(commits_dict[p_sha])
 
         graph = Graph(list(commits_dict.values()))
-        apply_highlights(graph, config)
+        apply_highlights(graph, config, repo_path=repo_path)
         return graph
 
     finally:
