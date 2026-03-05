@@ -91,6 +91,7 @@ def test_cli_highlight_critical(test_repo):
                 test_repo,
                 "--bare",
                 "--highlight-critical",
+                "--critical-branch",
                 "main",
                 "--output",
                 os.devnull,

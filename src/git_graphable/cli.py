@@ -3,7 +3,7 @@ import os
 import sys
 import tempfile
 import webbrowser
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from graphable.enums import Engine
 
@@ -126,12 +126,47 @@ def validate_highlights(
     return None
 
 
+def load_config(
+    path: str, config_path: Optional[str], cli_overrides: Dict[str, Any]
+) -> GitLogConfig:
+    """Loads configuration from TOML and merges with CLI overrides."""
+    # Priority:
+    # 1. CLI flags (cli_overrides)
+    # 2. Config file provided via --config
+    # 3. .git-graphable.toml in the repo
+    # 4. pyproject.toml in the repo
+
+    # Try to find a config file if not explicitly provided
+    if not config_path:
+        possible_paths = [
+            os.path.join(path, ".git-graphable.toml"),
+            os.path.join(path, "pyproject.toml"),
+        ]
+        for p in possible_paths:
+            if os.path.exists(p):
+                config_path = p
+                break
+
+    base_config = GitLogConfig()
+    if config_path and os.path.exists(config_path):
+        base_config = GitLogConfig.from_toml(config_path)
+
+    return base_config.merge(cli_overrides)
+
+
 # --- Bare Argument Parser CLI ---
 def run_bare_cli(argv: List[str]):
     parser = argparse.ArgumentParser(
         description="Git graph to Mermaid/Graphviz/D2/PlantUML converter"
     )
     parser.add_argument("path", help="Path to local directory or git URL")
+    parser.add_argument("--config", help="Path to TOML configuration file")
+    parser.add_argument(
+        "--production-branch", help="Production branch name (e.g. main, master)"
+    )
+    parser.add_argument(
+        "--development-branch", help="Development branch name (e.g. develop, main)"
+    )
     parser.add_argument(
         "--date-format", default="%Y%m%d%H%M%S", help="Date format for commit labels"
     )
@@ -186,13 +221,23 @@ def run_bare_cli(argv: List[str]):
     )
     parser.add_argument(
         "--highlight-stale",
+        action="store_true",
+        help="Highlight stale branch tips",
+    )
+    parser.add_argument(
+        "--stale-days",
         type=int,
-        help="Threshold in days to highlight stale branch tips",
+        help="Threshold in days for stale branches",
     )
     parser.add_argument(
         "--highlight-long-running",
+        action="store_true",
+        help="Highlight long-running branches",
+    )
+    parser.add_argument(
+        "--long-running-days",
         type=int,
-        help="Threshold in days to highlight long-running branches",
+        help="Threshold in days for long-running branches",
     )
     parser.add_argument(
         "--long-running-base",
@@ -227,21 +272,34 @@ def run_bare_cli(argv: List[str]):
         parts = args.highlight_path.split("..")
         highlight_path = (parts[0], parts[1])
 
-    config = GitLogConfig(
-        simplify=args.simplify,
-        limit=args.limit,
-        date_format=args.date_format,
-        highlight_critical=args.highlight_critical,
-        highlight_authors=args.highlight_authors,
-        highlight_distance_from=args.highlight_distance_from,
-        highlight_path=highlight_path,
-        highlight_diverging_from=args.highlight_diverging_from,
-        highlight_orphans=args.highlight_orphans,
-        highlight_stale=args.highlight_stale,
-        highlight_long_running=args.highlight_long_running,
-        long_running_base=args.long_running_base,
-        highlight_pr_status=args.highlight_pr_status,
-    )
+    overrides = {
+        "production_branch": args.production_branch,
+        "development_branch": args.development_branch,
+        "simplify": args.simplify if args.simplify else None,
+        "limit": args.limit,
+        "date_format": args.date_format if args.date_format != "%Y%m%d%H%M%S" else None,
+        "highlight_critical": args.highlight_critical
+        if args.highlight_critical
+        else None,
+        "critical_branches": args.critical_branches,
+        "highlight_authors": args.highlight_authors if args.highlight_authors else None,
+        "highlight_distance_from": args.highlight_distance_from,
+        "highlight_path": highlight_path,
+        "highlight_diverging_from": args.highlight_diverging_from,
+        "highlight_orphans": args.highlight_orphans if args.highlight_orphans else None,
+        "highlight_stale": args.highlight_stale if args.highlight_stale else None,
+        "stale_days": args.stale_days,
+        "highlight_long_running": args.highlight_long_running
+        if args.highlight_long_running
+        else None,
+        "long_running_days": args.long_running_days,
+        "long_running_base": args.long_running_base,
+        "highlight_pr_status": args.highlight_pr_status
+        if args.highlight_pr_status
+        else None,
+    }
+
+    config = load_config(args.path, args.config, overrides)
 
     try:
         graph = process_repo(args.path, config)
@@ -270,6 +328,15 @@ if HAS_CLI_EXTRAS:
     @app.command()
     def convert(
         path: str = typer.Argument(..., help="Path to local directory or git URL"),
+        config_path: Optional[str] = typer.Option(
+            None, "--config", help="Path to TOML configuration file"
+        ),
+        production_branch: Optional[str] = typer.Option(
+            None, "--production-branch", help="Production branch name"
+        ),
+        development_branch: Optional[str] = typer.Option(
+            None, "--development-branch", help="Development branch name"
+        ),
         date_format: str = typer.Option(
             "%Y%m%d%H%M%S", help="Date format for commit labels"
         ),
@@ -286,8 +353,11 @@ if HAS_CLI_EXTRAS:
         limit: Optional[int] = typer.Option(
             None, "--limit", help="Limit the number of commits to process"
         ),
-        highlight_critical: List[str] = typer.Option(
-            [], "--highlight-critical", help="Branch names to highlight as critical"
+        highlight_critical: bool = typer.Option(
+            False, "--highlight-critical", help="Highlight critical branches"
+        ),
+        critical_branches: List[str] = typer.Option(
+            [], "--critical-branch", help="Branch name to treat as critical"
         ),
         highlight_authors: bool = typer.Option(
             False, "--highlight-authors", help="Assign colors to different authors"
@@ -310,15 +380,19 @@ if HAS_CLI_EXTRAS:
         highlight_orphans: bool = typer.Option(
             False, "--highlight-orphans", help="Highlight dangling/orphan commits"
         ),
-        highlight_stale: Optional[int] = typer.Option(
-            None,
-            "--highlight-stale",
-            help="Threshold in days to highlight stale branch tips",
+        highlight_stale: bool = typer.Option(
+            False, "--highlight-stale", help="Highlight stale branch tips"
         ),
-        highlight_long_running: Optional[int] = typer.Option(
+        stale_days: Optional[int] = typer.Option(
+            None, "--stale-days", help="Threshold in days for stale branches"
+        ),
+        highlight_long_running: bool = typer.Option(
+            False, "--highlight-long-running", help="Highlight long-running branches"
+        ),
+        long_running_days: Optional[int] = typer.Option(
             None,
-            "--highlight-long-running",
-            help="Threshold in days to highlight long-running branches",
+            "--long-running-days",
+            help="Threshold in days for long-running branches",
         ),
         long_running_base: str = typer.Option(
             "main", "--long-running-base", help="Base branch for long-running analysis"
@@ -348,21 +422,30 @@ if HAS_CLI_EXTRAS:
             parts = highlight_path.split("..")
             path_tuple = (parts[0], parts[1])
 
-        config = GitLogConfig(
-            simplify=simplify,
-            limit=limit,
-            date_format=date_format,
-            highlight_critical=highlight_critical,
-            highlight_authors=highlight_authors,
-            highlight_distance_from=highlight_distance_from,
-            highlight_path=path_tuple,
-            highlight_diverging_from=highlight_diverging_from,
-            highlight_orphans=highlight_orphans,
-            highlight_stale=highlight_stale,
-            highlight_long_running=highlight_long_running,
-            long_running_base=long_running_base,
-            highlight_pr_status=highlight_pr_status,
-        )
+        overrides = {
+            "production_branch": production_branch,
+            "development_branch": development_branch,
+            "simplify": simplify if simplify else None,
+            "limit": limit,
+            "date_format": date_format if date_format != "%Y%m%d%H%M%S" else None,
+            "highlight_critical": highlight_critical if highlight_critical else None,
+            "critical_branches": critical_branches,
+            "highlight_authors": highlight_authors if highlight_authors else None,
+            "highlight_distance_from": highlight_distance_from,
+            "highlight_path": path_tuple,
+            "highlight_diverging_from": highlight_diverging_from,
+            "highlight_orphans": highlight_orphans if highlight_orphans else None,
+            "highlight_stale": highlight_stale if highlight_stale else None,
+            "stale_days": stale_days,
+            "highlight_long_running": highlight_long_running
+            if highlight_long_running
+            else None,
+            "long_running_days": long_running_days,
+            "long_running_base": long_running_base,
+            "highlight_pr_status": highlight_pr_status if highlight_pr_status else None,
+        }
+
+        config = load_config(path, config_path, overrides)
 
         if bare:
             try:

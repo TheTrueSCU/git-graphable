@@ -57,7 +57,7 @@ def test_metadata_dataclass():
 
 
 def test_git_commit_init():
-    config = GitLogConfig(highlight_critical=["main"])
+    config = GitLogConfig(highlight_critical=True, critical_branches=["main"])
     meta = CommitMetadata(
         hash="abc", parents=[], author="User", branches=["main"], tags=["v1"]
     )
@@ -68,8 +68,30 @@ def test_git_commit_init():
     assert commit.is_tagged(Tag.CRITICAL.value)
 
 
+def test_git_commit_init_automatic_critical():
+    # Test that production/development branches are automatically critical
+    config = GitLogConfig(
+        highlight_critical=True, production_branch="prod", development_branch="dev"
+    )
+
+    # Production branch
+    meta_prod = CommitMetadata(hash="p1", parents=[], author="U", branches=["prod"])
+    commit_prod = GitCommit(meta_prod, config)
+    assert commit_prod.is_tagged(Tag.CRITICAL.value)
+
+    # Development branch
+    meta_dev = CommitMetadata(hash="d1", parents=[], author="U", branches=["dev"])
+    commit_dev = GitCommit(meta_dev, config)
+    assert commit_dev.is_tagged(Tag.CRITICAL.value)
+
+    # Normal branch
+    meta_norm = CommitMetadata(hash="n1", parents=[], author="U", branches=["feature"])
+    commit_norm = GitCommit(meta_norm, config)
+    assert not commit_norm.is_tagged(Tag.CRITICAL.value)
+
+
 def test_generate_summary(test_repo):
-    config = GitLogConfig(highlight_critical=["master", "main"])
+    config = GitLogConfig(highlight_critical=True, critical_branches=["master", "main"])
     graph = process_repo(test_repo, config)
     summary = generate_summary(graph)
     assert "Critical" in summary

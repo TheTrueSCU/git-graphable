@@ -88,6 +88,20 @@ def test_distance_highlighting(test_repo):
     assert any(t.startswith(Tag.COLOR.value) for t in commit.tags)
 
 
+def test_critical_branch_highlighting(test_repo):
+    res = subprocess.run(
+        ["git", "branch", "--show-current"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+    branch = res.stdout.strip()
+    config = GitLogConfig(highlight_critical=True, critical_branches=[branch])
+    graph = process_repo(test_repo, config)
+    commit = list(graph)[0]
+    assert Tag.CRITICAL.value in commit.tags
+
+
 def test_path_highlighting_edges(test_repo):
     with open(os.path.join(test_repo, "file2.txt"), "w") as f:
         f.write("v2")
@@ -150,7 +164,7 @@ def test_orphan_highlighting(test_repo):
 
 
 def test_stale_branch_highlighting(test_repo):
-    config = GitLogConfig(highlight_stale=30)
+    config = GitLogConfig(highlight_stale=True, stale_days=30)
     graph = process_repo(test_repo, config)
     commit = list(graph)[0]
     assert any(t.startswith(Tag.STALE_COLOR.value) for t in commit.tags)
@@ -170,7 +184,9 @@ def test_long_running_branch_highlighting(test_repo):
         f.write("old")
     subprocess.run(["git", "add", "old.txt"], cwd=test_repo, check=True)
     subprocess.run(["git", "commit", "-m", "old commit"], cwd=test_repo, check=True)
-    config = GitLogConfig(highlight_long_running=0, long_running_base=base_branch)
+    config = GitLogConfig(
+        highlight_long_running=True, long_running_days=0, long_running_base=base_branch
+    )
     graph = process_repo(test_repo, config)
     long_running = [c for c in graph if c.is_tagged(Tag.LONG_RUNNING.value)]
     assert len(long_running) >= 1

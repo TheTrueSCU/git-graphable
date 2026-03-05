@@ -207,7 +207,7 @@ def _apply_stale_highlights(graph: Graph[GitCommit], config: GitLogConfig):
         return
 
     now = time.time()
-    stale_threshold_sec = config.highlight_stale * 86400
+    stale_threshold_sec = config.stale_days * 86400
 
     for commit in graph:
         if commit.reference.branches:
@@ -223,13 +223,13 @@ def _apply_stale_highlights(graph: Graph[GitCommit], config: GitLogConfig):
 
 def _apply_long_running_highlights(graph: Graph[GitCommit], config: GitLogConfig):
     """Highlight long-running branches."""
-    if config.highlight_long_running is None:
+    if not config.highlight_long_running:
         return
 
     now = time.time()
     # Use a small negative threshold for 0 to handle near-instant commits in tests
-    threshold_sec = config.highlight_long_running * 86400
-    if config.highlight_long_running == 0:
+    threshold_sec = config.long_running_days * 86400
+    if config.long_running_days == 0:
         threshold_sec = -1
 
     def find_base_tip(query: str) -> Optional[GitCommit]:
@@ -240,16 +240,14 @@ def _apply_long_running_highlights(graph: Graph[GitCommit], config: GitLogConfig
                 return commit
         return None
 
-    base_tip = find_base_tip(config.long_running_base)
+    base_branch = config.long_running_base or config.development_branch
+    base_tip = find_base_tip(base_branch)
     if base_tip:
         base_reach = set(graph.ancestors(base_tip))
         base_reach.add(base_tip)
 
         for tip in graph:
-            if (
-                tip.reference.branches
-                and config.long_running_base not in tip.reference.branches
-            ):
+            if tip.reference.branches and base_branch not in tip.reference.branches:
                 branch_reach = set(graph.ancestors(tip))
                 branch_reach.add(tip)
 
