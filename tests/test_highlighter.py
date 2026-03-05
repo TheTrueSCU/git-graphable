@@ -149,7 +149,8 @@ def test_divergence_highlighting(test_repo):
     graph = process_repo(test_repo, config)
     behind_commits = [c for c in graph if c.is_tagged(Tag.BEHIND.value)]
     assert len(behind_commits) >= 1
-    assert any("base only commit" in str(c.reference.message) for c in behind_commits)
+    # Now the FEATURE branch tip should be tagged as behind
+    assert any("feature commit" in str(c.reference.message) for c in behind_commits)
 
 
 def test_orphan_highlighting(test_repo):
