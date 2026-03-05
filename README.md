@@ -14,7 +14,7 @@ git graphable .
 - **Automatic Visualization**: Generates and opens an image (SVG/PNG) automatically if no output is specified.
 - **Advanced Highlighting**: Visualize author patterns, topological distance, and specific merge paths.
 - **GitHub Integration**: Highlight commits based on pull request status (Merged, Open, Closed, Draft) using the `gh` CLI.
-- **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, and squashed PRs.
+- **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, squashed PRs, back-merges, and contributor silos.
 - **Health Scoring**: Get a numeric "Hygiene Score" (0-100%) with a color-coded grade and detailed breakdown of workflow anti-patterns.
 - **CI Gating**: Use the `--check` flag to return a non-zero exit code if the hygiene score falls below a threshold (configurable via `--min-score`).
 - **Flexible Input**: Works with local repository paths or remote Git URLs.

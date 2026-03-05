@@ -5,13 +5,17 @@ authors = [
 dependencies = [
     "graphable>=0.6.0",
 ]
-description = "A powerful tool to convert Git commit history into beautiful flowcharts."
+description = "A powerful Git history visualizer and hygiene linter with CI gating."
 keywords = [
     "analysis",
+    "ci",
     "d2",
     "git",
+    "git-flow",
+    "github",
     "graph",
     "hygiene",
+    "lint",
     "mermaid",
     "topology",
     "visualization",
@@ -19,7 +23,7 @@ keywords = [
 name = "git-graphable"
 readme = "README.md"
 requires-python = ">=3.13"
-version = "0.1.0"
+version = "0.2.0"
 
 [project.optional-dependencies]
 cli = [
