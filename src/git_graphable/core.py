@@ -42,6 +42,11 @@ class GitLogConfig:
     long_running_days: int = 30
     long_running_base: Optional[str] = None  # Defaults to development_branch
     highlight_pr_status: bool = False
+    highlight_wip: bool = False
+    wip_keywords: List[str] = field(
+        default_factory=lambda: ["wip", "todo", "fixup!", "squash!", "temp", "bug"]
+    )
+    highlight_direct_pushes: bool = False
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
@@ -129,6 +134,8 @@ def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
         "PR: Open": [],
         "PR: Merged": [],
         "PR: Closed": [],
+        "WIP": [],
+        "Direct Pushes": [],
     }
 
     for commit in graph:
@@ -151,6 +158,11 @@ def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
             summary["PR: Merged"].append(commit)
         if commit.is_tagged(Tag.PR_CLOSED.value):
             summary["PR: Closed"].append(commit)
+
+        if commit.is_tagged(Tag.WIP.value):
+            summary["WIP"].append(commit)
+        if commit.is_tagged(Tag.DIRECT_PUSH.value):
+            summary["Direct Pushes"].append(commit)
 
     return summary
 

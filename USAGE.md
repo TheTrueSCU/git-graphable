@@ -36,6 +36,9 @@ $ git-graphable [OPTIONS] PATH
 * `--long-running-days INTEGER`: Threshold in days for long-running branches
 * `--long-running-base TEXT`: Base branch for long-running analysis
 * `--highlight-pr-status`: Highlight commits based on GitHub PR status
+* `--highlight-wip`: Highlight WIP/TODO commits
+* `--wip-keyword TEXT`: Additional keyword to trigger WIP highlighting
+* `--highlight-direct-pushes`: Highlight non-merge commits on protected branches
 * `--bare`: Force bare mode (no rich output)
 * `--install-completion`: Install completion for the current shell.
 * `--show-completion`: Show completion for the current shell, to copy it or customize the installation.
