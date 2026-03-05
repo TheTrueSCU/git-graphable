@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from graphable import Graph, Graphable
 
@@ -22,19 +22,73 @@ class CommitMetadata:
 class GitLogConfig:
     """Configuration for retrieving git log."""
 
+    # Branch Roles for Hygiene Defaults
+    production_branch: str = "main"
+    development_branch: str = "main"
+
     simplify: bool = False
     limit: Optional[int] = None
     date_format: str = "%Y%m%d%H%M%S"
-    highlight_critical: List[str] = field(default_factory=list)
+    highlight_critical: bool = False
+    critical_branches: List[str] = field(default_factory=list)
     highlight_authors: bool = False
     highlight_distance_from: Optional[str] = None  # For distance highlighting
     highlight_path: Optional[Tuple[str, str]] = None  # (start_input, end_input)
     highlight_diverging_from: Optional[str] = None  # For divergence analysis
     highlight_orphans: bool = False
-    highlight_stale: Optional[int] = None  # Days
-    highlight_long_running: Optional[int] = None  # Days
-    long_running_base: str = "main"
+    highlight_stale: bool = False
+    stale_days: int = 30
+    highlight_long_running: bool = False
+    long_running_days: int = 30
+    long_running_base: Optional[str] = None  # Defaults to development_branch
     highlight_pr_status: bool = False
+
+    @classmethod
+    def from_toml(cls, file_path: str) -> "GitLogConfig":
+        """Load configuration from a TOML file."""
+        import tomllib
+
+        try:
+            with open(file_path, "rb") as f:
+                data = tomllib.load(f)
+
+            # Look for [tool.git-graphable] or just [git-graphable]
+            config_data = data.get("tool", {}).get(
+                "git-graphable", data.get("git-graphable", {})
+            )
+
+            # Handle highlight_path tuple
+            if "highlight_path" in config_data and isinstance(
+                config_data["highlight_path"], list
+            ):
+                config_data["highlight_path"] = tuple(config_data["highlight_path"])
+
+            return cls(
+                **{
+                    k: v
+                    for k, v in config_data.items()
+                    if k in cls.__dataclass_fields__
+                }
+            )
+        except Exception:
+            return cls()
+
+    def merge(self, other: Dict[str, Any]) -> "GitLogConfig":
+        """Merge a dictionary of overrides into this config."""
+        new_config = GitLogConfig()
+        # Initialize with current values
+        for field_name in self.__dataclass_fields__:
+            setattr(new_config, field_name, getattr(self, field_name))
+
+        # Override with non-None values from 'other'
+        for key, value in other.items():
+            if value is not None and key in self.__dataclass_fields__:
+                # Special case for lists: only override if not empty
+                if isinstance(value, list) and not value:
+                    continue
+                setattr(new_config, key, value)
+
+        return new_config
 
 
 class GitCommit(Graphable[CommitMetadata]):
@@ -44,11 +98,16 @@ class GitCommit(Graphable[CommitMetadata]):
         super().__init__(metadata)
         from .models import Tag
 
+        # Determine critical branches
+        critical_set = set(config.critical_branches)
+        critical_set.add(config.production_branch)
+        critical_set.add(config.development_branch)
+
         # Add metadata as tags for filtering/formatting
         self.add_tag(f"{Tag.AUTHOR.value}{metadata.author}")
         for branch in metadata.branches:
             self.add_tag(f"{Tag.BRANCH.value}{branch}")
-            if branch in config.highlight_critical:
+            if config.highlight_critical and branch in critical_set:
                 self.add_tag(Tag.CRITICAL.value)
 
         for tag in metadata.tags:

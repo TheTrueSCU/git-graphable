@@ -84,6 +84,37 @@ For repositories with long histories, use the `--limit` flag to keep the graph r
 uv run git-graphable . --limit 100 --highlight-authors
 ```
 
+## Configuration
+
+Git Graphable can be configured via a TOML file (`.git-graphable.toml` or `pyproject.toml`). CLI flags always take precedence over configuration file settings.
+
+### Configuration Locations
+The tool searches for configuration in the following order:
+1. File specified via `--config <path>`
+2. `.git-graphable.toml` in the repository root
+3. `pyproject.toml` in the repository root (under `[tool.git-graphable]`)
+
+### Example `.git-graphable.toml`
+```toml
+[git-graphable]
+production_branch = "main"
+development_branch = "develop"
+simplify = true
+limit = 100
+date_format = "%Y-%m-%d"
+highlight_critical = true
+critical_branches = ["main", "prod"]
+highlight_pr_status = true
+```
+
+### Example `pyproject.toml`
+```toml
+[tool.git-graphable]
+development_branch = "main"
+simplify = true
+highlight_authors = true
+```
+
 ## Development
 
 Run tests and linting:
