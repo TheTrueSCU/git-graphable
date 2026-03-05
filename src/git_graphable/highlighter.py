@@ -24,6 +24,196 @@ def apply_highlights(
     _apply_squash_highlights(graph, config, repo_path)
     _apply_back_merge_highlights(graph, config)
     _apply_silo_highlights(graph, config)
+    _apply_issue_highlights(graph, config, repo_path)
+    _apply_release_highlights(graph, config, repo_path)
+
+
+def _apply_release_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str]
+):
+    """Highlight issues marked as 'Released' but not reachable from a Git tag."""
+    if (
+        not config.highlight_release_inconsistencies
+        or not config.issue_pattern
+        or not repo_path
+    ):
+        return
+
+    import re
+    import subprocess
+
+    from .issues import IssueStatus, get_issue_engine
+
+    # 1. Get all SHAs reachable from tags
+    try:
+        cmd = ["git", "rev-list", "--tags"]
+        result = subprocess.run(
+            cmd, cwd=repo_path, capture_output=True, text=True, check=True
+        )
+        released_shas = set(result.stdout.splitlines())
+    except Exception:
+        return
+
+    # 2. Extract Issue IDs from graph
+    pattern = re.compile(config.issue_pattern)
+    issue_to_commits = {}
+    for commit in graph:
+        for branch in commit.reference.branches:
+            matches = pattern.findall(branch)
+            for issue_id in matches:
+                issue_to_commits.setdefault(issue_id, set()).add(commit)
+        matches = pattern.findall(commit.reference.message)
+        for issue_id in matches:
+            issue_to_commits.setdefault(issue_id, set()).add(commit)
+
+    if not issue_to_commits:
+        return
+
+    # 3. Fetch issue info
+    engine = get_issue_engine(config)
+    if not engine:
+        return
+
+    issue_info_map = engine.get_issue_info(list(issue_to_commits.keys()))
+
+    for issue_id, commits in issue_to_commits.items():
+        info = issue_info_map.get(issue_id)
+        if not info or info.status != IssueStatus.CLOSED:
+            continue
+
+        # It's 'Closed/Released' in tracker. Is it tagged in Git?
+        for commit in commits:
+            if commit.reference.hash not in released_shas:
+                commit.add_tag(Tag.RELEASE_INCONSISTENCY.value)
+
+
+def _apply_issue_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str]
+):
+    """Highlight inconsistencies between Git/PR status and Issue Tracker status."""
+    if (
+        not config.highlight_issue_inconsistencies
+        and not config.highlight_collaboration_gaps
+        and not config.highlight_longevity_mismatch
+    ):
+        return
+
+    if not config.issue_pattern:
+        return
+
+    import re
+
+    from .issues import IssueStatus, get_issue_engine
+
+    pattern = re.compile(config.issue_pattern)
+    issue_to_commits = {}
+
+    # 1. Extract IDs and map to commits
+    for commit in graph:
+        # Check branches
+        for branch in commit.reference.branches:
+            matches = pattern.findall(branch)
+            for issue_id in matches:
+                issue_to_commits.setdefault(issue_id, set()).add(commit)
+
+        # Check message
+        matches = pattern.findall(commit.reference.message)
+        for issue_id in matches:
+            issue_to_commits.setdefault(issue_id, set()).add(commit)
+
+    if not issue_to_commits:
+        return
+
+    # 2. Fetch issue info
+    engine = get_issue_engine(config)
+    if not engine:
+        return
+
+    issue_info_map = engine.get_issue_info(list(issue_to_commits.keys()))
+
+    # 3. Compare and Tag
+    def find_node(query: str) -> Optional[GitCommit]:
+        for commit in graph:
+            if query in commit.reference.branches or commit.reference.hash.startswith(
+                query
+            ):
+                return commit
+        return None
+
+    base_branch = config.development_branch
+    base_tip = find_node(base_branch)
+    base_reach = set()
+    if base_tip:
+        base_reach = set(graph.ancestors(base_tip))
+        base_reach.add(base_tip)
+
+    for issue_id, commits in issue_to_commits.items():
+        info = issue_info_map.get(issue_id)
+        if not info or info.status == IssueStatus.UNKNOWN:
+            continue
+
+        ext_status = info.status
+        ext_assignee = (info.assignee or "").lower()
+        ext_created = info.created_at
+
+        for commit in commits:
+            # A. Status Comparison
+            if config.highlight_issue_inconsistencies:
+                git_status = IssueStatus.UNKNOWN
+                # Explicit PR tags take priority
+                if commit.is_tagged(Tag.PR_OPEN.value):
+                    git_status = IssueStatus.OPEN
+                elif commit.is_tagged(Tag.PR_MERGED.value) or commit.is_tagged(
+                    Tag.PR_CLOSED.value
+                ):
+                    git_status = IssueStatus.CLOSED
+                else:
+                    # If no PR, infer from topology: if it's a branch tip NOT in base, it's 'OPEN'
+                    if (
+                        commit.reference.branches
+                        and base_branch not in commit.reference.branches
+                    ):
+                        if commit not in base_reach:
+                            git_status = IssueStatus.OPEN
+
+                if git_status != IssueStatus.UNKNOWN and git_status != ext_status:
+                    commit.add_tag(Tag.ISSUE_INCONSISTENCY.value)
+                    commit.add_tag(f"issue_status:{ext_status.lower()}")
+
+            # B. Assignee Comparison (Collaboration Gap)
+            if config.highlight_collaboration_gaps and ext_assignee:
+                author_raw = commit.reference.author
+                # Map author if alias exists
+                git_author = config.author_mapping.get(author_raw, author_raw).lower()
+
+                if git_author != ext_assignee:
+                    commit.add_tag(Tag.COLLABORATION_GAP.value)
+                    commit.add_tag(f"issue_assignee:{ext_assignee}")
+
+            # C. Longevity Mismatch
+            if config.highlight_longevity_mismatch and ext_created:
+                try:
+                    # Convert ext_created (ISO 8601) to timestamp
+                    # Python 3.11+ has fromisoformat, but we support 3.13 so good.
+                    # GitHub/Jira return ISO strings like 2023-01-01T12:00:00Z
+                    from datetime import datetime
+
+                    # Handle Z if present
+                    clean_ts = ext_created.replace("Z", "+00:00")
+                    created_dt = datetime.fromisoformat(clean_ts)
+                    issue_ts = created_dt.timestamp()
+
+                    commit_ts = commit.reference.timestamp
+
+                    # Calculate difference in days
+                    diff_sec = abs(commit_ts - issue_ts)
+                    diff_days = diff_sec / 86400
+
+                    if diff_days > config.longevity_threshold_days:
+                        commit.add_tag(Tag.LONGEVITY_MISMATCH.value)
+                        commit.add_tag(f"longevity_gap:{int(diff_days)}")
+                except Exception:
+                    pass  # Ignore parsing errors
 
 
 def _apply_silo_highlights(graph: Graph[GitCommit], config: GitLogConfig):

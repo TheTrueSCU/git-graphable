@@ -52,7 +52,26 @@ class GitLogConfig:
     highlight_silos: bool = False
     silo_commit_threshold: int = 20
     silo_author_count: int = 1
-    min_hygiene_score: int = 70
+    min_hygiene_score: int = 80
+
+    # Issue Tracker Integration
+    highlight_issue_inconsistencies: bool = False
+    issue_pattern: Optional[str] = None  # e.g. [A-Z]+-[0-9]+
+    issue_engine: Optional[str] = None  # github, jira, script
+    jira_url: Optional[str] = None
+    jira_token_env: str = "JIRA_TOKEN"
+    jira_closed_statuses: List[str] = field(
+        default_factory=lambda: ["Done", "Closed", "Resolved"]
+    )
+    issue_script: Optional[str] = None
+    highlight_release_inconsistencies: bool = False
+    released_statuses: List[str] = field(default_factory=lambda: ["Released"])
+    highlight_collaboration_gaps: bool = False
+    author_mapping: Dict[str, str] = field(default_factory=dict)
+    highlight_longevity_mismatch: bool = False
+    longevity_threshold_days: int = (
+        14  # Max diff between Issue created and first commit
+    )
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
@@ -146,6 +165,10 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
         "Squashed PRs": [],
         "Back-Merges": [],
         "Contributor Silos": [],
+        "Issue Inconsistencies": [],
+        "Release Inconsistencies": [],
+        "Collaboration Gaps": [],
+        "Longevity Mismatches": [],
     }
 
     for commit in graph:
@@ -179,6 +202,14 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
             summary["Back-Merges"].append(commit)
         if commit.is_tagged(Tag.CONTRIBUTOR_SILO.value):
             summary["Contributor Silos"].append(commit)
+        if commit.is_tagged(Tag.ISSUE_INCONSISTENCY.value):
+            summary["Issue Inconsistencies"].append(commit)
+        if commit.is_tagged(Tag.RELEASE_INCONSISTENCY.value):
+            summary["Release Inconsistencies"].append(commit)
+        if commit.is_tagged(Tag.COLLABORATION_GAP.value):
+            summary["Collaboration Gaps"].append(commit)
+        if commit.is_tagged(Tag.LONGEVITY_MISMATCH.value):
+            summary["Longevity Mismatches"].append(commit)
 
     # Calculate Hygiene Score
     scorer = HygieneScorer(graph, config)

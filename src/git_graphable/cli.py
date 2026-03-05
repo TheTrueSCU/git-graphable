@@ -260,6 +260,57 @@ def run_bare_cli(argv: List[str]):
         help="Author count threshold for silo detection",
     )
     parser.add_argument(
+        "--highlight-issue-inconsistencies",
+        action="store_true",
+        help="Highlight mismatches between Git and Issue Tracker",
+    )
+    parser.add_argument(
+        "--issue-pattern",
+        help="Regex pattern to extract issue IDs (e.g. [A-Z]+-[0-9]+)",
+    )
+    parser.add_argument(
+        "--issue-engine",
+        choices=["github", "jira", "script"],
+        help="Engine to fetch issue statuses",
+    )
+    parser.add_argument("--jira-url", help="Base URL for Jira instance")
+    parser.add_argument(
+        "--issue-script", help="Shell command template for script engine"
+    )
+    parser.add_argument(
+        "--highlight-release-inconsistencies",
+        action="store_true",
+        help="Highlight issues marked Released but not tagged",
+    )
+    parser.add_argument(
+        "--released-status",
+        action="append",
+        dest="released_statuses",
+        default=[],
+        help="External status name that counts as Released",
+    )
+    parser.add_argument(
+        "--highlight-collaboration-gaps",
+        action="store_true",
+        help="Highlight when Git author doesn't match Ticket assignee",
+    )
+    parser.add_argument(
+        "--author-mapping",
+        action="append",
+        default=[],
+        help="Map Git author to Ticket assignee (format: git_name:ticket_name)",
+    )
+    parser.add_argument(
+        "--highlight-longevity-mismatch",
+        action="store_true",
+        help="Highlight large gap between issue creation and first commit",
+    )
+    parser.add_argument(
+        "--longevity-days",
+        type=int,
+        help="Threshold in days for longevity mismatch detection",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="Exit with non-zero if hygiene score is below threshold",
@@ -331,6 +382,27 @@ def run_bare_cli(argv: List[str]):
         "highlight_silos": args.highlight_silos if args.highlight_silos else None,
         "silo_commit_threshold": args.silo_threshold,
         "silo_author_count": args.silo_author_count,
+        "highlight_issue_inconsistencies": args.highlight_issue_inconsistencies
+        if args.highlight_issue_inconsistencies
+        else None,
+        "issue_pattern": args.issue_pattern,
+        "issue_engine": args.issue_engine,
+        "jira_url": args.jira_url,
+        "issue_script": args.issue_script,
+        "highlight_release_inconsistencies": args.highlight_release_inconsistencies
+        if args.highlight_release_inconsistencies
+        else None,
+        "released_statuses": args.released_statuses,
+        "highlight_collaboration_gaps": args.highlight_collaboration_gaps
+        if args.highlight_collaboration_gaps
+        else None,
+        "author_mapping": dict(m.split(":", 1) for m in args.author_mapping)
+        if args.author_mapping
+        else {},
+        "highlight_longevity_mismatch": args.highlight_longevity_mismatch
+        if args.highlight_longevity_mismatch
+        else None,
+        "longevity_threshold_days": args.longevity_days,
         "min_hygiene_score": args.min_score,
     }
 
@@ -493,6 +565,49 @@ if HAS_CLI_EXTRAS:
             "--silo-author-count",
             help="Author count threshold for silo detection",
         ),
+        highlight_issue_inconsistencies: bool = typer.Option(
+            False,
+            "--highlight-issue-inconsistencies",
+            help="Highlight mismatches between Git and Issue Tracker",
+        ),
+        issue_pattern: Optional[str] = typer.Option(
+            None, "--issue-pattern", help="Regex pattern to extract issue IDs"
+        ),
+        issue_engine: Optional[str] = typer.Option(
+            None, "--issue-engine", help="Engine to fetch issue statuses"
+        ),
+        jira_url: Optional[str] = typer.Option(
+            None, "--jira-url", help="Base URL for Jira instance"
+        ),
+        issue_script: Optional[str] = typer.Option(
+            None, "--issue-script", help="Shell command template for script engine"
+        ),
+        highlight_release_inconsistencies: bool = typer.Option(
+            False,
+            "--highlight-release-inconsistencies",
+            help="Highlight issues marked Released but not tagged",
+        ),
+        released_statuses: List[str] = typer.Option(
+            [], "--released-status", help="External status name that counts as Released"
+        ),
+        highlight_collaboration_gaps: bool = typer.Option(
+            False,
+            "--highlight-collaboration-gaps",
+            help="Highlight when Git author doesn't match Ticket assignee",
+        ),
+        author_mapping: List[str] = typer.Option(
+            [],
+            "--author-mapping",
+            help="Map Git author to Ticket assignee (format: git_name:ticket_name)",
+        ),
+        highlight_longevity_mismatch: bool = typer.Option(
+            False,
+            "--highlight-longevity-mismatch",
+            help="Highlight large gap between issue creation and first commit",
+        ),
+        longevity_days: Optional[int] = typer.Option(
+            None, "--longevity-days", help="Threshold in days for longevity mismatch"
+        ),
         check: bool = typer.Option(
             False,
             "--check",
@@ -554,6 +669,27 @@ if HAS_CLI_EXTRAS:
             "highlight_silos": highlight_silos if highlight_silos else None,
             "silo_commit_threshold": silo_threshold,
             "silo_author_count": silo_author_count,
+            "highlight_issue_inconsistencies": highlight_issue_inconsistencies
+            if highlight_issue_inconsistencies
+            else None,
+            "issue_pattern": issue_pattern,
+            "issue_engine": issue_engine,
+            "jira_url": jira_url,
+            "issue_script": issue_script,
+            "highlight_release_inconsistencies": highlight_release_inconsistencies
+            if highlight_release_inconsistencies
+            else None,
+            "released_statuses": released_statuses,
+            "highlight_collaboration_gaps": highlight_collaboration_gaps
+            if highlight_collaboration_gaps
+            else None,
+            "author_mapping": dict(m.split(":", 1) for m in author_mapping)
+            if author_mapping
+            else {},
+            "highlight_longevity_mismatch": highlight_longevity_mismatch
+            if highlight_longevity_mismatch
+            else None,
+            "longevity_threshold_days": longevity_days,
             "min_hygiene_score": min_score,
         }
 

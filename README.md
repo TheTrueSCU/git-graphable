@@ -15,6 +15,7 @@ git graphable .
 - **Advanced Highlighting**: Visualize author patterns, topological distance, and specific merge paths.
 - **GitHub Integration**: Highlight commits based on pull request status (Merged, Open, Closed, Draft) using the `gh` CLI.
 - **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, squashed PRs, back-merges, and contributor silos.
+- **Issue Tracker Integration**: Connect to Jira or GitHub Issues to highlight status desyncs (e.g., PR is open but the Jira ticket is closed).
 - **Health Scoring**: Get a numeric "Hygiene Score" (0-100%) with a color-coded grade and detailed breakdown of workflow anti-patterns.
 - **CI Gating**: Use the `--check` flag to return a non-zero exit code if the hygiene score falls below a threshold (configurable via `--min-score`).
 - **Flexible Input**: Works with local repository paths or remote Git URLs.
@@ -65,6 +66,7 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 | `--highlight-squashed` | **Stroke/Edge** | Grey Solid outline and dashed Grey logical merge edge | None |
 | `--highlight-back-merges` | **Stroke** | Orange Dashed outline | None |
 | `--highlight-silos` | **Stroke** | Blue Solid outline | None |
+| `--highlight-issue-inconsistencies` | **Label** | Adds `[ISSUE-DESYNC]` label | None |
 
 ### Highlighting Priorities
 - **Fill**: `--highlight-authors`, `--highlight-pr-status`, `--highlight-distance-from`, `--highlight-stale`, and `--highlight-wip` are mutually exclusive.
@@ -89,6 +91,12 @@ uv run git-graphable . --highlight-pr-status
 Highlight commits that exist in `main` but are missing from your feature branches:
 ```bash
 uv run git-graphable . --highlight-diverging-from main
+```
+
+### Issue Tracker Integration
+Flag mismatches between your code and your tickets:
+```bash
+uv run git-graphable . --highlight-issue-inconsistencies --issue-pattern "[A-Z]+-[0-9]+" --issue-engine jira --jira-url "https://your-org.atlassian.net"
 ```
 
 ### Large Repositories
@@ -126,6 +134,11 @@ highlight_back_merges = true
 highlight_silos = true
 silo_commit_threshold = 20
 silo_author_count = 1
+highlight_issue_inconsistencies = true
+issue_pattern = "JIRA-[0-9]+"
+issue_engine = "jira"
+jira_url = "https://your-org.atlassian.net"
+jira_closed_statuses = ["Done", "Closed", "Resolved", "Released"]
 min_hygiene_score = 80
 ```
 

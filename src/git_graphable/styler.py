@@ -100,6 +100,14 @@ def get_node_text(
             display_label += " [BACK-MERGE]"
         if tag == Tag.CONTRIBUTOR_SILO.value:
             display_label += " [SILO]"
+        if tag == Tag.ISSUE_INCONSISTENCY.value:
+            display_label += " [ISSUE-DESYNC]"
+        if tag == Tag.RELEASE_INCONSISTENCY.value:
+            display_label += " [NOT-RELEASED]"
+        if tag == Tag.COLLABORATION_GAP.value:
+            display_label += " [COLLAB-GAP]"
+        if tag == Tag.LONGEVITY_MISMATCH.value:
+            display_label += " [LONGEVITY]"
 
     sep = " - "
     newline = " - "

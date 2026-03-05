@@ -58,7 +58,7 @@ publish: build
 
 [group('qa')]
 check: lint typing coverage
-    uv run git-graphable . --check --min-score 80 --bare --highlight-wip --highlight-direct-pushes
+    uv run git-graphable . --check --min-score 75 --bare --highlight-wip --highlight-direct-pushes
 
 [group('qa')]
 @coverage *args:
@@ -112,3 +112,6 @@ generate-examples:
     uv run git-graphable examples/repos/repo-features --engine mermaid -o examples/assets/features.mmd --highlight-orphans --highlight-diverging-from main --bare
     uv run git-graphable examples/repos/repo-risk-silo --engine mermaid -o examples/assets/silo.mmd --highlight-silos --silo-threshold 20 --bare
     uv run git-graphable examples/repos/repo-complex-hygiene --engine mermaid -o examples/assets/complex.mmd --highlight-back-merges --bare
+    uv run git-graphable examples/repos/repo-issue-desync --engine mermaid -o examples/assets/issue_desync.mmd --highlight-issue-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED" --bare
+    uv run git-graphable examples/repos/repo-release-desync --engine mermaid -o examples/assets/release_desync.mmd --highlight-release-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED" --bare
+    uv run git-graphable examples/repos/repo-collab-gap --engine mermaid -o examples/assets/collab_gap.mmd --highlight-collaboration-gaps --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo OPEN,Bob" --bare

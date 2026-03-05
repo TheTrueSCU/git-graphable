@@ -43,11 +43,6 @@ Demonstrates common hygiene issues: WIP commits, direct pushes to protected bran
 git-graphable repo-messy --highlight-wip --highlight-direct-pushes --highlight-stale
 ```
 
-**Hygiene Report:**
-- **Overall Score**: 76% (C)
-- **Direct Pushes**: -15%
-- **WIP Commits**: -9%
-
 **Output:**
 ```mermaid
 flowchart TD
@@ -74,7 +69,7 @@ f534dfb429831e547f418960a9c1091af158664d --> 147f97d5dd2c89f8078e0cc67aab5d49548
 ---
 
 ## 3. Risk Analysis (Bus Factor)
-Highlights branches with many commits but only one contributor. This indicates a "Review Risk" where large amounts of code are being written in isolation.
+Highlights branches with many commits but only one contributor. This indicates a "Review Risk."
 
 **Command:**
 ```bash
@@ -141,7 +136,7 @@ f012b1d4971e5d6e9619396f9adbb32d311e0c80 --> 76310c4489cb4667e1f31e540b40b42c30b
 ---
 
 ## 4. Redundant History
-Highlights redundant back-merges (merging `main` into a feature branch). This helps identify where a rebase strategy might have been cleaner.
+Highlights redundant back-merges.
 
 **Command:**
 ```bash
@@ -172,8 +167,64 @@ style 62d326c80963476bf06537d224f66db9f48f30b4 stroke:orange,stroke-width:4px,st
 
 ---
 
-## 5. Topological Analysis
-Demonstrates features like orphan/dangling commits and divergence (behind base).
+## 5. Issue Status Mismatch
+Highlights desyncs between Git and external trackers (Jira, GitHub Issues).
+
+**Command:**
+```bash
+git-graphable repo-issue-desync --highlight-issue-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED"
+```
+
+**Output:**
+```mermaid
+flowchart TD
+7e51353dd8ef68e5daeeb87bfe1b8bc7173c61da["7e51353 - main - Demo User - 20260305124405"]
+744e2afb97ef2685efb5bd2074fddb8363e01f8b["744e2af [ISSUE-DESYNC] - feature/PROJ-456 - Demo User - 20260305124405"]
+7e51353dd8ef68e5daeeb87bfe1b8bc7173c61da --> 744e2afb97ef2685efb5bd2074fddb8363e01f8b
+```
+
+---
+
+## 6. Release Inconsistency
+Highlights issues marked as "Released" in the tracker but not yet reachable from a Git tag.
+
+**Command:**
+```bash
+git-graphable repo-release-desync --highlight-release-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED"
+```
+
+**Output:**
+```mermaid
+flowchart TD
+9e378b94ef30aa28a742a35e810e3ab1df7962a7["9e378b9 - main - Demo User - 20260305130842"]
+33eb58c1867a23375351d97e3d720688d7b58d4a["33eb58c - tags: v1.0.0 - Demo User - 20260305130842"]
+da82e4fcb1de2cb38054d4f1b308503617669a32["da82e4f [NOT-RELEASED] - main - Demo User - 20260305130842"]
+9e378b94ef30aa28a742a35e810e3ab1df7962a7 --> 33eb58c1867a23375351d97e3d720688d7b58d4a
+33eb58c1867a23375351d97e3d720688d7b58d4a --> da82e4fcb1de2cb38054d4f1b308503617669a32
+```
+
+---
+
+## 7. Collaboration Gap
+Highlights when the Git commit author doesn't match the assigned issue owner in the tracker.
+
+**Command:**
+```bash
+git-graphable repo-collab-gap --highlight-collaboration-gaps --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo OPEN,Bob"
+```
+
+**Output:**
+```mermaid
+flowchart TD
+2d3352aa7125b38b108e80bfe564906b0d774703["2d3352a - main - Demo User - 20260305134831"]
+cfe995cef9235d83039c5391d29ff4e64d7db222["cfe995c [COLLAB-GAP] - feature/PROJ-777 - Alice - 20260305134831"]
+2d3352aa7125b38b108e80bfe564906b0d774703 --> cfe995cef9235d83039c5391d29ff4e64d7db222
+```
+
+---
+
+## 8. Topological Analysis
+Demonstrates features like orphan/dangling commits and divergence.
 
 **Command:**
 ```bash
@@ -195,27 +246,15 @@ style ebeaa6afb7b85a2d84d8aa5279ca3ad50f54a987 stroke:orange,stroke-width:2px,st
 
 ---
 
-## 6. CI Mode (Gating)
-Demonstrates how to use `git-graphable` as a CI gate. The tool returns a non-zero exit code if the hygiene score is below the threshold.
+## 9. CI Mode (Gating)
+Demonstrates how to use `git-graphable` as a CI gate.
 
 **Command (Fails):**
 ```bash
-# repo-messy score is 76%, so this fails
 git-graphable repo-messy --check --min-score 80 --bare --highlight-wip --highlight-direct-pushes
 ```
 
 **Output:**
 ```text
 Error: Hygiene score 76% is below required 80%
-```
-
-**Command (Passes):**
-```bash
-# repo-pristine score is 100%, so this passes
-git-graphable repo-pristine --check --min-score 80 --bare
-```
-
-**Output:**
-```text
-Success: Hygiene score 100% meets required 80%
 ```

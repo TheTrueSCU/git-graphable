@@ -1,0 +1,30 @@
+{
+  "filters": {
+    "failed": 1,
+    "untracked": 1,
+    "total": 1,
+    "passed": 0,
+    "marker_counts": {}
+  },
+  "results": [
+    {
+      "test": "test_longevity_mismatch_detection",
+      "nodeid": "tests/test_hygiene.py::test_longevity_mismatch_detection",
+      "status": "failed",
+      "duration": 0.036818672000663355,
+      "trace": "test_repo = '/tmp/tmpzmxd0z_7'\n\n    def test_longevity_mismatch_detection(test_repo):\n        # 1. Create a commit now\n        subprocess.run(\n            [\"git\", \"config\", \"commit.gpgsign\", \"false\"], cwd=test_repo, check=True\n        )\n        with open(os.path.join(test_repo, \"late.txt\"), \"w\") as f:\n            f.write(\"late\")\n        subprocess.run([\"git\", \"add\", \"late.txt\"], cwd=test_repo, check=True)\n        subprocess.run([\"git\", \"commit\", \"-m\", \"feat: PROJ-OLD finally started\"], cwd=test_repo, check=True)\n    \n        # 2. Mock Issue created 30 days ago\n        from datetime import datetime, timedelta, timezone\n    \n        old_date = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()\n    \n        from git_graphable.issues import IssueInfo, IssueStatus\n        with patch(\"git_graphable.issues.get_issue_engine\") as mock_get_engine:\n            mock_engine = MagicMock()\n            mock_engine.get_issue_info.return_value = {\n                \"PROJ-OLD\": IssueInfo(\n                    id=\"PROJ-OLD\", status=IssueStatus.OPEN, created_at=old_date\n                )\n            }\n            mock_get_engine.return_value = mock_engine\n    \n            config = GitLogConfig(\n                highlight_longevity_mismatch=True,\n                issue_pattern=r\"PROJ-[A-Z]+\",\n                issue_engine=\"jira\",\n                longevity_threshold_days=14\n            )\n    \n            graph = process_repo(test_repo, config)\n    \n            # Explicitly apply highlights\n            from git_graphable.highlighter import apply_highlights\n            apply_highlights(graph, config, repo_path=test_repo)\n    \n            mismatches = [c for c in graph if c.is_tagged(Tag.LONGEVITY_MISMATCH.value)]\n>           assert len(mismatches) >= 1",
+      "error": "E           assert 0 >= 1\nE            +  where 0 = len([])",
+      "markers": [],
+      "file": "tests/test_hygiene.py",
+      "line": 411,
+      "stdout": "",
+      "stderr": "",
+      "timestamp": "2026-03-05T22:04:09.222678Z",
+      "screenshot": "screenshots",
+      "logs": [],
+      "worker": "main",
+      "links": [],
+      "flaky": false
+    }
+  ]
+}

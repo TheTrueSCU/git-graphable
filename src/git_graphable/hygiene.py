@@ -20,6 +20,10 @@ class HygieneScorer:
         self._check_connectivity()
         self._check_back_merges()
         self._check_contributor_silos()
+        self._check_issue_inconsistencies()
+        self._check_release_inconsistencies()
+        self._check_collaboration_gaps()
+        self._check_longevity_mismatches()
 
         # Ensure score doesn't go below 0
         final_score = max(0, self.score)
@@ -136,4 +140,53 @@ class HygieneScorer:
             deduction = min(30, len(silos) * 10)
             self._add_deduction(
                 deduction, f"Branches dominated by too few authors ({len(silos)})"
+            )
+
+    def _check_issue_inconsistencies(self):
+        # Issue Inconsistencies
+        inconsistencies = [
+            c for c in self.graph if c.is_tagged(Tag.ISSUE_INCONSISTENCY.value)
+        ]
+        if inconsistencies:
+            # -10% per instance, capped at 30%
+            deduction = min(30, len(inconsistencies) * 10)
+            self._add_deduction(
+                deduction,
+                f"Inconsistencies between Git and Issue Tracker ({len(inconsistencies)})",
+            )
+
+    def _check_release_inconsistencies(self):
+        # Release Inconsistencies
+        inconsistencies = [
+            c for c in self.graph if c.is_tagged(Tag.RELEASE_INCONSISTENCY.value)
+        ]
+        if inconsistencies:
+            # -10% per instance, capped at 30%
+            deduction = min(30, len(inconsistencies) * 10)
+            self._add_deduction(
+                deduction,
+                f"Issues marked 'Released' but not tagged in Git ({len(inconsistencies)})",
+            )
+
+    def _check_collaboration_gaps(self):
+        # Collaboration Gaps
+        gaps = [c for c in self.graph if c.is_tagged(Tag.COLLABORATION_GAP.value)]
+        if gaps:
+            # -5% per instance, capped at 25%
+            deduction = min(25, len(gaps) * 5)
+            self._add_deduction(
+                deduction, f"Git author doesn't match issue assignee ({len(gaps)})"
+            )
+
+    def _check_longevity_mismatches(self):
+        # Longevity Mismatches
+        mismatches = [
+            c for c in self.graph if c.is_tagged(Tag.LONGEVITY_MISMATCH.value)
+        ]
+        if mismatches:
+            # -5% per instance, capped at 20%
+            deduction = min(20, len(mismatches) * 5)
+            self._add_deduction(
+                deduction,
+                f"Significant gap between issue creation and code commit ({len(mismatches)})",
             )
