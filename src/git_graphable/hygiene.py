@@ -18,6 +18,7 @@ class HygieneScorer:
         self._check_process_integrity()
         self._check_cleanliness()
         self._check_connectivity()
+        self._check_back_merges()
 
         # Ensure score doesn't go below 0
         final_score = max(0, self.score)
@@ -113,4 +114,15 @@ class HygieneScorer:
             # -5% flat deduction if any divergence exists
             self._add_deduction(
                 5, "Repository has commits missing from feature branches (divergence)"
+            )
+
+    def _check_back_merges(self):
+        # Redundant Merges (Back-merges from main into feature)
+        back_merges = [c for c in self.graph if c.is_tagged(Tag.BACK_MERGE.value)]
+        if back_merges:
+            # -5% per instance, capped at 25%
+            deduction = min(25, len(back_merges) * 5)
+            self._add_deduction(
+                deduction,
+                f"Redundant back-merges from base branch ({len(back_merges)})",
             )

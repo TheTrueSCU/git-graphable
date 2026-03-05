@@ -146,6 +146,48 @@ def test_direct_push_detection(test_repo):
     assert any("direct to main" in str(c.reference.message) for c in direct_pushes)
 
 
+def test_back_merge_detection(test_repo):
+    # 1. Create a baseline on master
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+
+    # 2. Create a feature branch from current master
+    subprocess.run(
+        ["git", "checkout", "-b", "feature/back-merge"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "feat_work.txt"), "w") as f:
+        f.write("feat")
+    subprocess.run(["git", "add", "feat_work.txt"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "work on feature"], cwd=test_repo, check=True
+    )
+
+    # 3. Go back to master and add a commit
+    subprocess.run(["git", "checkout", "master"], cwd=test_repo, check=True)
+    with open(os.path.join(test_repo, "master_work.txt"), "w") as f:
+        f.write("master")
+    subprocess.run(["git", "add", "master_work.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "work on master"], cwd=test_repo, check=True)
+
+    # 4. Merge master INTO feature
+    subprocess.run(["git", "checkout", "feature/back-merge"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "merge", "master", "-m", "Merge master into feature"],
+        cwd=test_repo,
+        check=True,
+    )
+
+    config = GitLogConfig(highlight_back_merges=True, development_branch="master")
+    graph = process_repo(test_repo, config)
+
+    back_merges = [c for c in graph if c.is_tagged(Tag.BACK_MERGE.value)]
+    assert len(back_merges) >= 1
+    assert any(
+        "Merge master into feature" in str(c.reference.message) for c in back_merges
+    )
+
+
 def test_hygiene_scorer_logic(test_repo):
     # 1. Create a direct push
     with open(os.path.join(test_repo, "direct_push.txt"), "w") as f:

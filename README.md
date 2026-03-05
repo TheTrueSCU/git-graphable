@@ -62,18 +62,19 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 | `--highlight-long-running` | **Stroke/Edge** | Purple outline and thick Purple edge | None |
 | `--highlight-direct-pushes` | **Stroke** | Thick Red Dashed outline | None |
 | `--highlight-squashed` | **Stroke/Edge** | Grey Solid outline and dashed Grey logical merge edge | None |
+| `--highlight-back-merges` | **Stroke** | Orange Dashed outline | None |
 
 ### Highlighting Priorities
 - **Fill**: `--highlight-authors`, `--highlight-pr-status`, `--highlight-distance-from`, `--highlight-stale`, and `--highlight-wip` are mutually exclusive.
 - **Edge**: Path highlighting (Thick Orange) takes priority over Long-Running highlighting (Thick Purple), which takes priority over Logical Squashed Merges (Dashed Grey).
-- **Stroke**: Critical outlines (Thick Red Solid) take priority over Direct Pushes (Thick Red Dashed), which take priority over PR Conflicts (Thick Red Solid), which take priority over Squash Commits (Grey Solid), which take priority over all other outlines (Divergence, Orphan, Long-Running).
+- **Stroke**: Critical outlines (Thick Red Solid) take priority over Direct Pushes (Thick Red Dashed), which take priority over PR Conflicts (Thick Red Solid), which take priority over Back-Merges (Orange Dashed), which take priority over Squash Commits (Grey Solid), which take priority over all other outlines (Divergence, Orphan, Long-Running).
 
 ## Advanced Examples
 
 ### Hygiene Analysis
-Identify problematic patterns like direct pushes to `main`, messy WIP commits, or squashed branches that haven't been deleted:
+Identify problematic patterns like direct pushes to `main`, messy WIP commits, back-merges from `main`, or squashed branches that haven't been deleted:
 ```bash
-uv run git-graphable . --highlight-direct-pushes --highlight-wip --highlight-squashed
+uv run git-graphable . --highlight-direct-pushes --highlight-wip --highlight-squashed --highlight-back-merges
 ```
 
 ### PR Status Highlighting
@@ -119,6 +120,7 @@ highlight_wip = true
 wip_keywords = ["wip", "todo", "fixme", "temp"]
 highlight_direct_pushes = true
 highlight_squashed = true
+highlight_back_merges = true
 ```
 
 ### Example `pyproject.toml`

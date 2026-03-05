@@ -48,6 +48,7 @@ class GitLogConfig:
     )
     highlight_direct_pushes: bool = False
     highlight_squashed: bool = False
+    highlight_back_merges: bool = False
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
@@ -139,6 +140,7 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
         "WIP": [],
         "Direct Pushes": [],
         "Squashed PRs": [],
+        "Back-Merges": [],
     }
 
     for commit in graph:
@@ -168,6 +170,8 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
             summary["Direct Pushes"].append(commit)
         if commit.is_tagged(Tag.SQUASH_COMMIT.value):
             summary["Squashed PRs"].append(commit)
+        if commit.is_tagged(Tag.BACK_MERGE.value):
+            summary["Back-Merges"].append(commit)
 
     # Calculate Hygiene Score
     scorer = HygieneScorer(graph, config)

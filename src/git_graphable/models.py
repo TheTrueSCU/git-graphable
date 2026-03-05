@@ -13,6 +13,7 @@ class Tag(str, Enum):
     DIRECT_PUSH = "direct_push"
     SQUASH_COMMIT = "squash_commit"
     SQUASHED = "squashed"
+    BACK_MERGE = "back_merge"
 
     # Specific PR states
     PR_OPEN = "pr:open"

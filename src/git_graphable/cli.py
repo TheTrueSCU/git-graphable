@@ -312,6 +312,11 @@ def run_bare_cli(argv: List[str]):
         help="Highlight squashed PRs and logically link them",
     )
     parser.add_argument(
+        "--highlight-back-merges",
+        action="store_true",
+        help="Highlight redundant back-merges from base branch",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
@@ -366,6 +371,9 @@ def run_bare_cli(argv: List[str]):
         else None,
         "highlight_squashed": args.highlight_squashed
         if args.highlight_squashed
+        else None,
+        "highlight_back_merges": args.highlight_back_merges
+        if args.highlight_back_merges
         else None,
     }
 
@@ -488,6 +496,11 @@ if HAS_CLI_EXTRAS:
             "--highlight-squashed",
             help="Highlight squashed PRs and logically link them",
         ),
+        highlight_back_merges: bool = typer.Option(
+            False,
+            "--highlight-back-merges",
+            help="Highlight redundant back-merges from base branch",
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
@@ -535,6 +548,9 @@ if HAS_CLI_EXTRAS:
             if highlight_direct_pushes
             else None,
             "highlight_squashed": highlight_squashed if highlight_squashed else None,
+            "highlight_back_merges": highlight_back_merges
+            if highlight_back_merges
+            else None,
         }
 
         config = load_config(path, config_path, overrides)

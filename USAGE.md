@@ -40,6 +40,7 @@ $ git-graphable [OPTIONS] PATH
 * `--wip-keyword TEXT`: Additional keyword to trigger WIP highlighting
 * `--highlight-direct-pushes`: Highlight non-merge commits on protected branches
 * `--highlight-squashed`: Highlight squashed PRs and logically link them
+* `--highlight-back-merges`: Highlight redundant back-merges from base branch
 * `--bare`: Force bare mode (no rich output)
 * `--install-completion`: Install completion for the current shell.
 * `--show-completion`: Show completion for the current shell, to copy it or customize the installation.

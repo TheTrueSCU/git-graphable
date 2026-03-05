@@ -96,6 +96,8 @@ def get_node_text(
             display_label += " [SQUASH]"
         if tag == Tag.SQUASHED.value:
             display_label += " [SQUASHED]"
+        if tag == Tag.BACK_MERGE.value:
+            display_label += " [BACK-MERGE]"
 
     sep = " - "
     newline = " - "
@@ -201,6 +203,16 @@ def get_generic_style(node: Graphable[Any], engine: Engine) -> dict[str, str]:
             styles["penwidth"] = "8"
             styles["style"] = styles.get("style", "") + ",dashed"
 
+    if node.is_tagged(Tag.BACK_MERGE.value):
+        if engine == Engine.D2:
+            styles["stroke"] = "orange"
+            styles["stroke-width"] = "4"
+            styles["stroke-dash"] = "2"
+        elif engine == Engine.GRAPHVIZ:
+            styles["color"] = "orange"
+            styles["penwidth"] = "3"
+            styles["style"] = styles.get("style", "") + ",dotted"
+
     return styles
 
 
@@ -274,6 +286,10 @@ def export_graph(
             if node.is_tagged(Tag.DIRECT_PUSH.value):
                 style_parts.append(
                     "stroke:#ff0000,stroke-width:8px,stroke-dasharray: 2 2"
+                )
+            if node.is_tagged(Tag.BACK_MERGE.value):
+                style_parts.append(
+                    "stroke:orange,stroke-width:4px,stroke-dasharray: 2 2"
                 )
             return ",".join(style_parts) if style_parts else None
 

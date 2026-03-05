@@ -22,6 +22,57 @@ def apply_highlights(
     _apply_wip_highlights(graph, config)
     _apply_direct_push_highlights(graph, config)
     _apply_squash_highlights(graph, config, repo_path)
+    _apply_back_merge_highlights(graph, config)
+
+
+def _apply_back_merge_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+    """Highlight redundant merges (base branch merged into feature branch)."""
+    if not config.highlight_back_merges:
+        return
+
+    # Use development_branch as base for determining 'redundant' merges
+    def find_base_tip(query: str) -> Optional[GitCommit]:
+        for commit in graph:
+            if query in commit.reference.branches or commit.reference.hash.startswith(
+                query
+            ):
+                return commit
+        return None
+
+    base_branch = config.development_branch
+    base_tip = find_base_tip(base_branch)
+    if not base_tip:
+        return
+
+    base_reach = set(graph.ancestors(base_tip))
+    base_reach.add(base_tip)
+
+    for commit in graph:
+        # Check if it's a merge commit
+        if len(commit.reference.parents) <= 1:
+            continue
+
+        # If this commit itself is on the base branch, it's a regular merge into base
+        if base_branch in commit.reference.branches:
+            continue
+
+        # Check if one of the parents is in the base reach
+        parents = []
+        for p_sha in commit.reference.parents:
+            # Find the parent node in the graph
+            parent_node = next((c for c in graph if c.reference.hash == p_sha), None)
+            if parent_node:
+                parents.append(parent_node)
+
+        if len(parents) < 2:
+            continue
+
+        has_base_parent = any(p in base_reach for p in parents)
+        has_non_base_parent = any(p not in base_reach for p in parents)
+
+        if has_base_parent and has_non_base_parent:
+            # This is a back-merge!
+            commit.add_tag(Tag.BACK_MERGE.value)
 
 
 def _apply_squash_highlights(
