@@ -102,6 +102,11 @@ def get_node_text(
     if engine == Engine.D2:
         return f'"{label}"'
 
+    if engine == Engine.MERMAID:
+        # Mermaid labels need quotes if they contain brackets or special chars
+        safe_label = label.replace('"', '\\"')
+        return f'"{safe_label}"'
+
     return label
 
 
@@ -251,7 +256,7 @@ def export_graph(
                 )
             if node.is_tagged(Tag.ORPHAN.value):
                 style_parts.append(
-                    "stroke:grey,stroke-width:1px,stroke-dasharray: 3 3,opacity:0.5"
+                    "stroke:#666,stroke-width:2px,stroke-dasharray: 3 3"
                 )
             if node.is_tagged(Tag.LONG_RUNNING.value) and not node.is_tagged(
                 Tag.CRITICAL.value

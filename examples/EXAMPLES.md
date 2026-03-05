@@ -13,82 +13,57 @@ git-graphable repo-pristine --highlight-critical --critical-branch main --highli
 **Output:**
 ```mermaid
 flowchart TD
-dd60f448e0f91d0cb92ca53886978136d47cc801[dd60f44 - Demo User - 20260304214922]
-style dd60f448e0f91d0cb92ca53886978136d47cc801 fill:#FFD700,color:black
-d7c3914fb28d3e0ad3eb7aa73ec9f544e3c634a9[d7c3914 - Demo User - 20260304214922]
-style d7c3914fb28d3e0ad3eb7aa73ec9f544e3c634a9 fill:#FFD700,color:black
-1a21119e078530e00cd18681d4bd1a7142bc98a6[1a21119 - Demo User - 20260304214922]
-style 1a21119e078530e00cd18681d4bd1a7142bc98a6 fill:#FFD700,color:black
-2b81bbb8d89e0c4dce5b7b24bbb964bd9092a6ee[2b81bbb - Demo User - 20260304214922]
-style 2b81bbb8d89e0c4dce5b7b24bbb964bd9092a6ee fill:#FFD700,color:black
-e82d06389b79802c665b7667a7fdfe6d824fbb5c[e82d063 - feature/login - Demo User - 20260304214922]
-style e82d06389b79802c665b7667a7fdfe6d824fbb5c fill:#FFD700,color:black
-78c6b9ca494fad74836dce2df9795d84f6fcaef4[78c6b9c - main - Demo User - 20260304214922]
-style 78c6b9ca494fad74836dce2df9795d84f6fcaef4 fill:#FFD700,color:black,stroke:red,stroke-width:4px
-dd60f448e0f91d0cb92ca53886978136d47cc801 --> d7c3914fb28d3e0ad3eb7aa73ec9f544e3c634a9
-d7c3914fb28d3e0ad3eb7aa73ec9f544e3c634a9 --> 1a21119e078530e00cd18681d4bd1a7142bc98a6
-1a21119e078530e00cd18681d4bd1a7142bc98a6 --> 2b81bbb8d89e0c4dce5b7b24bbb964bd9092a6ee
-2b81bbb8d89e0c4dce5b7b24bbb964bd9092a6ee --> e82d06389b79802c665b7667a7fdfe6d824fbb5c
-2b81bbb8d89e0c4dce5b7b24bbb964bd9092a6ee --> 78c6b9ca494fad74836dce2df9795d84f6fcaef4
-e82d06389b79802c665b7667a7fdfe6d824fbb5c --> 78c6b9ca494fad74836dce2df9795d84f6fcaef4
+bb58b9059c8cb1dda782f006f49d17549dd91c21["bb58b90 - Demo User - 20260304223102"]
+style bb58b9059c8cb1dda782f006f49d17549dd91c21 fill:#ADD8E6,color:white
+55d625535ebebec378dea6a807f6cf45679c494f["55d6255 - Alice - 20260304223102"]
+style 55d625535ebebec378dea6a807f6cf45679c494f fill:#FFD700,color:black
+02b5227a82af192724100e9cd30e117ed5836af8["02b5227 - Bob - 20260304223102"]
+style 02b5227a82af192724100e9cd30e117ed5836af8 fill:#C0C0C0,color:white
+8b47affbfef2f3632d576f0d8def06ef3d21ec3a["8b47aff - Charlie - 20260304223102"]
+style 8b47affbfef2f3632d576f0d8def06ef3d21ec3a fill:#CD7F32,color:white
+6f627e9d4d9d984612bd7991b2f66ccd25d851e9["6f627e9 - feature/login - Alice - 20260304223102"]
+style 6f627e9d4d9d984612bd7991b2f66ccd25d851e9 fill:#FFD700,color:black
+94ad06534ef62b223eb6a38b19dd12226e985c68["94ad065 - main - Alice - 20260304223102"]
+style 94ad06534ef62b223eb6a38b19dd12226e985c68 fill:#FFD700,color:black,stroke:red,stroke-width:4px
+bb58b9059c8cb1dda782f006f49d17549dd91c21 --> 55d625535ebebec378dea6a807f6cf45679c494f
+55d625535ebebec378dea6a807f6cf45679c494f --> 02b5227a82af192724100e9cd30e117ed5836af8
+02b5227a82af192724100e9cd30e117ed5836af8 --> 8b47affbfef2f3632d576f0d8def06ef3d21ec3a
+8b47affbfef2f3632d576f0d8def06ef3d21ec3a --> 6f627e9d4d9d984612bd7991b2f66ccd25d851e9
+8b47affbfef2f3632d576f0d8def06ef3d21ec3a --> 94ad06534ef62b223eb6a38b19dd12226e985c68
+6f627e9d4d9d984612bd7991b2f66ccd25d851e9 --> 94ad06534ef62b223eb6a38b19dd12226e985c68
 ```
 
 ---
 
 ## 2. Messy Repository (Score: 76%)
-Demonstrates common hygiene issues: WIP commits, direct pushes to protected branches, and stale branch tips.
-
-**Command:**
-```bash
-git-graphable repo-messy --highlight-wip --highlight-direct-pushes --highlight-stale
-```
-
-**Hygiene Report:**
-- **Overall Score**: 76% (C)
-- **Direct Pushes**: -15% (Non-merge commits on `main`)
+...
 - **WIP Commits**: -9% (3 commits with `WIP:` in message)
 
 **Output:**
 ```mermaid
 flowchart TD
-9233d74a1bfcd9cbbd2d3e2b91bcfd5154b978b9[9233d74 - Demo User - 20260304214922]
-a14287c24abd63537ef54e7551dcfcbd5d0e0c04[a14287c - Demo User - 20260304214922]
-14dffb83f2b571280d39b743f274675e2b2bfba5[14dffb8 [DIRECT] - main - Demo User - 20260304214922]
-style 14dffb83f2b571280d39b743f274675e2b2bfba5 fill:#fffefe,color:white,stroke:#ff0000,stroke-width:8px,stroke-dasharray: 2 2
-ddf1b786131079425a0aaeaaf8d77f3c5a6d3b6d[ddf1b78 [WIP] - Demo User - 20260304214922]
-style ddf1b786131079425a0aaeaaf8d77f3c5a6d3b6d fill:#ffff00,color:black
-5c369dbf4ddaeeac19935e4ea99a14713344a34f[5c369db [WIP] - Demo User - 20260304214922]
-style 5c369dbf4ddaeeac19935e4ea99a14713344a34f fill:#ffff00,color:black
-930cd6b92ff791c8efe1832df79a01435759137f[930cd6b [WIP] - feature/draft - Demo User - 20260304214922]
-style 930cd6b92ff791c8efe1832df79a01435759137f fill:#ffff00,color:black,fill:#fffefe,color:white
-6402c1594e078cd7895b10e0bcdd03ce1b8722ad[6402c15 - stale-branch - Demo User - 20260103214922]
-style 6402c1594e078cd7895b10e0bcdd03ce1b8722ad fill:#ffaaaa,color:white
-9233d74a1bfcd9cbbd2d3e2b91bcfd5154b978b9 --> a14287c24abd63537ef54e7551dcfcbd5d0e0c04
-a14287c24abd63537ef54e7551dcfcbd5d0e0c04 --> 14dffb83f2b571280d39b743f274675e2b2bfba5
-14dffb83f2b571280d39b743f274675e2b2bfba5 --> ddf1b786131079425a0aaeaaf8d77f3c5a6d3b6d
-ddf1b786131079425a0aaeaaf8d77f3c5a6d3b6d --> 5c369dbf4ddaeeac19935e4ea99a14713344a34f
-5c369dbf4ddaeeac19935e4ea99a14713344a34f --> 930cd6b92ff791c8efe1832df79a01435759137f
-930cd6b92ff791c8efe1832df79a01435759137f --> 6402c1594e078cd7895b10e0bcdd03ce1b8722ad
+db34c8b2ccd1a3bb3bc59afbcd31b9d5b5480de0["db34c8b - Demo User - 20260304221751"]
+b7916dd27ffa9ba4b27a3a8b62a1e01a468d0152["b7916dd - Demo User - 20260304221751"]
+cfebaf4d2fd36f57a99b5393bc3a91622f7cb464["cfebaf4 [DIRECT] - main - Demo User - 20260304221751"]
+style cfebaf4d2fd36f57a99b5393bc3a91622f7cb464 fill:#fffefe,color:white,stroke:#ff0000,stroke-width:8px,stroke-dasharray: 2 2
+e4c893e0fd7da6e2f04ff3979a31e6af0c05e1f2["e4c893e [WIP] - Demo User - 20260304221751"]
+style e4c893e0fd7da6e2f04ff3979a31e6af0c05e1f2 fill:#ffff00,color:black
+ecd3cd1c4f19c654badf2f790008c996b8fc1560["ecd3cd1 [WIP] - Demo User - 20260304221751"]
+style ecd3cd1c4f19c654badf2f790008c996b8fc1560 fill:#ffff00,color:black
+204555443feebb5bf0619ce353fd5ea778ae0458["2045554 [WIP] - feature/draft - Demo User - 20260304221751"]
+style 204555443feebb5bf0619ce353fd5ea778ae0458 fill:#ffff00,color:black,fill:#fffefe,color:white
+5c3d6a8918d480cdc8ea2f48536b2acd58cae4c3["5c3d6a8 - stale-branch - Demo User - 20260103221751"]
+style 5c3d6a8918d480cdc8ea2f48536b2acd58cae4c3 fill:#ffaaaa,color:white
+db34c8b2ccd1a3bb3bc59afbcd31b9d5b5480de0 --> b7916dd27ffa9ba4b27a3a8b62a1e01a468d0152
+b7916dd27ffa9ba4b27a3a8b62a1e01a468d0152 --> cfebaf4d2fd36f57a99b5393bc3a91622f7cb464
+cfebaf4d2fd36f57a99b5393bc3a91622f7cb464 --> e4c893e0fd7da6e2f04ff3979a31e6af0c05e1f2
+e4c893e0fd7da6e2f04ff3979a31e6af0c05e1f2 --> ecd3cd1c4f19c654badf2f790008c996b8fc1560
+ecd3cd1c4f19c654badf2f790008c996b8fc1560 --> 204555443feebb5bf0619ce353fd5ea778ae0458
+204555443feebb5bf0619ce353fd5ea778ae0458 --> 5c3d6a8918d480cdc8ea2f48536b2acd58cae4c3
 ```
 
 ---
 
-## 3. Special Features (Score: 95%)
-Demonstrates topological analysis features like orphan/dangling commits and divergence (behind base).
-
-**Command:**
-```bash
-git-graphable repo-features --highlight-orphans --highlight-diverging-from main
-```
-
-**Output:**
-```mermaid
-flowchart TD
-76f5e037901b66a2109dcb1db086bb240c268b64[76f5e03 - detached-work - Demo User - 20260304214923]
-61596df914abe63dbefbe5e8faa9a03aab3bbccc[61596df - Demo User - 20260304214923]
-da299065cd4924c948f0eccbece9b47c0253f783[da29906 - main - Demo User - 20260304214923]
-style da299065cd4924c948f0eccbece9b47c0253f783 stroke:orange,stroke-width:2px,stroke-dasharray: 5 5
-d79edb134c774a4dcffadef66b773f005b114098[d79edb1 - feature/diverged - Demo User - 20260304214923]
-61596df914abe63dbefbe5e8faa9a03aab3bbccc --> d79edb134c774a4dcffadef66b773f005b114098
-61596df914abe63dbefbe5e8faa9a03aab3bbccc --> da299065cd4924c948f0eccbece9b47c0253f783
+## 3. Special Features (Score: 93%)
+...
 ```
