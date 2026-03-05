@@ -181,6 +181,37 @@ def generate_squash_and_backmerge():
     run_git(["commit", "-m", "feat: implementing all parts (#123)"], path)
 
 
+def generate_issue_desync():
+    print("Generating repo-issue-desync...")
+    path = create_base_repo("repo-issue-desync")
+
+    # 1. A branch where Git is OPEN but Issue is CLOSED (Inconsistency)
+    run_git(["checkout", "-b", "feature/PROJ-456"], path)
+    (path / "work.txt").write_text("work")
+    run_git(["add", "work.txt"], path)
+    run_git(["commit", "-m", "feat: implementing PROJ-456"], path)
+
+    run_git(["checkout", "main"], path)
+
+
+def generate_release_desync():
+    print("Generating repo-release-desync...")
+    path = create_base_repo("repo-release-desync")
+
+    # Commit for a 'Released' issue that IS tagged (Correct)
+    (path / "file1.txt").write_text("v1")
+    run_git(["add", "file1.txt"], path)
+    run_git(["commit", "-m", "feat: implementing PROJ-111"], path)
+    run_git(["tag", "v1.0.0"], path)
+
+    # Commit for a 'Released' issue that is NOT tagged (Inconsistency)
+    (path / "file2.txt").write_text("v2")
+    run_git(["add", "file2.txt"], path)
+    run_git(["commit", "-m", "feat: implementing PROJ-222"], path)
+
+    run_git(["checkout", "main"], path)
+
+
 def main():
     REPOS_DIR.mkdir(exist_ok=True)
     ASSETS_DIR.mkdir(exist_ok=True)
@@ -190,6 +221,8 @@ def main():
     generate_features()
     generate_risk_silo()
     generate_squash_and_backmerge()
+    generate_issue_desync()
+    generate_release_desync()
 
     print("\nDone! Demo repositories created in examples/repos/")
 

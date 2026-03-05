@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -250,6 +250,112 @@ def test_hygiene_scorer_logic(test_repo):
     assert len(report["deductions"]) >= 2
     assert any("Direct pushes" in d["message"] for d in report["deductions"])
     assert any("WIP/Fixup" in d["message"] for d in report["deductions"])
+
+
+def test_issue_inconsistency_detection(test_repo):
+    # 1. Create a commit with issue ID in message
+    with open(os.path.join(test_repo, "issue.txt"), "w") as f:
+        f.write("fix")
+    subprocess.run(["git", "add", "issue.txt"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "fix: JIRA-123 working"], cwd=test_repo, check=True
+    )
+
+    # 2. Mock PR as OPEN
+    from git_graphable.github import PullRequestInfo
+
+    pr = PullRequestInfo(
+        number=1,
+        title="PR 1",
+        state="OPEN",
+        is_draft=False,
+        head_ref_name="main",
+        head_ref_oid="dummy",
+        merge_commit_oid=None,
+        mergeable="MERGEABLE",
+    )
+
+    # 3. Mock Issue as CLOSED
+    from git_graphable.issues import IssueStatus
+
+    with (
+        patch("git_graphable.github.get_repo_prs") as mock_get_prs,
+        patch("git_graphable.issues.get_issue_engine") as mock_get_engine,
+    ):
+        mock_get_prs.return_value = [pr]
+
+        mock_engine = MagicMock()
+        mock_engine.get_statuses.return_value = {"JIRA-123": IssueStatus.CLOSED}
+        mock_get_engine.return_value = mock_engine
+
+        config = GitLogConfig(
+            highlight_issue_inconsistencies=True,
+            issue_pattern=r"JIRA-[0-9]+",
+            issue_engine="jira",
+        )
+        # We need to make sure the commit has the PR tag
+        graph = process_repo(test_repo, config)
+        for commit in graph:
+            if "JIRA-123" in str(commit.reference.message):
+                commit.add_tag("pr:open")
+
+        # Re-run highlights manually since we added tag after process_repo
+        from git_graphable.highlighter import apply_highlights
+
+        apply_highlights(graph, config, repo_path=test_repo)
+
+        inconsistent = [c for c in graph if c.is_tagged(Tag.ISSUE_INCONSISTENCY.value)]
+        assert len(inconsistent) >= 1
+        assert any("JIRA-123" in str(c.reference.message) for c in inconsistent)
+
+
+def test_release_inconsistency_detection(test_repo):
+    # 1. Create a commit with issue ID
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "release.txt"), "w") as f:
+        f.write("release")
+    subprocess.run(["git", "add", "release.txt"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "fix: PROJ-789 release candidate"],
+        cwd=test_repo,
+        check=True,
+    )
+
+    subprocess.run(
+        ["git", "log", "--format=%H", "-n", "1"],
+        cwd=test_repo,
+        capture_output=True,
+        text=True,
+    )
+
+    # 2. Mock Issue as CLOSED (Released)
+    from git_graphable.issues import IssueStatus
+
+    with patch("git_graphable.issues.get_issue_engine") as mock_get_engine:
+        mock_engine = MagicMock()
+        mock_engine.get_statuses.return_value = {"PROJ-789": IssueStatus.CLOSED}
+        mock_get_engine.return_value = mock_engine
+
+        config = GitLogConfig(
+            highlight_release_inconsistencies=True,
+            issue_pattern=r"PROJ-[0-9]+",
+            issue_engine="jira",
+        )
+
+        # We need to make sure the commit is in the graph
+        graph = process_repo(test_repo, config)
+
+        # Verify it's tagged as RELEASE_INCONSISTENCY because it's not reachable from any tag
+        inconsistent = [
+            c for c in graph if c.is_tagged(Tag.RELEASE_INCONSISTENCY.value)
+        ]
+        assert len(inconsistent) >= 1
+        assert any("PROJ-789" in str(c.reference.message) for c in inconsistent)
 
 
 def test_cli_check_mode(test_repo):

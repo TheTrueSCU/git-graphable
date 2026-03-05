@@ -15,6 +15,8 @@ class Tag(str, Enum):
     SQUASHED = "squashed"
     BACK_MERGE = "back_merge"
     CONTRIBUTOR_SILO = "contributor_silo"
+    ISSUE_INCONSISTENCY = "issue_inconsistency"
+    RELEASE_INCONSISTENCY = "release_inconsistency"
 
     # Specific PR states
     PR_OPEN = "pr:open"

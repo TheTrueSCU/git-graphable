@@ -44,6 +44,11 @@ $ git-graphable [OPTIONS] PATH
 * `--highlight-silos`: Highlight branches dominated by too few authors
 * `--silo-threshold INTEGER`: Commit count threshold for silo detection
 * `--silo-author-count INTEGER`: Author count threshold for silo detection
+* `--highlight-issue-inconsistencies`: Highlight mismatches between Git and Issue Tracker
+* `--issue-pattern TEXT`: Regex pattern to extract issue IDs
+* `--issue-engine [github|jira|script]`: Engine to fetch issue statuses
+* `--jira-url TEXT`: Base URL for Jira instance
+* `--issue-script TEXT`: Shell command template for script engine
 * `--check`: Exit with non-zero if hygiene score is below threshold
 * `--min-score INTEGER`: Minimum hygiene score required for --check
 * `--bare`: Force bare mode (no rich output)
