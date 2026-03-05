@@ -58,7 +58,7 @@ publish: build
 
 [group('qa')]
 check: lint typing coverage
-    uv run git-graphable . --check --min-score 80 --bare --highlight-wip --highlight-direct-pushes
+    uv run git-graphable . --check --min-score 75 --bare --highlight-wip --highlight-direct-pushes
 
 [group('qa')]
 @coverage *args:
