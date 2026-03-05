@@ -44,6 +44,8 @@ $ git-graphable [OPTIONS] PATH
 * `--highlight-silos`: Highlight branches dominated by too few authors
 * `--silo-threshold INTEGER`: Commit count threshold for silo detection
 * `--silo-author-count INTEGER`: Author count threshold for silo detection
+* `--check`: Exit with non-zero if hygiene score is below threshold
+* `--min-score INTEGER`: Minimum hygiene score required for --check
 * `--bare`: Force bare mode (no rich output)
 * `--install-completion`: Install completion for the current shell.
 * `--show-completion`: Show completion for the current shell, to copy it or customize the installation.

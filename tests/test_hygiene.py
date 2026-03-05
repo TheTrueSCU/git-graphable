@@ -250,3 +250,35 @@ def test_hygiene_scorer_logic(test_repo):
     assert len(report["deductions"]) >= 2
     assert any("Direct pushes" in d["message"] for d in report["deductions"])
     assert any("WIP/Fixup" in d["message"] for d in report["deductions"])
+
+
+def test_cli_check_mode(test_repo):
+    # Create a messy repo
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "wip.txt"), "w") as f:
+        f.write("wip")
+    subprocess.run(["git", "add", "wip.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "WIP: baked"], cwd=test_repo, check=True)
+
+    from typer.testing import CliRunner
+
+    from git_graphable.cli import app
+
+    assert app is not None
+    runner = CliRunner()
+
+    # 1. Should fail with high min-score
+    result = runner.invoke(
+        app, [test_repo, "--check", "--min-score", "99", "--bare", "--highlight-wip"]
+    )
+    assert result.exit_code != 0
+    assert "Error: Hygiene score" in result.output
+
+    # 2. Should pass with low min-score
+    result = runner.invoke(
+        app, [test_repo, "--check", "--min-score", "10", "--bare", "--highlight-wip"]
+    )
+    assert result.exit_code == 0
+    assert "Success: Hygiene score" in result.output

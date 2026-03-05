@@ -52,6 +52,7 @@ class GitLogConfig:
     highlight_silos: bool = False
     silo_commit_threshold: int = 20
     silo_author_count: int = 1
+    min_hygiene_score: int = 70
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
