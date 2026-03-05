@@ -33,7 +33,7 @@ For a complete reference of all command-line options, see the [USAGE.md](USAGE.m
 ```bash
 # Basic usage (opens a Mermaid image)
 uv run git-graphable .
-```
+
 # Highlight PR status (requires gh CLI)
 uv run git-graphable . --highlight-pr-status
 
