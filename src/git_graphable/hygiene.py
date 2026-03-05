@@ -12,6 +12,7 @@ class HygieneScorer:
         self.config = config
         self.score = 100
         self.deductions = []
+        self.weights = config.hygiene_weights
 
     def calculate(self) -> Dict[str, Any]:
         """Calculate hygiene score and return report."""
@@ -51,6 +52,8 @@ class HygieneScorer:
         }
 
     def _add_deduction(self, amount: int, message: str):
+        if amount <= 0:
+            return
         self.score -= amount
         self.deductions.append({"amount": amount, "message": message})
 
@@ -58,8 +61,10 @@ class HygieneScorer:
         # Direct Pushes
         direct_pushes = [c for c in self.graph if c.is_tagged(Tag.DIRECT_PUSH.value)]
         if direct_pushes:
-            # -15% per commit, capped at 45%
-            deduction = min(45, len(direct_pushes) * 15)
+            deduction = min(
+                self.weights.direct_push_cap,
+                len(direct_pushes) * self.weights.direct_push_penalty,
+            )
             self._add_deduction(
                 deduction, f"Direct pushes to protected branches ({len(direct_pushes)})"
             )
@@ -67,8 +72,10 @@ class HygieneScorer:
         # Conflicting PRs
         conflicts = [c for c in self.graph if c.is_tagged(Tag.PR_CONFLICT.value)]
         if conflicts:
-            # -10% per PR, capped at 30%
-            deduction = min(30, len(conflicts) * 10)
+            deduction = min(
+                self.weights.pr_conflict_cap,
+                len(conflicts) * self.weights.pr_conflict_penalty,
+            )
             self._add_deduction(
                 deduction, f"Conflicting pull requests ({len(conflicts)})"
             )
@@ -76,8 +83,10 @@ class HygieneScorer:
         # Orphan Commits
         orphans = [c for c in self.graph if c.is_tagged(Tag.ORPHAN.value)]
         if orphans:
-            # -2% per instance, capped at 10%
-            deduction = min(10, len(orphans) * 2)
+            deduction = min(
+                self.weights.orphan_commit_cap,
+                len(orphans) * self.weights.orphan_commit_penalty,
+            )
             self._add_deduction(
                 deduction, f"Orphan/Dangling commits found ({len(orphans)})"
             )
@@ -86,8 +95,10 @@ class HygieneScorer:
         # WIP Commits
         wip_commits = [c for c in self.graph if c.is_tagged(Tag.WIP.value)]
         if wip_commits:
-            # -3% per commit, capped at 15%
-            deduction = min(15, len(wip_commits) * 3)
+            deduction = min(
+                self.weights.wip_commit_cap,
+                len(wip_commits) * self.weights.wip_commit_penalty,
+            )
             self._add_deduction(
                 deduction, f"WIP/Fixup commits in history ({len(wip_commits)})"
             )
@@ -95,8 +106,10 @@ class HygieneScorer:
         # Stale Branches
         stale = [c for c in self.graph if c.is_tagged(Tag.STALE_COLOR.value)]
         if stale:
-            # -5% per branch, capped at 20%
-            deduction = min(20, len(stale) * 5)
+            deduction = min(
+                self.weights.stale_branch_cap,
+                len(stale) * self.weights.stale_branch_penalty,
+            )
             self._add_deduction(deduction, f"Stale branch tips found ({len(stale)})")
 
     def _check_connectivity(self):
@@ -107,8 +120,10 @@ class HygieneScorer:
             if c.is_tagged(Tag.LONG_RUNNING.value) and c.reference.branches
         ]
         if long_running:
-            # -10% per branch, capped at 30%
-            deduction = min(30, len(long_running) * 10)
+            deduction = min(
+                self.weights.long_running_branch_cap,
+                len(long_running) * self.weights.long_running_branch_penalty,
+            )
             self._add_deduction(
                 deduction, f"Long-running unmerged branches ({len(long_running)})"
             )
@@ -116,17 +131,19 @@ class HygieneScorer:
         # Behind Base (Divergence)
         behind = [c for c in self.graph if c.is_tagged(Tag.BEHIND.value)]
         if behind:
-            # -5% flat deduction if any divergence exists
             self._add_deduction(
-                5, "Repository has commits missing from feature branches (divergence)"
+                self.weights.divergence_penalty,
+                "Repository has commits missing from feature branches (divergence)",
             )
 
     def _check_back_merges(self):
         # Redundant Merges (Back-merges from main into feature)
         back_merges = [c for c in self.graph if c.is_tagged(Tag.BACK_MERGE.value)]
         if back_merges:
-            # -5% per instance, capped at 25%
-            deduction = min(25, len(back_merges) * 5)
+            deduction = min(
+                self.weights.back_merge_cap,
+                len(back_merges) * self.weights.back_merge_penalty,
+            )
             self._add_deduction(
                 deduction,
                 f"Redundant back-merges from base branch ({len(back_merges)})",
@@ -136,8 +153,10 @@ class HygieneScorer:
         # Contributor Silos
         silos = [c for c in self.graph if c.is_tagged(Tag.CONTRIBUTOR_SILO.value)]
         if silos:
-            # -10% per siloed branch, capped at 30%
-            deduction = min(30, len(silos) * 10)
+            deduction = min(
+                self.weights.contributor_silo_cap,
+                len(silos) * self.weights.contributor_silo_penalty,
+            )
             self._add_deduction(
                 deduction, f"Branches dominated by too few authors ({len(silos)})"
             )
@@ -148,8 +167,10 @@ class HygieneScorer:
             c for c in self.graph if c.is_tagged(Tag.ISSUE_INCONSISTENCY.value)
         ]
         if inconsistencies:
-            # -10% per instance, capped at 30%
-            deduction = min(30, len(inconsistencies) * 10)
+            deduction = min(
+                self.weights.issue_inconsistency_cap,
+                len(inconsistencies) * self.weights.issue_inconsistency_penalty,
+            )
             self._add_deduction(
                 deduction,
                 f"Inconsistencies between Git and Issue Tracker ({len(inconsistencies)})",
@@ -161,8 +182,10 @@ class HygieneScorer:
             c for c in self.graph if c.is_tagged(Tag.RELEASE_INCONSISTENCY.value)
         ]
         if inconsistencies:
-            # -10% per instance, capped at 30%
-            deduction = min(30, len(inconsistencies) * 10)
+            deduction = min(
+                self.weights.release_inconsistency_cap,
+                len(inconsistencies) * self.weights.release_inconsistency_penalty,
+            )
             self._add_deduction(
                 deduction,
                 f"Issues marked 'Released' but not tagged in Git ({len(inconsistencies)})",
@@ -172,8 +195,10 @@ class HygieneScorer:
         # Collaboration Gaps
         gaps = [c for c in self.graph if c.is_tagged(Tag.COLLABORATION_GAP.value)]
         if gaps:
-            # -5% per instance, capped at 25%
-            deduction = min(25, len(gaps) * 5)
+            deduction = min(
+                self.weights.collaboration_gap_cap,
+                len(gaps) * self.weights.collaboration_gap_penalty,
+            )
             self._add_deduction(
                 deduction, f"Git author doesn't match issue assignee ({len(gaps)})"
             )
@@ -184,8 +209,10 @@ class HygieneScorer:
             c for c in self.graph if c.is_tagged(Tag.LONGEVITY_MISMATCH.value)
         ]
         if mismatches:
-            # -5% per instance, capped at 20%
-            deduction = min(20, len(mismatches) * 5)
+            deduction = min(
+                self.weights.longevity_mismatch_cap,
+                len(mismatches) * self.weights.longevity_mismatch_penalty,
+            )
             self._add_deduction(
                 deduction,
                 f"Significant gap between issue creation and code commit ({len(mismatches)})",
