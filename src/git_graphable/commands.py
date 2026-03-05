@@ -29,8 +29,18 @@ def handle_output(
     output: Optional[str],
     config: GitLogConfig,
     as_image: bool = False,
-):
-    """Handles exporting and optionally opening the graph."""
+) -> Optional[str]:
+    """Handles exporting and optionally opening the graph. Returns content if output is '-'."""
+    if output == "-":
+        # Capture to string
+        import io
+        from contextlib import redirect_stdout
+
+        f = io.StringIO()
+        with redirect_stdout(f):
+            export_graph(graph, "-", config, engine, as_image=False)
+        return f.getvalue()
+
     if output:
         # If output path is provided, we use the specified as_image flag or infer from extension
         image_exts = [".png", ".svg", ".jpg", ".jpeg", ".pdf"]
@@ -46,6 +56,7 @@ def handle_output(
         export_graph(graph, temp_path, config, engine, as_image=True)
         print(f"Opening temporary image: {temp_path}")
         webbrowser.open(f"file://{os.path.abspath(temp_path)}")
+    return None
 
 
 def load_config(
@@ -92,9 +103,14 @@ def convert_command(
     config = load_config(path, config_path, cli_overrides)
     graph = process_repo(path, config)
 
-    # Note: We return the graph and config too if needed, but summary is usually enough
+    content = None
     if not is_check:
-        handle_output(graph, engine, output, config, as_image=as_image)
+        content = handle_output(graph, engine, output, config, as_image=as_image)
 
     summary = generate_summary(graph, config)
-    return {"summary": summary, "config": config, "graph_size": len(graph)}
+    return {
+        "summary": summary,
+        "config": config,
+        "graph_size": len(graph),
+        "content": content,
+    }

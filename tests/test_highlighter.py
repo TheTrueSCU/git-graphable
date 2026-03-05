@@ -67,7 +67,7 @@ def test_pr_status_highlighting(test_repo):
         commit = next(c for c in graph if c.reference.hash == sha)
         assert Tag.PR_STATUS.value in commit.tags
         assert Tag.PR_OPEN.value in commit.tags
-        assert any(t == f"{Tag.COLOR.value}#28a745" for t in commit.tags)
+        # Color is now applied via ThemeConfig in styler, not via Tag.COLOR in highlighter
 
 
 def test_author_highlighting(test_repo):
