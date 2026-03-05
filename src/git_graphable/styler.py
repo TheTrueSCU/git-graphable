@@ -18,7 +18,7 @@ from graphable.views import (
     export_topology_plantuml_image,
 )
 
-from .core import GitCommit, GitLogConfig
+from .core import GitCommit, GitLogConfig, StyleInfo
 from .models import Tag
 
 
@@ -137,124 +137,124 @@ def get_node_text(
     return label
 
 
-def get_generic_style(node: Graphable[Any], engine: Engine) -> dict[str, str]:
+def _map_to_d2(style: StyleInfo) -> dict[str, str]:
+    d2 = {}
+    if style.stroke:
+        d2["stroke"] = style.stroke
+    if style.fill:
+        d2["fill"] = style.fill
+        d2["font-color"] = get_contrast_color(style.fill)
+    if style.width:
+        d2["stroke-width"] = str(style.width)
+    if style.dash == "dashed":
+        d2["stroke-dash"] = "5"
+    elif style.dash == "dotted":
+        d2["stroke-dash"] = "2"
+    if style.opacity is not None:
+        d2["opacity"] = str(style.opacity)
+    return d2
+
+
+def _map_to_gv(style: StyleInfo) -> dict[str, str]:
+    gv = {}
+    if style.stroke:
+        gv["color"] = style.stroke
+    if style.fill:
+        gv["fillcolor"] = style.fill
+        gv["style"] = "filled"
+    if style.width:
+        gv["penwidth"] = str(style.width)
+    if style.dash == "dashed":
+        gv["style"] = gv.get("style", "") + ",dashed"
+    elif style.dash == "dotted":
+        gv["style"] = gv.get("style", "") + ",dotted"
+    return gv
+
+
+def get_generic_style(
+    node: Graphable[Any], engine: Engine, config: GitLogConfig
+) -> dict[str, str]:
     styles = {}
+    theme = config.theme
 
-    # WIP highlighting (Yellow fill)
-    if node.is_tagged(Tag.WIP.value):
+    def apply(style: StyleInfo):
         if engine == Engine.D2:
-            styles.update({"fill": "#ffff00", "font-color": "black"})
+            styles.update(_map_to_d2(style))
         elif engine == Engine.GRAPHVIZ:
-            styles.update({"fillcolor": "#ffff00", "style": "filled"})
+            styles.update(_map_to_gv(style))
 
+    # Fill tags (Author, Distance, Stale)
     for tag in node.tags:
         if tag.startswith(Tag.COLOR.value):
             color = tag.split(":", 1)[1]
-            if engine == Engine.D2:
-                styles.update(
-                    {
-                        "fill": color,
-                        "font-color": get_contrast_color(color),
-                    }
-                )
-            elif engine == Engine.GRAPHVIZ:
-                styles.update({"fillcolor": color, "style": "filled"})
+            apply(StyleInfo(fill=color))
 
+    # WIP
+    if node.is_tagged(Tag.WIP.value):
+        apply(theme.wip)
+
+    # PR States
+    if node.is_tagged(Tag.PR_OPEN.value):
+        apply(theme.pr_open)
+    elif node.is_tagged(Tag.PR_MERGED.value):
+        apply(theme.pr_merged)
+    elif node.is_tagged(Tag.PR_CLOSED.value):
+        apply(theme.pr_closed)
+    elif node.is_tagged(Tag.PR_DRAFT.value):
+        apply(theme.pr_draft)
+
+    # Overlays (Strokes)
     if node.is_tagged(Tag.CRITICAL.value):
+        apply(theme.critical)
         if engine == Engine.D2:
-            styles["stroke"] = "red"
-            styles["stroke-width"] = "6"
             styles["double-border"] = "true"
         elif engine == Engine.GRAPHVIZ:
-            styles["color"] = "red"
-            styles["penwidth"] = "5"
             styles["style"] = styles.get("style", "") + ",bold"
 
     if node.is_tagged(Tag.BEHIND.value):
-        if engine == Engine.D2:
-            styles["stroke"] = "orange"
-            styles["stroke-dash"] = "5"
-        elif engine == Engine.GRAPHVIZ:
-            styles["color"] = "orange"
-            styles["style"] = styles.get("style", "") + ",dashed"
+        apply(theme.behind)
 
     if node.is_tagged(Tag.ORPHAN.value):
-        if engine == Engine.D2:
-            styles["stroke"] = "grey"
-            styles["stroke-dash"] = "3"
-            styles["opacity"] = "0.6"
-        elif engine == Engine.GRAPHVIZ:
-            styles["color"] = "grey"
-            styles["style"] = styles.get("style", "") + ",dashed"
+        apply(theme.orphan)
 
     if node.is_tagged(Tag.LONG_RUNNING.value):
-        if engine == Engine.D2:
-            styles["stroke"] = "purple"
-            styles["stroke-width"] = "4"
-        elif engine == Engine.GRAPHVIZ:
-            styles["color"] = "purple"
-            styles["penwidth"] = "3"
+        apply(theme.long_running)
 
     if node.is_tagged(Tag.PR_CONFLICT.value):
-        if engine == Engine.D2:
-            styles["stroke"] = "red"
-            styles["stroke-width"] = "8"
-        elif engine == Engine.GRAPHVIZ:
-            styles["color"] = "red"
-            styles["penwidth"] = "6"
+        apply(theme.pr_conflict)
 
     if node.is_tagged(Tag.DIRECT_PUSH.value):
-        if engine == Engine.D2:
-            styles["stroke"] = "#ff0000"
-            styles["stroke-width"] = "10"
-            styles["stroke-dash"] = "2"
-        elif engine == Engine.GRAPHVIZ:
-            styles["color"] = "#ff0000"
-            styles["penwidth"] = "8"
-            styles["style"] = styles.get("style", "") + ",dashed"
+        apply(theme.direct_push)
 
     if node.is_tagged(Tag.BACK_MERGE.value):
-        if engine == Engine.D2:
-            styles["stroke"] = "orange"
-            styles["stroke-width"] = "4"
-            styles["stroke-dash"] = "2"
-        elif engine == Engine.GRAPHVIZ:
-            styles["color"] = "orange"
-            styles["penwidth"] = "3"
-            styles["style"] = styles.get("style", "") + ",dotted"
+        apply(theme.back_merge)
 
     if node.is_tagged(Tag.CONTRIBUTOR_SILO.value):
-        if engine == Engine.D2:
-            styles["stroke"] = "blue"
-            styles["stroke-width"] = "8"
-        elif engine == Engine.GRAPHVIZ:
-            styles["color"] = "blue"
-            styles["penwidth"] = "6"
+        apply(theme.contributor_silo)
 
     return styles
 
 
 def get_generic_link_style(
-    node: Graphable[Any], subnode: Graphable[Any], engine: Engine
+    node: Graphable[Any], subnode: Graphable[Any], engine: Engine, config: GitLogConfig
 ) -> dict[str, str]:
     styles = {}
-    if node.edge_attributes(subnode).get(Tag.EDGE_PATH.value):
+    theme = config.theme
+
+    def apply(style: StyleInfo):
         if engine == Engine.D2:
-            styles.update({"stroke": "#FFA500", "stroke-width": "6"})
+            styles.update(_map_to_d2(style))
         elif engine == Engine.GRAPHVIZ:
-            styles.update({"color": "#FFA500", "penwidth": "4"})
-    elif node.edge_attributes(subnode).get(Tag.EDGE_LONG_RUNNING.value):
-        if engine == Engine.D2:
-            styles.update({"stroke": "purple", "stroke-width": "4"})
-        elif engine == Engine.GRAPHVIZ:
-            styles.update({"color": "purple", "penwidth": "3"})
-    elif node.edge_attributes(subnode).get(Tag.EDGE_LOGICAL_MERGE.value):
-        if engine == Engine.D2:
-            styles.update(
-                {"stroke": "#808080", "stroke-width": "2", "stroke-dash": "5"}
-            )
-        elif engine == Engine.GRAPHVIZ:
-            styles.update({"color": "#808080", "style": "dashed", "penwidth": "1"})
+            styles.update(_map_to_gv(style))
+
+    attrs = node.edge_attributes(subnode)
+    if attrs.get(Tag.EDGE_PATH.value):
+        apply(theme.edge_path)
+    elif attrs.get(Tag.EDGE_LONG_RUNNING.value):
+        apply(theme.edge_long_running)
+    elif attrs.get(Tag.EDGE_LOGICAL_MERGE.value):
+        apply(theme.edge_logical_merge)
+
     return styles
 
 
@@ -275,54 +275,77 @@ def export_graph(
 
     if engine == Engine.MERMAID:
 
+        def _map_to_mermaid(style: StyleInfo) -> str:
+            parts = []
+            if style.fill:
+                parts.append(f"fill:{style.fill}")
+                parts.append(f"color:{get_contrast_color(style.fill)}")
+            if style.stroke:
+                parts.append(f"stroke:{style.stroke}")
+            if style.width:
+                parts.append(f"stroke-width:{style.width}px")
+            if style.dash == "dashed":
+                parts.append("stroke-dasharray: 5 5")
+            elif style.dash == "dotted":
+                parts.append("stroke-dasharray: 2 2")
+            return ",".join(parts)
+
         def mermaid_style(node: Graphable[Any]) -> Optional[str]:
             style_parts = []
+            theme = config.theme
 
-            # WIP
-            if node.is_tagged(Tag.WIP.value):
-                style_parts.append("fill:#ffff00,color:black")
-
+            # 1. Fill base (Author, Distance, Stale)
             for tag in node.tags:
                 if tag.startswith(Tag.COLOR.value):
                     color = tag.split(":", 1)[1]
                     style_parts.append(f"fill:{color}")
                     style_parts.append(f"color:{get_contrast_color(color)}")
+
+            # 2. State Fills (WIP, PR Status)
+            if node.is_tagged(Tag.WIP.value):
+                style_parts.append(_map_to_mermaid(theme.wip))
+            elif node.is_tagged(Tag.PR_OPEN.value):
+                style_parts.append(_map_to_mermaid(theme.pr_open))
+            elif node.is_tagged(Tag.PR_MERGED.value):
+                style_parts.append(_map_to_mermaid(theme.pr_merged))
+            elif node.is_tagged(Tag.PR_CLOSED.value):
+                style_parts.append(_map_to_mermaid(theme.pr_closed))
+            elif node.is_tagged(Tag.PR_DRAFT.value):
+                style_parts.append(_map_to_mermaid(theme.pr_draft))
+
+            # 3. Overlays (Strokes)
             if node.is_tagged(Tag.CRITICAL.value):
-                style_parts.append("stroke:red,stroke-width:4px")
+                style_parts.append(_map_to_mermaid(theme.critical))
             if node.is_tagged(Tag.BEHIND.value):
-                style_parts.append(
-                    "stroke:orange,stroke-width:2px,stroke-dasharray: 5 5"
-                )
+                style_parts.append(_map_to_mermaid(theme.behind))
             if node.is_tagged(Tag.ORPHAN.value):
-                style_parts.append("stroke:#666,stroke-width:2px,stroke-dasharray: 3 3")
+                style_parts.append(_map_to_mermaid(theme.orphan))
             if node.is_tagged(Tag.LONG_RUNNING.value) and not node.is_tagged(
                 Tag.CRITICAL.value
             ):
-                style_parts.append("stroke:purple,stroke-width:3px")
+                style_parts.append(_map_to_mermaid(theme.long_running))
             if node.is_tagged(Tag.PR_CONFLICT.value):
-                style_parts.append("stroke:red,stroke-width:6px")
+                style_parts.append(_map_to_mermaid(theme.pr_conflict))
             if node.is_tagged(Tag.DIRECT_PUSH.value):
-                style_parts.append(
-                    "stroke:#ff0000,stroke-width:8px,stroke-dasharray: 2 2"
-                )
+                style_parts.append(_map_to_mermaid(theme.direct_push))
             if node.is_tagged(Tag.BACK_MERGE.value):
-                style_parts.append(
-                    "stroke:orange,stroke-width:4px,stroke-dasharray: 2 2"
-                )
+                style_parts.append(_map_to_mermaid(theme.back_merge))
             if node.is_tagged(Tag.CONTRIBUTOR_SILO.value):
-                style_parts.append("stroke:blue,stroke-width:6px")
+                style_parts.append(_map_to_mermaid(theme.contributor_silo))
+
             return ",".join(style_parts) if style_parts else None
 
         def mermaid_link_style(
             node: Graphable[Any], subnode: Graphable[Any]
         ) -> Optional[str]:
             attrs = node.edge_attributes(subnode)
+            theme = config.theme
             if attrs.get(Tag.EDGE_PATH.value):
-                return "stroke:#FFA500,stroke-width:4px"
+                return _map_to_mermaid(theme.edge_path)
             if attrs.get(Tag.EDGE_LONG_RUNNING.value):
-                return "stroke:purple,stroke-width:3px"
+                return _map_to_mermaid(theme.edge_long_running)
             if attrs.get(Tag.EDGE_LOGICAL_MERGE.value):
-                return "stroke:#808080,stroke-width:2px,stroke-dasharray: 5 5"
+                return _map_to_mermaid(theme.edge_logical_merge)
             return None
 
         styling_config = MermaidStylingConfig(
@@ -337,8 +360,10 @@ def export_graph(
         styling_config = GraphvizStylingConfig(
             node_ref_fnc=node_ref_fnc,
             node_label_fnc=label_fnc,
-            node_attr_fnc=lambda n: get_generic_style(n, Engine.GRAPHVIZ),
-            edge_attr_fnc=lambda n, sn: get_generic_link_style(n, sn, Engine.GRAPHVIZ),
+            node_attr_fnc=lambda n: get_generic_style(n, Engine.GRAPHVIZ, config),
+            edge_attr_fnc=lambda n, sn: get_generic_link_style(
+                n, sn, Engine.GRAPHVIZ, config
+            ),
         )
         fnc = (
             export_topology_graphviz_image if as_image else export_topology_graphviz_dot
@@ -348,8 +373,10 @@ def export_graph(
         styling_config = D2StylingConfig(
             node_ref_fnc=node_ref_fnc,
             node_label_fnc=label_fnc,
-            node_style_fnc=lambda n: get_generic_style(n, Engine.D2),
-            edge_style_fnc=lambda n, sn: get_generic_link_style(n, sn, Engine.D2),
+            node_style_fnc=lambda n: get_generic_style(n, Engine.D2, config),
+            edge_style_fnc=lambda n, sn: get_generic_link_style(
+                n, sn, Engine.D2, config
+            ),
         )
         fnc = export_topology_d2_image if as_image else export_topology_d2
         graph.export(fnc, output_path, config=styling_config)

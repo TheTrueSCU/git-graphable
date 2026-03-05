@@ -194,11 +194,8 @@ def _apply_issue_highlights(
             if config.highlight_longevity_mismatch and ext_created:
                 try:
                     # Convert ext_created (ISO 8601) to timestamp
-                    # Python 3.11+ has fromisoformat, but we support 3.13 so good.
-                    # GitHub/Jira return ISO strings like 2023-01-01T12:00:00Z
                     from datetime import datetime
 
-                    # Handle Z if present
                     clean_ts = ext_created.replace("Z", "+00:00")
                     created_dt = datetime.fromisoformat(clean_ts)
                     issue_ts = created_dt.timestamp()
@@ -342,7 +339,6 @@ def _apply_squash_highlights(
 
             if potential_squashed:
                 # Find the 'tip' of the squashed commits
-                # (The one with no children in the potential_squashed set)
                 tips = []
                 for c in potential_squashed:
                     is_tip = True
@@ -393,25 +389,8 @@ def _apply_direct_push_highlights(graph: Graph[GitCommit], config: GitLogConfig)
         # For each branch this commit is on, check if it's protected
         for branch in commit.reference.branches:
             if branch in protected:
-                # If there are parents, the parent must ALSO have been on this branch
-                # to be a 'direct push'. If the parent was NOT on this branch,
-                # it might be a fast-forward merge or the start of the branch.
                 if not commit.reference.parents:
-                    # Root commit on protected branch is fine (or is it?)
-                    # Usually we only care about commits added LATER.
                     continue
-
-                # In our graph, nodes don't easily know their parent's branches
-                # without searching. But get_git_log already assigned branches
-                # to metadata.
-
-                # To be a direct push:
-                # 1. Commit is on 'main'
-                # 2. Commit is NOT a merge
-                # 3. Parent was ALREADY on 'main'
-
-                # For now, let's keep it simple: if it's a non-merge commit
-                # appearing on a protected branch, it's a candidate.
                 commit.add_tag(Tag.DIRECT_PUSH.value)
                 break
 
@@ -436,16 +415,12 @@ def _apply_pr_highlights(
             if pr.state == "OPEN":
                 if pr.is_draft:
                     commit.add_tag(Tag.PR_DRAFT.value)
-                    commit.add_tag(f"{Tag.COLOR.value}#808080")  # Gray
                 else:
                     commit.add_tag(Tag.PR_OPEN.value)
-                    commit.add_tag(f"{Tag.COLOR.value}#28a745")  # Green
             elif pr.state == "MERGED":
                 commit.add_tag(Tag.PR_MERGED.value)
-                commit.add_tag(f"{Tag.COLOR.value}#6f42c1")  # Purple
             elif pr.state == "CLOSED":
                 commit.add_tag(Tag.PR_CLOSED.value)
-                commit.add_tag(f"{Tag.COLOR.value}#d73a49")  # Red
 
             if pr.mergeable == "CONFLICTING":
                 commit.add_tag(Tag.PR_CONFLICT.value)
@@ -457,16 +432,7 @@ def _apply_author_highlights(graph: Graph[GitCommit], config: GitLogConfig):
         return
 
     authors = sorted(list(set(c.reference.author for c in graph)))
-    palette = [
-        "#FFD700",
-        "#C0C0C0",
-        "#CD7F32",
-        "#ADD8E6",
-        "#90EE90",
-        "#F08080",
-        "#E6E6FA",
-        "#FFE4E1",
-    ]
+    palette = config.theme.author_palette
     author_to_color = {
         author: palette[i % len(palette)] for i, author in enumerate(authors)
     }
@@ -542,7 +508,6 @@ def _apply_path_highlights(graph: Graph[GitCommit], config: GitLogConfig):
         path_graph = graph.subgraph_between(start_node, end_node)
         path_nodes = set(path_graph)
         for commit in path_nodes:
-            # Tag edges that connect nodes within this path
             for parent, _ in graph.internal_depends_on(commit):
                 if parent in path_nodes:
                     commit.set_edge_attribute(parent, Tag.EDGE_PATH.value, True)
@@ -569,7 +534,6 @@ def _apply_divergence_highlights(graph: Graph[GitCommit], config: GitLogConfig):
         base_reach.add(base_node)
 
         for commit in graph:
-            # Check each branch tip that is not the base branch itself
             if (
                 commit.reference.branches
                 and base_branch not in commit.reference.branches
@@ -577,7 +541,6 @@ def _apply_divergence_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                 branch_reach = set(graph.ancestors(commit))
                 branch_reach.add(commit)
 
-                # If there are commits in base that are NOT in this branch, it's behind
                 if base_reach - branch_reach:
                     commit.add_tag(Tag.BEHIND.value)
 
@@ -624,7 +587,6 @@ def _apply_long_running_highlights(graph: Graph[GitCommit], config: GitLogConfig
         return
 
     now = time.time()
-    # Use a small negative threshold for 0 to handle near-instant commits in tests
     threshold_sec = config.long_running_days * 86400
     if config.long_running_days == 0:
         threshold_sec = -1

@@ -18,6 +18,7 @@ git graphable .
 - **Issue Tracker Integration**: Connect to Jira, GitHub Issues, or custom scripts to highlight status desyncs.
 - **Release & Assignment Validation**: Verify that "Released" tickets are actually tagged in Git and that commit authors match ticket assignees.
 - **Health Scoring**: Get a numeric "Hygiene Score" (0-100%) with a color-coded grade and detailed breakdown of workflow anti-patterns.
+- **Visual Customization**: Fully customize colors, widths, and line styles for nodes and edges. See [STYLING.md](STYLING.md).
 - **Configurable Penalties**: Fully customize the scoring logic by adjusting penalties and caps for each metric.
 - **CI Gating**: Use the `--check` flag to return a non-zero exit code if the hygiene score falls below a threshold (configurable via `--min-score`).
 - **Flexible Input**: Works with local repository paths or remote Git URLs.
@@ -73,10 +74,7 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 | `--highlight-collaboration-gaps` | **Label** | Adds `[COLLAB-GAP]` label | None |
 | `--highlight-longevity-mismatch` | **Label** | Adds `[LONGEVITY]` label | None |
 
-### Highlighting Priorities
-- **Fill**: `--highlight-authors`, `--highlight-pr-status`, `--highlight-distance-from`, `--highlight-stale`, and `--highlight-wip` are mutually exclusive.
-- **Edge**: Path highlighting (Thick Orange) takes priority over Long-Running highlighting (Thick Purple), which takes priority over Logical Squashed Merges (Dashed Grey).
-- **Stroke**: Critical outlines (Thick Red Solid) take priority over Direct Pushes (Thick Red Dashed), which take priority over PR Conflicts (Thick Red Solid), which take priority over Back-Merges (Orange Dashed), which take priority over Squash Commits (Grey Solid), which take priority over Contributor Silos (Blue Solid), which take priority over all other outlines (Divergence, Orphan, Long-Running).
+For a full reference of the default visual styles and how to customize them, see [STYLING.md](STYLING.md).
 
 ## Advanced Examples
 
@@ -104,11 +102,11 @@ Flag mismatches between your code and your tickets:
 uv run git-graphable . --highlight-issue-inconsistencies --issue-pattern "[A-Z]+-[0-9]+" --issue-engine jira --jira-url "https://your-org.atlassian.net"
 ```
 
-### Customizable Scoring
-Adjust hygiene penalties to match your team's workflow:
+### Customizable Scoring & Styling
+Adjust hygiene penalties and visual styles to match your team's workflow:
 ```bash
-# Aggressive penalty for direct pushes
-uv run git-graphable . --check --penalty direct_push_penalty:50
+# Aggressive penalty for direct pushes and custom teal color for critical branches
+uv run git-graphable . --check --penalty direct_push_penalty:50 --style critical:stroke:teal
 ```
 
 ## Configuration
@@ -153,6 +151,15 @@ longevity_threshold_days = 14
 direct_push_penalty = 25
 direct_push_cap = 75
 wip_commit_penalty = 5
+
+# Custom Theme
+[git-graphable.theme.critical]
+stroke = "teal"
+width = 2
+
+[git-graphable.theme.direct_push]
+stroke = "magenta"
+dash = "dotted"
 ```
 
 ## Development

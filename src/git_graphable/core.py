@@ -45,6 +45,75 @@ class HygieneWeights:
 
 
 @dataclass
+class StyleInfo:
+    stroke: Optional[str] = None
+    fill: Optional[str] = None
+    width: Optional[int] = None
+    dash: Optional[str] = None  # None, "dashed", "dotted"
+    opacity: Optional[float] = None
+
+
+@dataclass
+class ThemeConfig:
+    critical: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="red", width=4)
+    )
+    wip: StyleInfo = field(default_factory=lambda: StyleInfo(fill="#ffff00"))
+    behind: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="orange", dash="dashed", width=2)
+    )
+    orphan: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="grey", dash="dashed", opacity=0.6)
+    )
+    long_running: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="purple", width=3)
+    )
+    pr_conflict: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="red", width=6)
+    )
+    direct_push: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="#ff0000", dash="dashed", width=8)
+    )
+    back_merge: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="orange", dash="dashed", width=4)
+    )
+    contributor_silo: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="blue", width=6)
+    )
+
+    # PR Status Fills
+    pr_open: StyleInfo = field(default_factory=lambda: StyleInfo(fill="#28a745"))
+    pr_merged: StyleInfo = field(default_factory=lambda: StyleInfo(fill="#6f42c1"))
+    pr_closed: StyleInfo = field(default_factory=lambda: StyleInfo(fill="#d73a49"))
+    pr_draft: StyleInfo = field(default_factory=lambda: StyleInfo(fill="#808080"))
+
+    # Edges
+    edge_path: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="#FFA500", width=4)
+    )
+    edge_long_running: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="purple", width=3)
+    )
+    edge_logical_merge: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="#808080", dash="dashed", width=2)
+    )
+
+    # Palette
+    author_palette: List[str] = field(
+        default_factory=lambda: [
+            "#FFD700",
+            "#C0C0C0",
+            "#CD7F32",
+            "#ADD8E6",
+            "#90EE90",
+            "#F08080",
+            "#E6E6FA",
+            "#FFE4E1",
+        ]
+    )
+
+
+@dataclass
 class GitLogConfig:
     simplify: bool = False
     limit: Optional[int] = None
@@ -95,6 +164,7 @@ class GitLogConfig:
         14  # Max diff between Issue created and first commit
     )
     hygiene_weights: HygieneWeights = field(default_factory=HygieneWeights)
+    theme: ThemeConfig = field(default_factory=ThemeConfig)
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
@@ -118,6 +188,9 @@ class GitLogConfig:
 
             # Handle nested hygiene_weights
             weights_data = config_data.pop("hygiene_weights", {})
+            # Handle nested theme
+            theme_data = config_data.pop("theme", {})
+
             config = cls(
                 **{
                     k: v
@@ -129,6 +202,20 @@ class GitLogConfig:
                 for k, v in weights_data.items():
                     if hasattr(config.hygiene_weights, k):
                         setattr(config.hygiene_weights, k, v)
+
+            if theme_data:
+                for k, v in theme_data.items():
+                    if hasattr(config.theme, k):
+                        if isinstance(v, dict):
+                            # It's a StyleInfo override
+                            current_style = getattr(config.theme, k)
+                            for s_k, s_v in v.items():
+                                if hasattr(current_style, s_k):
+                                    setattr(current_style, s_k, s_v)
+                        else:
+                            # It's likely the author_palette list
+                            setattr(config.theme, k, v)
+
             return config
         except Exception:
             return cls()
@@ -142,6 +229,16 @@ class GitLogConfig:
             if isinstance(val, HygieneWeights):
                 # Deep copy for HygieneWeights
                 setattr(new_config, field_name, HygieneWeights(**asdict(val)))
+            elif isinstance(val, ThemeConfig):
+                # Deep copy for ThemeConfig
+                new_theme = ThemeConfig()
+                for t_field in val.__dataclass_fields__:
+                    t_val = getattr(val, t_field)
+                    if isinstance(t_val, StyleInfo):
+                        setattr(new_theme, t_field, StyleInfo(**asdict(t_val)))
+                    else:
+                        setattr(new_theme, t_field, t_val)
+                setattr(new_config, field_name, new_theme)
             else:
                 setattr(new_config, field_name, val)
 
@@ -153,6 +250,17 @@ class GitLogConfig:
                     for w_key, w_val in value.items():
                         if hasattr(new_config.hygiene_weights, w_key):
                             setattr(new_config.hygiene_weights, w_key, w_val)
+                elif key == "theme" and isinstance(value, dict):
+                    # Merge theme if provided as dict
+                    for t_key, t_val in value.items():
+                        if hasattr(new_config.theme, t_key):
+                            if isinstance(t_val, dict):
+                                current_style = getattr(new_config.theme, t_key)
+                                for s_key, s_val in t_val.items():
+                                    if hasattr(current_style, s_key):
+                                        setattr(current_style, s_key, s_val)
+                            else:
+                                setattr(new_config.theme, t_key, t_val)
                 elif isinstance(value, list) and not value:
                     # Special case for lists: only override if not empty
                     continue
