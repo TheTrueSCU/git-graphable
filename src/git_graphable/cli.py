@@ -108,6 +108,7 @@ def validate_highlights(
     highlight_authors: bool,
     highlight_distance_from: Optional[str],
     highlight_stale: Optional[int],
+    highlight_pr_status: bool,
 ) -> Optional[str]:
     """Check for conflicting fill-based highlight options."""
     active = []
@@ -117,6 +118,8 @@ def validate_highlights(
         active.append("--highlight-distance-from")
     if highlight_stale is not None:
         active.append("--highlight-stale")
+    if highlight_pr_status:
+        active.append("--highlight-pr-status")
 
     if len(active) > 1:
         return f"Error: Cannot use multiple fill-based highlights at once: {', '.join(active)}"
@@ -197,13 +200,21 @@ def run_bare_cli(argv: List[str]):
         help="Base branch for long-running analysis",
     )
     parser.add_argument(
+        "--highlight-pr-status",
+        action="store_true",
+        help="Highlight commits based on GitHub PR status",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
     args = parser.parse_args(argv)
 
     error = validate_highlights(
-        args.highlight_authors, args.highlight_distance_from, args.highlight_stale
+        args.highlight_authors,
+        args.highlight_distance_from,
+        args.highlight_stale,
+        args.highlight_pr_status,
     )
     if error:
         print(error, file=sys.stderr)
@@ -229,6 +240,7 @@ def run_bare_cli(argv: List[str]):
         highlight_stale=args.highlight_stale,
         highlight_long_running=args.highlight_long_running,
         long_running_base=args.long_running_base,
+        highlight_pr_status=args.highlight_pr_status,
     )
 
     try:
@@ -311,13 +323,21 @@ if HAS_CLI_EXTRAS:
         long_running_base: str = typer.Option(
             "main", "--long-running-base", help="Base branch for long-running analysis"
         ),
+        highlight_pr_status: bool = typer.Option(
+            False,
+            "--highlight-pr-status",
+            help="Highlight commits based on GitHub PR status",
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
     ):
         """Git graph to Mermaid/Graphviz/D2/PlantUML converter."""
         error = validate_highlights(
-            highlight_authors, highlight_distance_from, highlight_stale
+            highlight_authors,
+            highlight_distance_from,
+            highlight_stale,
+            highlight_pr_status,
         )
         if error:
             typer.secho(error, fg=typer.colors.RED, err=True)
@@ -341,6 +361,7 @@ if HAS_CLI_EXTRAS:
             highlight_stale=highlight_stale,
             highlight_long_running=highlight_long_running,
             long_running_base=long_running_base,
+            highlight_pr_status=highlight_pr_status,
         )
 
         if bare:

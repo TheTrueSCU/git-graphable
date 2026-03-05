@@ -13,6 +13,7 @@ git graphable .
 - **Multi-Engine Support**: Export to Mermaid (.mmd), D2 (.d2), Graphviz (.dot), or PlantUML (.puml).
 - **Automatic Visualization**: Generates and opens an image (SVG/PNG) automatically if no output is specified.
 - **Advanced Highlighting**: Visualize author patterns, topological distance, and specific merge paths.
+- **GitHub Integration**: Highlight commits based on pull request status (Merged, Open, Closed, Draft) using the `gh` CLI.
 - **Hygiene Analysis**: Identify commits that are "behind" a base branch with divergence analysis.
 - **Flexible Input**: Works with local repository paths or remote Git URLs.
 - **Dual CLI**: Modern Rich/Typer interface with a robust argparse fallback for bare environments.
@@ -32,6 +33,9 @@ For a complete reference of all command-line options, see the [USAGE.md](USAGE.m
 # Basic usage (opens a Mermaid image)
 uv run git-graphable .
 
+# Highlight PR status (requires gh CLI)
+uv run git-graphable . --highlight-pr-status
+
 # Specify an engine and output file
 uv run git-graphable https://github.com/TheTrueSCU/graphable/ --engine d2 -o graph.svg
 
@@ -45,9 +49,10 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 
 | Option | Target | Effect | Conflicts With |
 | :--- | :--- | :--- | :--- |
-| `--highlight-authors` | **Fill** | Unique color per author | Distance, Stale |
-| `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | Authors, Stale |
-| `--highlight-stale` | **Fill** | Gradient white to red by age | Authors, Distance |
+| `--highlight-authors` | **Fill** | Unique color per author | PR Status, Distance, Stale |
+| `--highlight-pr-status` | **Fill/Stroke**| Color by PR state (Merged=Purple, Open=Green) | Authors, Distance, Stale |
+| `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | Authors, PR Status, Stale |
+| `--highlight-stale` | **Fill** | Gradient white to red by age | Authors, PR Status, Distance |
 | `--highlight-path` | **Edge** | Thick Orange edge connecting nodes | None |
 | `--highlight-critical` | **Stroke** | Thick Red Solid outline | None |
 | `--highlight-diverging-from` | **Stroke** | Orange Dashed outline | None |
@@ -55,22 +60,22 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 | `--highlight-long-running` | **Stroke/Edge** | Purple outline and thick Purple edge | None |
 
 ### Highlighting Priorities
-- **Fill**: `--highlight-authors`, `--highlight-distance-from`, and `--highlight-stale` are mutually exclusive.
+- **Fill**: `--highlight-authors`, `--highlight-pr-status`, `--highlight-distance-from`, and `--highlight-stale` are mutually exclusive.
 - **Edge**: Path highlighting (Thick Orange) takes priority over Long-Running highlighting (Thick Purple).
-- **Stroke**: Critical outlines (Thick Red) take priority over all other outlines (Divergence, Orphan, Long-Running).
+- **Stroke**: Critical outlines (Thick Red) take priority over PR Conflicts (Thick Red), which take priority over all other outlines (Divergence, Orphan, Long-Running).
 
 ## Advanced Examples
+
+### PR Status Highlighting
+View the current state of all PRs in your repository graph:
+```bash
+uv run git-graphable . --highlight-pr-status
+```
 
 ### Divergence Analysis (Hygiene)
 Highlight commits that exist in `main` but are missing from your feature branches:
 ```bash
 uv run git-graphable . --highlight-diverging-from main
-```
-
-### Path Highlighting
-See the exact sequence of commits between a feature branch and a specific tag:
-```bash
-uv run git-graphable . --highlight-path develop..v1.0.0
 ```
 
 ### Large Repositories

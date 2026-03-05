@@ -59,6 +59,20 @@ def get_node_text(
 
     display_label = f"{meta.hash[:7]}"
 
+    # Add PR status if present
+    for tag in node.tags:
+        if tag == Tag.PR_OPEN.value:
+            display_label += " [PR Open]"
+        elif tag == Tag.PR_MERGED.value:
+            display_label += " [PR Merged]"
+        elif tag == Tag.PR_CLOSED.value:
+            display_label += " [PR Closed]"
+        elif tag == Tag.PR_DRAFT.value:
+            display_label += " [PR Draft]"
+
+        if tag == Tag.PR_CONFLICT.value:
+            display_label += " (CONFLICT)"
+
     sep = " - "
     newline = " - "
     if engine in [Engine.D2, Engine.GRAPHVIZ, Engine.PLANTUML]:
@@ -134,6 +148,14 @@ def get_generic_style(node: Graphable[Any], engine: Engine) -> dict[str, str]:
             styles["color"] = "purple"
             styles["penwidth"] = "3"
 
+    if node.is_tagged(Tag.PR_CONFLICT.value):
+        if engine == Engine.D2:
+            styles["stroke"] = "red"
+            styles["stroke-width"] = "8"
+        elif engine == Engine.GRAPHVIZ:
+            styles["color"] = "red"
+            styles["penwidth"] = "6"
+
     return styles
 
 
@@ -196,6 +218,8 @@ def export_graph(
                 Tag.CRITICAL.value
             ):
                 style_parts.append("stroke:purple,stroke-width:3px")
+            if node.is_tagged(Tag.PR_CONFLICT.value):
+                style_parts.append("stroke:red,stroke-width:6px")
             return ",".join(style_parts) if style_parts else None
 
         def mermaid_link_style(

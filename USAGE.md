@@ -29,6 +29,7 @@ $ git-graphable [OPTIONS] PATH
 * `--highlight-stale INTEGER`: Threshold in days to highlight stale branch tips
 * `--highlight-long-running INTEGER`: Threshold in days to highlight long-running branches
 * `--long-running-base TEXT`: Base branch for long-running analysis  [default: main]
+* `--highlight-pr-status`: Highlight commits based on GitHub PR status
 * `--bare`: Force bare mode (no rich output)
 * `--install-completion`: Install completion for the current shell.
 * `--show-completion`: Show completion for the current shell, to copy it or customize the installation.

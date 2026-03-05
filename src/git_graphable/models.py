@@ -8,6 +8,14 @@ class Tag(str, Enum):
     ORPHAN = "orphan"
     LONG_RUNNING = "long_running"
     PATH_HIGHLIGHT = "path_highlight"
+    PR_STATUS = "pr_status"
+
+    # Specific PR states
+    PR_OPEN = "pr:open"
+    PR_CLOSED = "pr:closed"
+    PR_MERGED = "pr:merged"
+    PR_DRAFT = "pr:draft"
+    PR_CONFLICT = "pr:conflict"
 
     # Prefix tags
     AUTHOR = "author:"
