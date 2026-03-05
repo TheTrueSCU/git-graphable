@@ -288,18 +288,19 @@ def _apply_divergence_highlights(graph: Graph[GitCommit], config: GitLogConfig):
     if base_node:
         base_reach = set(graph.ancestors(base_node))
         base_reach.add(base_node)
-        other_reach = set()
+
         for commit in graph:
+            # Check each branch tip that is not the base branch itself
             if (
                 commit.reference.branches
                 and config.highlight_diverging_from not in commit.reference.branches
             ):
-                other_reach.update(graph.ancestors(commit))
-                other_reach.add(commit)
+                branch_reach = set(graph.ancestors(commit))
+                branch_reach.add(commit)
 
-        behind_commits = base_reach - other_reach
-        for commit in behind_commits:
-            commit.add_tag(Tag.BEHIND.value)
+                # If there are commits in base that are NOT in this branch, it's behind
+                if base_reach - branch_reach:
+                    commit.add_tag(Tag.BEHIND.value)
 
 
 def _apply_orphan_highlights(graph: Graph[GitCommit], config: GitLogConfig):
