@@ -8,6 +8,7 @@ import pytest
 
 from git_graphable.core import GitLogConfig, process_repo
 from git_graphable.github import PullRequestInfo
+from git_graphable.hygiene import HygieneScorer
 from git_graphable.models import Tag
 
 
@@ -143,3 +144,37 @@ def test_direct_push_detection(test_repo):
     # Note: in test_repo setup, branch is often 'master'
     assert len(direct_pushes) >= 1
     assert any("direct to main" in str(c.reference.message) for c in direct_pushes)
+
+
+def test_hygiene_scorer_logic(test_repo):
+    # 1. Create a direct push
+    with open(os.path.join(test_repo, "direct_push.txt"), "w") as f:
+        f.write("direct")
+    subprocess.run(["git", "add", "direct_push.txt"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+    subprocess.run(
+        ["git", "commit", "-m", "direct push commit"], cwd=test_repo, check=True
+    )
+
+    # 2. Create a WIP commit
+    with open(os.path.join(test_repo, "wip_file.txt"), "w") as f:
+        f.write("wip")
+    subprocess.run(["git", "add", "wip_file.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "WIP: baked"], cwd=test_repo, check=True)
+
+    config = GitLogConfig(
+        highlight_direct_pushes=True, highlight_wip=True, production_branch="master"
+    )
+    graph = process_repo(test_repo, config)
+
+    scorer = HygieneScorer(graph, config)
+    report = scorer.calculate()
+
+    # Score should be < 100
+    assert report["score"] < 100
+    # Should have at least 2 deductions (Direct push and WIP)
+    assert len(report["deductions"]) >= 2
+    assert any("Direct pushes" in d["message"] for d in report["deductions"])
+    assert any("WIP/Fixup" in d["message"] for d in report["deductions"])

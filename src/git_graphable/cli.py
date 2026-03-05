@@ -11,14 +11,12 @@ from graphable.enums import Engine
 try:
     import typer
     from rich.console import Console
-    from rich.panel import Panel
-    from rich.table import Table
 
     HAS_CLI_EXTRAS = True
 except ImportError:
     HAS_CLI_EXTRAS = False
 
-from .core import GitCommit, GitLogConfig, generate_summary, process_repo
+from .core import GitLogConfig, generate_summary, process_repo
 from .styler import export_graph
 
 
@@ -61,47 +59,83 @@ def handle_output(
         webbrowser.open(f"file://{os.path.abspath(temp_path)}")
 
 
-def display_summary(summary: Dict[str, List[GitCommit]], bare: bool = False):
-    """Displays a summary of flagged commits."""
-    if bare:
-        print("\n--- Git Hygiene Summary ---")
-        for category, commits in summary.items():
-            if commits:
-                print(f"{category}: {len(commits)} commits")
-                for c in commits[:5]:  # Show first 5
-                    branches = (
-                        f" ({', '.join(c.reference.branches)})"
-                        if c.reference.branches
-                        else ""
-                    )
-                    print(
-                        f"  - {c.reference.hash[:7]}{branches}: {c.reference.message}"
-                    )
-                if len(commits) > 5:
-                    print(f"  ... and {len(commits) - 5} more")
-    else:
+def display_summary(summary: Dict[str, Any], bare: bool = False):
+    """Displays a summary of flagged commits and hygiene score."""
+    if not summary:
+        return
+
+    score_info = summary.get("Hygiene Score", {})
+
+    if not bare and HAS_CLI_EXTRAS:
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.table import Table
+        from rich.text import Text
+
         console = Console()
-        table = Table(title="Git Hygiene Summary", box=None)
-        table.add_column("Category", style="cyan", no_wrap=True)
-        table.add_column("Count", style="magenta")
+
+        # 1. Hygiene Score Panel
+        score = score_info.get("score", 100)
+        grade = score_info.get("grade", "A")
+        color = score_info.get("color", "green")
+
+        score_text = Text()
+        score_text.append("Overall Hygiene Score: ", style="bold")
+        score_text.append(f"{score}% ", style=f"bold {color}")
+        score_text.append(f"({grade})", style=f"bold {color}")
+
+        deductions = score_info.get("deductions", [])
+        if deductions:
+            score_text.append("\n\nDeductions:", style="dim")
+            for d in deductions:
+                score_text.append(
+                    f"\n  • -{d['amount']}%: {d['message']}", style="red dim"
+                )
+
+        console.print(Panel(score_text, title="Git Health Report", expand=False))
+
+        # 2. Issues Table
+        table = Table(
+            title="Git Hygiene Summary", show_header=True, header_style="bold magenta"
+        )
+        table.add_column("Category", style="cyan")
+        table.add_column("Count", justify="right", style="magenta")
         table.add_column("Examples (SHA - Message)", style="green")
 
-        for category, commits in summary.items():
-            if commits:
-                examples = []
-                for c in commits[:3]:
-                    examples.append(
-                        f"{c.reference.hash[:7]} - {c.reference.message[:50]}"
-                    )
-                example_str = "\n".join(examples)
-                if len(commits) > 3:
-                    example_str += f"\n... and {len(commits) - 3} more"
-                table.add_row(category, str(len(commits)), example_str)
+        for key, commits in summary.items():
+            if key == "Hygiene Score" or not commits:
+                continue
+
+            # Limit examples
+            examples = commits[:3]
+            example_str = "\n".join(
+                [
+                    f"{c.reference.hash[:7]} - {c.reference.message[:50]}"
+                    for c in examples
+                ]
+            )
+            table.add_row(key, str(len(commits)), example_str)
 
         if table.row_count > 0:
-            console.print(Panel(table, border_style="blue"))
-        else:
-            console.print("[bold green]History looks clean! No issues flagged.[/]")
+            console.print(table)
+    else:
+        # Bare output
+        print("\n--- Git Hygiene Summary ---")
+        if score_info:
+            print(
+                f"Overall Score: {score_info.get('score')}% ({score_info.get('grade')})"
+            )
+            for d in score_info.get("deductions", []):
+                print(f"  - {d['message']} (-{d['amount']}%)")
+        print("")
+
+        for key, commits in summary.items():
+            if key == "Hygiene Score" or not commits:
+                continue
+            print(f"{key}: {len(commits)}")
+            for c in commits[:3]:
+                print(f"  {c.reference.hash[:7]} - {c.reference.message[:50]}")
+        print("---------------------------")
 
 
 def validate_highlights(
@@ -342,7 +376,7 @@ def run_bare_cli(argv: List[str]):
             )
 
         handle_output(graph, engine, args.output, config, as_image=args.image)
-        display_summary(generate_summary(graph), bare=True)
+        display_summary(generate_summary(graph, config), bare=True)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -508,7 +542,7 @@ if HAS_CLI_EXTRAS:
                         file=sys.stderr,
                     )
                 handle_output(graph, engine, output, config, as_image=image)
-                display_summary(generate_summary(graph), bare=True)
+                display_summary(generate_summary(graph, config), bare=True)
             except Exception as e:
                 print(f"Error: {e}", file=sys.stderr)
                 sys.exit(1)
@@ -527,7 +561,7 @@ if HAS_CLI_EXTRAS:
                     )
 
                 handle_output(graph, engine, output, config, as_image=image)
-                display_summary(generate_summary(graph), bare=False)
+                display_summary(generate_summary(graph, config), bare=False)
             except Exception as e:
                 console.print(f"[bold red]Error:[/] {e}")
                 sys.exit(1)

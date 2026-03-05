@@ -96,6 +96,7 @@ def test_git_commit_init_automatic_critical():
 def test_generate_summary(test_repo):
     config = GitLogConfig(highlight_critical=True, critical_branches=["master", "main"])
     graph = process_repo(test_repo, config)
-    summary = generate_summary(graph)
+    summary = generate_summary(graph, config)
     assert "Critical" in summary
     assert len(summary["Critical"]) >= 1
+    assert "Hygiene Score" in summary
