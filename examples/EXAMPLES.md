@@ -93,3 +93,30 @@ style ebeaa6afb7b85a2d84d8aa5279ca3ad50f54a987 stroke:orange,stroke-width:2px,st
 5223ed03ff44ab68ffe4985a1d5cfba93a41972a --> ebeaa6afb7b85a2d84d8aa5279ca3ad50f54a987
 5223ed03ff44ab68ffe4985a1d5cfba93a41972a --> 6b7150fa345c274de280b021c7c94300b0920604
 ```
+
+---
+
+## 4. CI Mode (Gating)
+Demonstrates how to use `git-graphable` as a CI gate. The tool returns a non-zero exit code if the hygiene score is below the threshold.
+
+**Command (Fails):**
+```bash
+# repo-messy score is 76%, so this fails
+git-graphable repo-messy --check --min-score 80 --bare --highlight-wip --highlight-direct-pushes
+```
+
+**Output:**
+```text
+Error: Hygiene score 76% is below required 80%
+```
+
+**Command (Passes):**
+```bash
+# repo-pristine score is 100%, so this passes
+git-graphable repo-pristine --check --min-score 80 --bare
+```
+
+**Output:**
+```text
+Success: Hygiene score 100% meets required 80%
+```

@@ -312,6 +312,36 @@ def run_bare_cli(argv: List[str]):
         help="Highlight squashed PRs and logically link them",
     )
     parser.add_argument(
+        "--highlight-back-merges",
+        action="store_true",
+        help="Highlight redundant back-merges from base branch",
+    )
+    parser.add_argument(
+        "--highlight-silos",
+        action="store_true",
+        help="Highlight branches dominated by too few authors",
+    )
+    parser.add_argument(
+        "--silo-threshold",
+        type=int,
+        help="Commit count threshold for silo detection",
+    )
+    parser.add_argument(
+        "--silo-author-count",
+        type=int,
+        help="Author count threshold for silo detection",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Exit with non-zero if hygiene score is below threshold",
+    )
+    parser.add_argument(
+        "--min-score",
+        type=int,
+        help="Minimum hygiene score required for --check",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
@@ -367,6 +397,13 @@ def run_bare_cli(argv: List[str]):
         "highlight_squashed": args.highlight_squashed
         if args.highlight_squashed
         else None,
+        "highlight_back_merges": args.highlight_back_merges
+        if args.highlight_back_merges
+        else None,
+        "highlight_silos": args.highlight_silos if args.highlight_silos else None,
+        "silo_commit_threshold": args.silo_threshold,
+        "silo_author_count": args.silo_author_count,
+        "min_hygiene_score": args.min_score,
     }
 
     config = load_config(args.path, args.config, overrides)
@@ -381,8 +418,24 @@ def run_bare_cli(argv: List[str]):
                 file=sys.stderr,
             )
 
-        handle_output(graph, engine, args.output, config, as_image=args.image)
-        display_summary(generate_summary(graph, config), bare=True)
+        if not args.check:
+            handle_output(graph, engine, args.output, config, as_image=args.image)
+
+        summary = generate_summary(graph, config)
+        display_summary(summary, bare=True)
+
+        if args.check:
+            score = summary.get("Hygiene Score", {}).get("score", 100)
+            if score < config.min_hygiene_score:
+                print(
+                    f"\nError: Hygiene score {score}% is below required {config.min_hygiene_score}%",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            else:
+                print(
+                    f"\nSuccess: Hygiene score {score}% meets required {config.min_hygiene_score}%"
+                )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -488,6 +541,32 @@ if HAS_CLI_EXTRAS:
             "--highlight-squashed",
             help="Highlight squashed PRs and logically link them",
         ),
+        highlight_back_merges: bool = typer.Option(
+            False,
+            "--highlight-back-merges",
+            help="Highlight redundant back-merges from base branch",
+        ),
+        highlight_silos: bool = typer.Option(
+            False,
+            "--highlight-silos",
+            help="Highlight branches dominated by too few authors",
+        ),
+        silo_threshold: Optional[int] = typer.Option(
+            None, "--silo-threshold", help="Commit count threshold for silo detection"
+        ),
+        silo_author_count: Optional[int] = typer.Option(
+            None,
+            "--silo-author-count",
+            help="Author count threshold for silo detection",
+        ),
+        check: bool = typer.Option(
+            False,
+            "--check",
+            help="Exit with non-zero if hygiene score is below threshold",
+        ),
+        min_score: Optional[int] = typer.Option(
+            None, "--min-score", help="Minimum hygiene score required for --check"
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
@@ -535,6 +614,13 @@ if HAS_CLI_EXTRAS:
             if highlight_direct_pushes
             else None,
             "highlight_squashed": highlight_squashed if highlight_squashed else None,
+            "highlight_back_merges": highlight_back_merges
+            if highlight_back_merges
+            else None,
+            "highlight_silos": highlight_silos if highlight_silos else None,
+            "silo_commit_threshold": silo_threshold,
+            "silo_author_count": silo_author_count,
+            "min_hygiene_score": min_score,
         }
 
         config = load_config(path, config_path, overrides)
@@ -547,8 +633,24 @@ if HAS_CLI_EXTRAS:
                         f"Warning: Graph contains {len(graph)} nodes. Mermaid might exceed size limits.",
                         file=sys.stderr,
                     )
-                handle_output(graph, engine, output, config, as_image=image)
-                display_summary(generate_summary(graph, config), bare=True)
+                if not check:
+                    handle_output(graph, engine, output, config, as_image=image)
+
+                summary = generate_summary(graph, config)
+                display_summary(summary, bare=True)
+
+                if check:
+                    score = summary.get("Hygiene Score", {}).get("score", 100)
+                    if score < config.min_hygiene_score:
+                        print(
+                            f"\nError: Hygiene score {score}% is below required {config.min_hygiene_score}%",
+                            file=sys.stderr,
+                        )
+                        sys.exit(1)
+                    else:
+                        print(
+                            f"\nSuccess: Hygiene score {score}% meets required {config.min_hygiene_score}%"
+                        )
             except Exception as e:
                 print(f"Error: {e}", file=sys.stderr)
                 sys.exit(1)
@@ -566,8 +668,23 @@ if HAS_CLI_EXTRAS:
                         f"[bold yellow]Warning:[/] Graph contains {len(graph)} nodes. Mermaid might exceed size limits."
                     )
 
-                handle_output(graph, engine, output, config, as_image=image)
-                display_summary(generate_summary(graph, config), bare=False)
+                if not check:
+                    handle_output(graph, engine, output, config, as_image=image)
+
+                summary = generate_summary(graph, config)
+                display_summary(summary, bare=False)
+
+                if check:
+                    score = summary.get("Hygiene Score", {}).get("score", 100)
+                    if score < config.min_hygiene_score:
+                        console.print(
+                            f"\n[bold red]Error:[/] Hygiene score {score}% is below required {config.min_hygiene_score}%"
+                        )
+                        raise typer.Exit(code=1)
+                    else:
+                        console.print(
+                            f"\n[bold green]Success:[/] Hygiene score {score}% meets required {config.min_hygiene_score}%"
+                        )
             except Exception as e:
                 console.print(f"[bold red]Error:[/] {e}")
                 sys.exit(1)

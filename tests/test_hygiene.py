@@ -146,6 +146,78 @@ def test_direct_push_detection(test_repo):
     assert any("direct to main" in str(c.reference.message) for c in direct_pushes)
 
 
+def test_back_merge_detection(test_repo):
+    # 1. Create a baseline on master
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+
+    # 2. Create a feature branch from current master
+    subprocess.run(
+        ["git", "checkout", "-b", "feature/back-merge"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "feat_work.txt"), "w") as f:
+        f.write("feat")
+    subprocess.run(["git", "add", "feat_work.txt"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "work on feature"], cwd=test_repo, check=True
+    )
+
+    # 3. Go back to master and add a commit
+    subprocess.run(["git", "checkout", "master"], cwd=test_repo, check=True)
+    with open(os.path.join(test_repo, "master_work.txt"), "w") as f:
+        f.write("master")
+    subprocess.run(["git", "add", "master_work.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "work on master"], cwd=test_repo, check=True)
+
+    # 4. Merge master INTO feature
+    subprocess.run(["git", "checkout", "feature/back-merge"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "merge", "master", "-m", "Merge master into feature"],
+        cwd=test_repo,
+        check=True,
+    )
+
+    config = GitLogConfig(highlight_back_merges=True, development_branch="master")
+    graph = process_repo(test_repo, config)
+
+    back_merges = [c for c in graph if c.is_tagged(Tag.BACK_MERGE.value)]
+    assert len(back_merges) >= 1
+    assert any(
+        "Merge master into feature" in str(c.reference.message) for c in back_merges
+    )
+
+
+def test_contributor_silo_detection(test_repo):
+    # 1. Baseline on master
+    subprocess.run(["git", "checkout", "master"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+
+    # 2. Create a silo branch (3 commits from same user)
+    subprocess.run(["git", "checkout", "-b", "feature/silo"], cwd=test_repo, check=True)
+    for i in range(3):
+        with open(os.path.join(test_repo, f"silo_{i}.txt"), "w") as f:
+            f.write(f"work {i}")
+        subprocess.run(["git", "add", f"silo_{i}.txt"], cwd=test_repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", f"silo work {i}"], cwd=test_repo, check=True
+        )
+
+    config = GitLogConfig(
+        highlight_silos=True,
+        silo_commit_threshold=3,
+        silo_author_count=1,
+        development_branch="master",
+    )
+    graph = process_repo(test_repo, config)
+
+    silo_tips = [c for c in graph if c.is_tagged(Tag.CONTRIBUTOR_SILO.value)]
+    assert len(silo_tips) >= 1
+    assert any("silo work 2" in str(c.reference.message) for c in silo_tips)
+
+
 def test_hygiene_scorer_logic(test_repo):
     # 1. Create a direct push
     with open(os.path.join(test_repo, "direct_push.txt"), "w") as f:
@@ -178,3 +250,35 @@ def test_hygiene_scorer_logic(test_repo):
     assert len(report["deductions"]) >= 2
     assert any("Direct pushes" in d["message"] for d in report["deductions"])
     assert any("WIP/Fixup" in d["message"] for d in report["deductions"])
+
+
+def test_cli_check_mode(test_repo):
+    # Create a messy repo
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "wip.txt"), "w") as f:
+        f.write("wip")
+    subprocess.run(["git", "add", "wip.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "WIP: baked"], cwd=test_repo, check=True)
+
+    from typer.testing import CliRunner
+
+    from git_graphable.cli import app
+
+    assert app is not None
+    runner = CliRunner()
+
+    # 1. Should fail with high min-score
+    result = runner.invoke(
+        app, [test_repo, "--check", "--min-score", "99", "--bare", "--highlight-wip"]
+    )
+    assert result.exit_code != 0
+    assert "Error: Hygiene score" in result.output
+
+    # 2. Should pass with low min-score
+    result = runner.invoke(
+        app, [test_repo, "--check", "--min-score", "10", "--bare", "--highlight-wip"]
+    )
+    assert result.exit_code == 0
+    assert "Success: Hygiene score" in result.output

@@ -16,6 +16,7 @@ git graphable .
 - **GitHub Integration**: Highlight commits based on pull request status (Merged, Open, Closed, Draft) using the `gh` CLI.
 - **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, and squashed PRs.
 - **Health Scoring**: Get a numeric "Hygiene Score" (0-100%) with a color-coded grade and detailed breakdown of workflow anti-patterns.
+- **CI Gating**: Use the `--check` flag to return a non-zero exit code if the hygiene score falls below a threshold (configurable via `--min-score`).
 - **Flexible Input**: Works with local repository paths or remote Git URLs.
 - **Dual CLI**: Modern Rich/Typer interface with a robust argparse fallback for bare environments.
 
@@ -62,18 +63,20 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 | `--highlight-long-running` | **Stroke/Edge** | Purple outline and thick Purple edge | None |
 | `--highlight-direct-pushes` | **Stroke** | Thick Red Dashed outline | None |
 | `--highlight-squashed` | **Stroke/Edge** | Grey Solid outline and dashed Grey logical merge edge | None |
+| `--highlight-back-merges` | **Stroke** | Orange Dashed outline | None |
+| `--highlight-silos` | **Stroke** | Blue Solid outline | None |
 
 ### Highlighting Priorities
 - **Fill**: `--highlight-authors`, `--highlight-pr-status`, `--highlight-distance-from`, `--highlight-stale`, and `--highlight-wip` are mutually exclusive.
 - **Edge**: Path highlighting (Thick Orange) takes priority over Long-Running highlighting (Thick Purple), which takes priority over Logical Squashed Merges (Dashed Grey).
-- **Stroke**: Critical outlines (Thick Red Solid) take priority over Direct Pushes (Thick Red Dashed), which take priority over PR Conflicts (Thick Red Solid), which take priority over Squash Commits (Grey Solid), which take priority over all other outlines (Divergence, Orphan, Long-Running).
+- **Stroke**: Critical outlines (Thick Red Solid) take priority over Direct Pushes (Thick Red Dashed), which take priority over PR Conflicts (Thick Red Solid), which take priority over Back-Merges (Orange Dashed), which take priority over Squash Commits (Grey Solid), which take priority over Contributor Silos (Blue Solid), which take priority over all other outlines (Divergence, Orphan, Long-Running).
 
 ## Advanced Examples
 
 ### Hygiene Analysis
-Identify problematic patterns like direct pushes to `main`, messy WIP commits, or squashed branches that haven't been deleted:
+Identify problematic patterns like direct pushes to `main`, messy WIP commits, back-merges from `main`, or contributor silos:
 ```bash
-uv run git-graphable . --highlight-direct-pushes --highlight-wip --highlight-squashed
+uv run git-graphable . --highlight-direct-pushes --highlight-wip --highlight-squashed --highlight-back-merges --highlight-silos
 ```
 
 ### PR Status Highlighting
@@ -119,6 +122,11 @@ highlight_wip = true
 wip_keywords = ["wip", "todo", "fixme", "temp"]
 highlight_direct_pushes = true
 highlight_squashed = true
+highlight_back_merges = true
+highlight_silos = true
+silo_commit_threshold = 20
+silo_author_count = 1
+min_hygiene_score = 80
 ```
 
 ### Example `pyproject.toml`
