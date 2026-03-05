@@ -11,6 +11,8 @@ class Tag(str, Enum):
     PR_STATUS = "pr_status"
     WIP = "wip"
     DIRECT_PUSH = "direct_push"
+    SQUASH_COMMIT = "squash_commit"
+    SQUASHED = "squashed"
 
     # Specific PR states
     PR_OPEN = "pr:open"
@@ -31,3 +33,4 @@ class Tag(str, Enum):
     # Edge attributes
     EDGE_PATH = "highlight"
     EDGE_LONG_RUNNING = "long_running_edge"
+    EDGE_LOGICAL_MERGE = "logical_merge"
