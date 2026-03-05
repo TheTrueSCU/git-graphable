@@ -22,6 +22,21 @@ from .core import GitCommit, GitLogConfig
 from .models import Tag
 
 
+def get_contrast_color(hex_color: str) -> str:
+    """Determine if black or white text should be used based on color luminance."""
+    color = hex_color.lstrip("#")
+    if len(color) == 3:
+        color = "".join([c * 2 for c in color])
+
+    try:
+        r, g, b = int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16)
+        # Perceived luminance formula (W3C standard)
+        luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+        return "black" if luminance > 0.5 else "white"
+    except (ValueError, IndexError):
+        return "black"
+
+
 def get_node_text(
     node: GitCommit, date_format: str = "%Y%m%d%H%M%S", engine: Engine = Engine.MERMAID
 ) -> str:
@@ -127,9 +142,7 @@ def get_generic_style(node: Graphable[Any], engine: Engine) -> dict[str, str]:
                 styles.update(
                     {
                         "fill": color,
-                        "font-color": "black"
-                        if color.startswith("#F") or color.startswith("#E")
-                        else "white",
+                        "font-color": get_contrast_color(color),
                     }
                 )
             elif engine == Engine.GRAPHVIZ:
@@ -243,11 +256,7 @@ def export_graph(
                 if tag.startswith(Tag.COLOR.value):
                     color = tag.split(":", 1)[1]
                     style_parts.append(f"fill:{color}")
-                    style_parts.append(
-                        "color:black"
-                        if color.startswith("#F") or color.startswith("#E")
-                        else "color:white"
-                    )
+                    style_parts.append(f"color:{get_contrast_color(color)}")
             if node.is_tagged(Tag.CRITICAL.value):
                 style_parts.append("stroke:red,stroke-width:4px")
             if node.is_tagged(Tag.BEHIND.value):
@@ -255,9 +264,7 @@ def export_graph(
                     "stroke:orange,stroke-width:2px,stroke-dasharray: 5 5"
                 )
             if node.is_tagged(Tag.ORPHAN.value):
-                style_parts.append(
-                    "stroke:#666,stroke-width:2px,stroke-dasharray: 3 3"
-                )
+                style_parts.append("stroke:#666,stroke-width:2px,stroke-dasharray: 3 3")
             if node.is_tagged(Tag.LONG_RUNNING.value) and not node.is_tagged(
                 Tag.CRITICAL.value
             ):
