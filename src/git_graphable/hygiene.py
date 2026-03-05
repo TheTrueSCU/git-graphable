@@ -19,6 +19,7 @@ class HygieneScorer:
         self._check_cleanliness()
         self._check_connectivity()
         self._check_back_merges()
+        self._check_contributor_silos()
 
         # Ensure score doesn't go below 0
         final_score = max(0, self.score)
@@ -125,4 +126,14 @@ class HygieneScorer:
             self._add_deduction(
                 deduction,
                 f"Redundant back-merges from base branch ({len(back_merges)})",
+            )
+
+    def _check_contributor_silos(self):
+        # Contributor Silos
+        silos = [c for c in self.graph if c.is_tagged(Tag.CONTRIBUTOR_SILO.value)]
+        if silos:
+            # -10% per siloed branch, capped at 30%
+            deduction = min(30, len(silos) * 10)
+            self._add_deduction(
+                deduction, f"Branches dominated by too few authors ({len(silos)})"
             )

@@ -188,6 +188,36 @@ def test_back_merge_detection(test_repo):
     )
 
 
+def test_contributor_silo_detection(test_repo):
+    # 1. Baseline on master
+    subprocess.run(["git", "checkout", "master"], cwd=test_repo, check=True)
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+
+    # 2. Create a silo branch (3 commits from same user)
+    subprocess.run(["git", "checkout", "-b", "feature/silo"], cwd=test_repo, check=True)
+    for i in range(3):
+        with open(os.path.join(test_repo, f"silo_{i}.txt"), "w") as f:
+            f.write(f"work {i}")
+        subprocess.run(["git", "add", f"silo_{i}.txt"], cwd=test_repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", f"silo work {i}"], cwd=test_repo, check=True
+        )
+
+    config = GitLogConfig(
+        highlight_silos=True,
+        silo_commit_threshold=3,
+        silo_author_count=1,
+        development_branch="master",
+    )
+    graph = process_repo(test_repo, config)
+
+    silo_tips = [c for c in graph if c.is_tagged(Tag.CONTRIBUTOR_SILO.value)]
+    assert len(silo_tips) >= 1
+    assert any("silo work 2" in str(c.reference.message) for c in silo_tips)
+
+
 def test_hygiene_scorer_logic(test_repo):
     # 1. Create a direct push
     with open(os.path.join(test_repo, "direct_push.txt"), "w") as f:

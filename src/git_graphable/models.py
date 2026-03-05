@@ -14,6 +14,7 @@ class Tag(str, Enum):
     SQUASH_COMMIT = "squash_commit"
     SQUASHED = "squashed"
     BACK_MERGE = "back_merge"
+    CONTRIBUTOR_SILO = "contributor_silo"
 
     # Specific PR states
     PR_OPEN = "pr:open"

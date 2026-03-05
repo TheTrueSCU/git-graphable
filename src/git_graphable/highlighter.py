@@ -23,6 +23,43 @@ def apply_highlights(
     _apply_direct_push_highlights(graph, config)
     _apply_squash_highlights(graph, config, repo_path)
     _apply_back_merge_highlights(graph, config)
+    _apply_silo_highlights(graph, config)
+
+
+def _apply_silo_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+    """Highlight branches with high commit counts but low author diversity."""
+    if not config.highlight_silos:
+        return
+
+    def find_base_tip(query: str) -> Optional[GitCommit]:
+        for commit in graph:
+            if query in commit.reference.branches or commit.reference.hash.startswith(
+                query
+            ):
+                return commit
+        return None
+
+    base_branch = config.development_branch
+    base_tip = find_base_tip(base_branch)
+    if not base_tip:
+        return
+
+    base_reach = set(graph.ancestors(base_tip))
+    base_reach.add(base_tip)
+
+    for tip in graph:
+        # Check each branch tip that is not the base branch itself
+        if tip.reference.branches and base_branch not in tip.reference.branches:
+            branch_reach = set(graph.ancestors(tip))
+            branch_reach.add(tip)
+
+            # Find commits unique to this branch
+            unique_commits = branch_reach - base_reach
+            if len(unique_commits) >= config.silo_commit_threshold:
+                authors = {c.reference.author for c in unique_commits}
+                if len(authors) <= config.silo_author_count:
+                    # Mark the tip as a silo
+                    tip.add_tag(Tag.CONTRIBUTOR_SILO.value)
 
 
 def _apply_back_merge_highlights(graph: Graph[GitCommit], config: GitLogConfig):

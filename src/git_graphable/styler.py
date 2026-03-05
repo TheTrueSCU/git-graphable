@@ -98,6 +98,8 @@ def get_node_text(
             display_label += " [SQUASHED]"
         if tag == Tag.BACK_MERGE.value:
             display_label += " [BACK-MERGE]"
+        if tag == Tag.CONTRIBUTOR_SILO.value:
+            display_label += " [SILO]"
 
     sep = " - "
     newline = " - "
@@ -213,6 +215,14 @@ def get_generic_style(node: Graphable[Any], engine: Engine) -> dict[str, str]:
             styles["penwidth"] = "3"
             styles["style"] = styles.get("style", "") + ",dotted"
 
+    if node.is_tagged(Tag.CONTRIBUTOR_SILO.value):
+        if engine == Engine.D2:
+            styles["stroke"] = "blue"
+            styles["stroke-width"] = "8"
+        elif engine == Engine.GRAPHVIZ:
+            styles["color"] = "blue"
+            styles["penwidth"] = "6"
+
     return styles
 
 
@@ -291,6 +301,8 @@ def export_graph(
                 style_parts.append(
                     "stroke:orange,stroke-width:4px,stroke-dasharray: 2 2"
                 )
+            if node.is_tagged(Tag.CONTRIBUTOR_SILO.value):
+                style_parts.append("stroke:blue,stroke-width:6px")
             return ",".join(style_parts) if style_parts else None
 
         def mermaid_link_style(

@@ -317,6 +317,21 @@ def run_bare_cli(argv: List[str]):
         help="Highlight redundant back-merges from base branch",
     )
     parser.add_argument(
+        "--highlight-silos",
+        action="store_true",
+        help="Highlight branches dominated by too few authors",
+    )
+    parser.add_argument(
+        "--silo-threshold",
+        type=int,
+        help="Commit count threshold for silo detection",
+    )
+    parser.add_argument(
+        "--silo-author-count",
+        type=int,
+        help="Author count threshold for silo detection",
+    )
+    parser.add_argument(
         "--bare", action="store_true", help="Force bare mode (already active)"
     )
 
@@ -375,6 +390,9 @@ def run_bare_cli(argv: List[str]):
         "highlight_back_merges": args.highlight_back_merges
         if args.highlight_back_merges
         else None,
+        "highlight_silos": args.highlight_silos if args.highlight_silos else None,
+        "silo_commit_threshold": args.silo_threshold,
+        "silo_author_count": args.silo_author_count,
     }
 
     config = load_config(args.path, args.config, overrides)
@@ -501,6 +519,19 @@ if HAS_CLI_EXTRAS:
             "--highlight-back-merges",
             help="Highlight redundant back-merges from base branch",
         ),
+        highlight_silos: bool = typer.Option(
+            False,
+            "--highlight-silos",
+            help="Highlight branches dominated by too few authors",
+        ),
+        silo_threshold: Optional[int] = typer.Option(
+            None, "--silo-threshold", help="Commit count threshold for silo detection"
+        ),
+        silo_author_count: Optional[int] = typer.Option(
+            None,
+            "--silo-author-count",
+            help="Author count threshold for silo detection",
+        ),
         bare: bool = typer.Option(
             False, "--bare", help="Force bare mode (no rich output)"
         ),
@@ -551,6 +582,9 @@ if HAS_CLI_EXTRAS:
             "highlight_back_merges": highlight_back_merges
             if highlight_back_merges
             else None,
+            "highlight_silos": highlight_silos if highlight_silos else None,
+            "silo_commit_threshold": silo_threshold,
+            "silo_author_count": silo_author_count,
         }
 
         config = load_config(path, config_path, overrides)

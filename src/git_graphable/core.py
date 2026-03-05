@@ -49,6 +49,9 @@ class GitLogConfig:
     highlight_direct_pushes: bool = False
     highlight_squashed: bool = False
     highlight_back_merges: bool = False
+    highlight_silos: bool = False
+    silo_commit_threshold: int = 20
+    silo_author_count: int = 1
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
@@ -141,6 +144,7 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
         "Direct Pushes": [],
         "Squashed PRs": [],
         "Back-Merges": [],
+        "Contributor Silos": [],
     }
 
     for commit in graph:
@@ -172,6 +176,8 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
             summary["Squashed PRs"].append(commit)
         if commit.is_tagged(Tag.BACK_MERGE.value):
             summary["Back-Merges"].append(commit)
+        if commit.is_tagged(Tag.CONTRIBUTOR_SILO.value):
+            summary["Contributor Silos"].append(commit)
 
     # Calculate Hygiene Score
     scorer = HygieneScorer(graph, config)

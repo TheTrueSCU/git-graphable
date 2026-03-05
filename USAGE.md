@@ -41,6 +41,9 @@ $ git-graphable [OPTIONS] PATH
 * `--highlight-direct-pushes`: Highlight non-merge commits on protected branches
 * `--highlight-squashed`: Highlight squashed PRs and logically link them
 * `--highlight-back-merges`: Highlight redundant back-merges from base branch
+* `--highlight-silos`: Highlight branches dominated by too few authors
+* `--silo-threshold INTEGER`: Commit count threshold for silo detection
+* `--silo-author-count INTEGER`: Author count threshold for silo detection
 * `--bare`: Force bare mode (no rich output)
 * `--install-completion`: Install completion for the current shell.
 * `--show-completion`: Show completion for the current shell, to copy it or customize the installation.
