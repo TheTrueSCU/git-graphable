@@ -129,6 +129,58 @@ def generate_features():
     run_git(["branch", "-D", "detached-work"], path)
 
 
+def generate_risk_silo():
+    print("Generating repo-risk-silo...")
+    path = create_base_repo("repo-risk-silo")
+
+    # Create a long-running branch with only one author (Alice)
+    run_git(["checkout", "-b", "feature/huge-silo"], path)
+    run_git(["config", "user.name", "Alice"], path)
+    run_git(["config", "user.email", "alice@example.com"], path)
+
+    for i in range(25):
+        (path / f"work_{i}.txt").write_text(f"work {i}")
+        run_git(["add", f"work_{i}.txt"], path)
+        run_git(["commit", "-m", f"chore: alice working hard {i}"], path)
+
+    run_git(["checkout", "main"], path)
+
+
+def generate_squash_and_backmerge():
+    print("Generating repo-complex-hygiene...")
+    path = create_base_repo("repo-complex-hygiene")
+
+    # 1. A branch that was back-merged (main into feature)
+    run_git(["checkout", "-b", "feature/noisy-history"], path)
+    (path / "feat.txt").write_text("feat")
+    run_git(["add", "feat.txt"], path)
+    run_git(["commit", "-m", "feat: start working"], path)
+
+    run_git(["checkout", "main"], path)
+    (path / "main_work.txt").write_text("main")
+    run_git(["add", "main_work.txt"], path)
+    run_git(["commit", "-m", "chore: some main work"], path)
+
+    run_git(["checkout", "feature/noisy-history"], path)
+    run_git(
+        ["merge", "main", "-m", "Merge branch 'main' into feature/noisy-history"], path
+    )
+
+    # 2. A branch intended for squashing (manual simulation)
+    run_git(["checkout", "main"], path)
+    run_git(["checkout", "-b", "feature/to-be-squashed"], path)
+    for i in range(3):
+        (path / f"part_{i}.txt").write_text(f"part {i}")
+        run_git(["add", f"part_{i}.txt"], path)
+        run_git(["commit", "-m", f"feat: part {i} of squashed work"], path)
+
+    # Simulate the squash commit on main (we won't link it here, highlighter does it via PR OIDs)
+    run_git(["checkout", "main"], path)
+    (path / "squashed_result.txt").write_text("all parts")
+    run_git(["add", "squashed_result.txt"], path)
+    run_git(["commit", "-m", "feat: implementing all parts (#123)"], path)
+
+
 def main():
     REPOS_DIR.mkdir(exist_ok=True)
     ASSETS_DIR.mkdir(exist_ok=True)
@@ -136,6 +188,8 @@ def main():
     generate_pristine()
     generate_messy()
     generate_features()
+    generate_risk_silo()
+    generate_squash_and_backmerge()
 
     print("\nDone! Demo repositories created in examples/repos/")
 
