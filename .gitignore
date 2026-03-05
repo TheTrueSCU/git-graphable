@@ -129,3 +129,10 @@ cython_debug/
 
 # OS X
 .DS_Store
+
+# Examples
+examples/repos/
+examples/assets/
+
+# Temporary test assets
+test_pr.mmd

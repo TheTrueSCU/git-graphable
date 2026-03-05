@@ -150,7 +150,7 @@ def validate_highlights(
         active.append("--highlight-authors")
     if highlight_distance_from:
         active.append("--highlight-distance-from")
-    if highlight_stale is not None:
+    if highlight_stale:
         active.append("--highlight-stale")
     if highlight_pr_status:
         active.append("--highlight-pr-status")
@@ -229,9 +229,15 @@ def run_bare_cli(argv: List[str]):
     )
     parser.add_argument(
         "--highlight-critical",
+        action="store_true",
+        help="Highlight critical branches",
+    )
+    parser.add_argument(
+        "--critical-branch",
         action="append",
+        dest="critical_branches",
         default=[],
-        help="Branch names to highlight as critical",
+        help="Branch name to treat as critical",
     )
     parser.add_argument(
         "--highlight-authors",

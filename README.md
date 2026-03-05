@@ -28,12 +28,12 @@ uv sync --all-extras
 
 ## Usage
 
-For a complete reference of all command-line options, see the [USAGE.md](USAGE.md) file.
+For a complete reference of all command-line options, see the [USAGE.md](USAGE.md) file. For visual demonstrations of all features, see [examples/EXAMPLES.md](examples/EXAMPLES.md).
 
 ```bash
 # Basic usage (opens a Mermaid image)
 uv run git-graphable .
-
+```
 # Highlight PR status (requires gh CLI)
 uv run git-graphable . --highlight-pr-status
 
