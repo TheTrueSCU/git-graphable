@@ -1,8 +1,5 @@
 import argparse
-import os
 import sys
-import tempfile
-import webbrowser
 from typing import Any, Dict, List, Optional
 
 from graphable.enums import Engine
@@ -16,47 +13,7 @@ try:
 except ImportError:
     HAS_CLI_EXTRAS = False
 
-from .core import GitLogConfig, generate_summary, process_repo
-from .styler import export_graph
-
-
-def get_extension(engine: Engine, as_image: bool) -> str:
-    """Get file extension for the given engine and export type."""
-    if as_image:
-        return ".svg"  # Default to SVG for images
-
-    extensions = {
-        Engine.MERMAID: ".mmd",
-        Engine.GRAPHVIZ: ".dot",
-        Engine.D2: ".d2",
-        Engine.PLANTUML: ".puml",
-    }
-    return extensions.get(engine, ".txt")
-
-
-def handle_output(
-    graph,
-    engine: Engine,
-    output: Optional[str],
-    config: GitLogConfig,
-    as_image: bool = False,
-):
-    """Handles exporting and optionally opening the graph."""
-    if output:
-        # If output path is provided, we use the specified as_image flag or infer from extension
-        image_exts = [".png", ".svg", ".jpg", ".jpeg", ".pdf"]
-        is_image = as_image or any(output.lower().endswith(ext) for ext in image_exts)
-        export_graph(graph, output, config, engine, as_image=is_image)
-        print(f"Exported to {output}")
-    else:
-        # Create temp file and open as image
-        ext = get_extension(engine, as_image=True)
-        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tf:
-            temp_path = tf.name
-
-        export_graph(graph, temp_path, config, engine, as_image=True)
-        print(f"Opening temporary image: {temp_path}")
-        webbrowser.open(f"file://{os.path.abspath(temp_path)}")
+from .commands import convert_command
 
 
 def display_summary(summary: Dict[str, Any], bare: bool = False):
@@ -67,7 +24,6 @@ def display_summary(summary: Dict[str, Any], bare: bool = False):
     score_info = summary.get("Hygiene Score", {})
 
     if not bare and HAS_CLI_EXTRAS:
-        from rich.console import Console
         from rich.panel import Panel
         from rich.table import Table
         from rich.text import Text
@@ -141,7 +97,7 @@ def display_summary(summary: Dict[str, Any], bare: bool = False):
 def validate_highlights(
     highlight_authors: bool,
     highlight_distance_from: Optional[str],
-    highlight_stale: Optional[int],
+    highlight_stale: bool,
     highlight_pr_status: bool,
 ) -> Optional[str]:
     """Check for conflicting fill-based highlight options."""
@@ -158,34 +114,6 @@ def validate_highlights(
     if len(active) > 1:
         return f"Error: Cannot use multiple fill-based highlights at once: {', '.join(active)}"
     return None
-
-
-def load_config(
-    path: str, config_path: Optional[str], cli_overrides: Dict[str, Any]
-) -> GitLogConfig:
-    """Loads configuration from TOML and merges with CLI overrides."""
-    # Priority:
-    # 1. CLI flags (cli_overrides)
-    # 2. Config file provided via --config
-    # 3. .git-graphable.toml in the repo
-    # 4. pyproject.toml in the repo
-
-    # Try to find a config file if not explicitly provided
-    if not config_path:
-        possible_paths = [
-            os.path.join(path, ".git-graphable.toml"),
-            os.path.join(path, "pyproject.toml"),
-        ]
-        for p in possible_paths:
-            if os.path.exists(p):
-                config_path = p
-                break
-
-    base_config = GitLogConfig()
-    if config_path and os.path.exists(config_path):
-        base_config = GitLogConfig.from_toml(config_path)
-
-    return base_config.merge(cli_overrides)
 
 
 # --- Bare Argument Parser CLI ---
@@ -406,22 +334,28 @@ def run_bare_cli(argv: List[str]):
         "min_hygiene_score": args.min_score,
     }
 
-    config = load_config(args.path, args.config, overrides)
-
     try:
-        graph = process_repo(args.path, config)
+        results = convert_command(
+            args.path,
+            args.config,
+            overrides,
+            engine,
+            args.output,
+            as_image=args.image,
+            is_check=args.check,
+        )
+
+        graph_size = results["graph_size"]
+        config = results["config"]
+        summary = results["summary"]
 
         # Safety check
-        if engine == Engine.MERMAID and len(graph) > 500:
+        if engine == Engine.MERMAID and graph_size > 500:
             print(
-                f"Warning: Graph contains {len(graph)} nodes. Mermaid might exceed size limits.",
+                f"Warning: Graph contains {graph_size} nodes. Mermaid might exceed size limits.",
                 file=sys.stderr,
             )
 
-        if not args.check:
-            handle_output(graph, engine, args.output, config, as_image=args.image)
-
-        summary = generate_summary(graph, config)
         display_summary(summary, bare=True)
 
         if args.check:
@@ -623,20 +557,26 @@ if HAS_CLI_EXTRAS:
             "min_hygiene_score": min_score,
         }
 
-        config = load_config(path, config_path, overrides)
-
         if bare:
             try:
-                graph = process_repo(path, config)
-                if engine == Engine.MERMAID and len(graph) > 500:
+                results = convert_command(
+                    path,
+                    config_path,
+                    overrides,
+                    engine,
+                    output,
+                    as_image=image,
+                    is_check=check,
+                )
+                summary = results["summary"]
+                config = results["config"]
+                graph_size = results["graph_size"]
+
+                if engine == Engine.MERMAID and graph_size > 500:
                     print(
-                        f"Warning: Graph contains {len(graph)} nodes. Mermaid might exceed size limits.",
+                        f"Warning: Graph contains {graph_size} nodes. Mermaid might exceed size limits.",
                         file=sys.stderr,
                     )
-                if not check:
-                    handle_output(graph, engine, output, config, as_image=image)
-
-                summary = generate_summary(graph, config)
                 display_summary(summary, bare=True)
 
                 if check:
@@ -661,17 +601,24 @@ if HAS_CLI_EXTRAS:
             f"[bold green]Processing repository using {engine.value} engine..."
         ):
             try:
-                graph = process_repo(path, config)
+                results = convert_command(
+                    path,
+                    config_path,
+                    overrides,
+                    engine,
+                    output,
+                    as_image=image,
+                    is_check=check,
+                )
+                summary = results["summary"]
+                config = results["config"]
+                graph_size = results["graph_size"]
 
-                if engine == Engine.MERMAID and len(graph) > 500:
+                if engine == Engine.MERMAID and graph_size > 500:
                     console.print(
-                        f"[bold yellow]Warning:[/] Graph contains {len(graph)} nodes. Mermaid might exceed size limits."
+                        f"[bold yellow]Warning:[/] Graph contains {graph_size} nodes. Mermaid might exceed size limits."
                     )
 
-                if not check:
-                    handle_output(graph, engine, output, config, as_image=image)
-
-                summary = generate_summary(graph, config)
                 display_summary(summary, bare=False)
 
                 if check:
