@@ -122,8 +122,9 @@ class GitCommit(Graphable[CommitMetadata]):
         self.add_tag(Tag.GIT_COMMIT.value)
 
 
-def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
+def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str, Any]:
     """Generate a summary of flagged commits."""
+    from .hygiene import HygieneScorer
     from .models import Tag
 
     summary = {
@@ -167,6 +168,10 @@ def generate_summary(graph: Graph[GitCommit]) -> Dict[str, List[GitCommit]]:
             summary["Direct Pushes"].append(commit)
         if commit.is_tagged(Tag.SQUASH_COMMIT.value):
             summary["Squashed PRs"].append(commit)
+
+    # Calculate Hygiene Score
+    scorer = HygieneScorer(graph, config)
+    summary["Hygiene Score"] = scorer.calculate()
 
     return summary
 

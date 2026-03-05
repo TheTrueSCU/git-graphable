@@ -103,3 +103,9 @@ pr title body="":
 @run *args:
     uv run git-graphable {{ args }}
 
+[group('demo')]
+generate-examples:
+    uv run python examples/generate_demos.py
+    uv run git-graphable examples/repos/repo-pristine --engine mermaid -o examples/assets/pristine.mmd --highlight-critical --critical-branch main --highlight-authors --bare
+    uv run git-graphable examples/repos/repo-messy --engine mermaid -o examples/assets/messy.mmd --highlight-wip --highlight-direct-pushes --highlight-stale --bare
+    uv run git-graphable examples/repos/repo-features --engine mermaid -o examples/assets/features.mmd --highlight-orphans --highlight-diverging-from main --bare
