@@ -311,6 +311,12 @@ def run_bare_cli(argv: List[str]):
         help="Threshold in days for longevity mismatch detection",
     )
     parser.add_argument(
+        "--penalty",
+        action="append",
+        default=[],
+        help="Override hygiene penalty (format: metric:value, e.g. direct_push_penalty:20)",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
         help="Exit with non-zero if hygiene score is below threshold",
@@ -403,6 +409,11 @@ def run_bare_cli(argv: List[str]):
         if args.highlight_longevity_mismatch
         else None,
         "longevity_threshold_days": args.longevity_days,
+        "hygiene_weights": {
+            p.split(":", 1)[0]: int(p.split(":", 1)[1]) for p in args.penalty
+        }
+        if args.penalty
+        else {},
         "min_hygiene_score": args.min_score,
     }
 
@@ -608,6 +619,11 @@ if HAS_CLI_EXTRAS:
         longevity_days: Optional[int] = typer.Option(
             None, "--longevity-days", help="Threshold in days for longevity mismatch"
         ),
+        penalty: List[str] = typer.Option(
+            [],
+            "--penalty",
+            help="Override hygiene penalty (format: metric:value, e.g. direct_push_penalty:20)",
+        ),
         check: bool = typer.Option(
             False,
             "--check",
@@ -690,6 +706,11 @@ if HAS_CLI_EXTRAS:
             if highlight_longevity_mismatch
             else None,
             "longevity_threshold_days": longevity_days,
+            "hygiene_weights": {
+                p.split(":", 1)[0]: int(p.split(":", 1)[1]) for p in penalty
+            }
+            if penalty
+            else {},
             "min_hygiene_score": min_score,
         }
 

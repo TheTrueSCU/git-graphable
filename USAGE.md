@@ -49,6 +49,13 @@ $ git-graphable [OPTIONS] PATH
 * `--issue-engine [github|jira|script]`: Engine to fetch issue statuses
 * `--jira-url TEXT`: Base URL for Jira instance
 * `--issue-script TEXT`: Shell command template for script engine
+* `--highlight-release-inconsistencies`: Highlight issues marked Released but not tagged
+* `--released-status TEXT`: External status name that counts as Released (multi-select)
+* `--highlight-collaboration-gaps`: Highlight when Git author doesn't match Ticket assignee
+* `--author-mapping TEXT`: Map Git author to Ticket assignee (format: git_name:ticket_name)
+* `--highlight-longevity-mismatch`: Highlight large gap between issue creation and first commit
+* `--longevity-days INTEGER`: Threshold in days for longevity mismatch detection
+* `--penalty TEXT`: Override hygiene penalty (format: metric:value, e.g. direct_push_penalty:20)
 * `--check`: Exit with non-zero if hygiene score is below threshold
 * `--min-score INTEGER`: Minimum hygiene score required for --check
 * `--bare`: Force bare mode (no rich output)

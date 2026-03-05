@@ -1,7 +1,4 @@
-import os
-import shutil
-import tempfile
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from graphable import Graph, Graphable
@@ -10,43 +7,68 @@ from graphable import Graph, Graphable
 @dataclass
 class CommitMetadata:
     hash: str
-    parents: List[str]
+    author: str = ""
+    timestamp: float = 0.0
+    message: str = ""
+    parents: List[str] = field(default_factory=list)
     branches: List[str] = field(default_factory=list)
     tags: List[str] = field(default_factory=list)
-    timestamp: int = 0
-    author: str = ""
-    message: str = ""
+
+
+@dataclass
+class HygieneWeights:
+    direct_push_penalty: int = 15
+    direct_push_cap: int = 45
+    pr_conflict_penalty: int = 10
+    pr_conflict_cap: int = 30
+    orphan_commit_penalty: int = 2
+    orphan_commit_cap: int = 10
+    wip_commit_penalty: int = 3
+    wip_commit_cap: int = 15
+    stale_branch_penalty: int = 5
+    stale_branch_cap: int = 20
+    long_running_branch_penalty: int = 10
+    long_running_branch_cap: int = 30
+    divergence_penalty: int = 5
+    back_merge_penalty: int = 5
+    back_merge_cap: int = 25
+    contributor_silo_penalty: int = 10
+    contributor_silo_cap: int = 30
+    issue_inconsistency_penalty: int = 10
+    issue_inconsistency_cap: int = 30
+    release_inconsistency_penalty: int = 10
+    release_inconsistency_cap: int = 30
+    collaboration_gap_penalty: int = 5
+    collaboration_gap_cap: int = 25
+    longevity_mismatch_penalty: int = 5
+    longevity_mismatch_cap: int = 20
 
 
 @dataclass
 class GitLogConfig:
-    """Configuration for retrieving git log."""
-
-    # Branch Roles for Hygiene Defaults
-    production_branch: str = "main"
-    development_branch: str = "main"
-
     simplify: bool = False
     limit: Optional[int] = None
     date_format: str = "%Y%m%d%H%M%S"
-    highlight_critical: bool = False
-    critical_branches: List[str] = field(default_factory=list)
     highlight_authors: bool = False
-    highlight_distance_from: Optional[str] = None  # For distance highlighting
-    highlight_path: Optional[Tuple[str, str]] = None  # (start_input, end_input)
-    highlight_diverging_from: Optional[str] = None  # For divergence analysis
+    highlight_distance_from: Optional[str] = None
+    highlight_path: Optional[Tuple[str, str]] = None
+    highlight_diverging_from: Optional[str] = None
     highlight_orphans: bool = False
     highlight_stale: bool = False
     stale_days: int = 30
+    highlight_critical: bool = False
+    production_branch: str = "main"
+    development_branch: str = "develop"
+    critical_branches: List[str] = field(default_factory=list)
     highlight_long_running: bool = False
-    long_running_days: int = 30
-    long_running_base: Optional[str] = None  # Defaults to development_branch
-    highlight_pr_status: bool = False
+    long_running_days: int = 14
+    long_running_base: Optional[str] = None
     highlight_wip: bool = False
     wip_keywords: List[str] = field(
-        default_factory=lambda: ["wip", "todo", "fixup!", "squash!", "temp", "bug"]
+        default_factory=lambda: ["wip", "fixup!", "squash!"]
     )
     highlight_direct_pushes: bool = False
+    highlight_pr_status: bool = False
     highlight_squashed: bool = False
     highlight_back_merges: bool = False
     highlight_silos: bool = False
@@ -72,6 +94,7 @@ class GitLogConfig:
     longevity_threshold_days: int = (
         14  # Max diff between Issue created and first commit
     )
+    hygiene_weights: HygieneWeights = field(default_factory=HygieneWeights)
 
     @classmethod
     def from_toml(cls, file_path: str) -> "GitLogConfig":
@@ -93,13 +116,20 @@ class GitLogConfig:
             ):
                 config_data["highlight_path"] = tuple(config_data["highlight_path"])
 
-            return cls(
+            # Handle nested hygiene_weights
+            weights_data = config_data.pop("hygiene_weights", {})
+            config = cls(
                 **{
                     k: v
                     for k, v in config_data.items()
                     if k in cls.__dataclass_fields__
                 }
             )
+            if weights_data:
+                for k, v in weights_data.items():
+                    if hasattr(config.hygiene_weights, k):
+                        setattr(config.hygiene_weights, k, v)
+            return config
         except Exception:
             return cls()
 
@@ -108,15 +138,26 @@ class GitLogConfig:
         new_config = GitLogConfig()
         # Initialize with current values
         for field_name in self.__dataclass_fields__:
-            setattr(new_config, field_name, getattr(self, field_name))
+            val = getattr(self, field_name)
+            if isinstance(val, HygieneWeights):
+                # Deep copy for HygieneWeights
+                setattr(new_config, field_name, HygieneWeights(**asdict(val)))
+            else:
+                setattr(new_config, field_name, val)
 
         # Override with non-None values from 'other'
         for key, value in other.items():
             if value is not None and key in self.__dataclass_fields__:
-                # Special case for lists: only override if not empty
-                if isinstance(value, list) and not value:
+                if key == "hygiene_weights" and isinstance(value, dict):
+                    # Merge weights if provided as dict
+                    for w_key, w_val in value.items():
+                        if hasattr(new_config.hygiene_weights, w_key):
+                            setattr(new_config.hygiene_weights, w_key, w_val)
+                elif isinstance(value, list) and not value:
+                    # Special case for lists: only override if not empty
                     continue
-                setattr(new_config, key, value)
+                else:
+                    setattr(new_config, key, value)
 
         return new_config
 
@@ -153,13 +194,7 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
 
     summary = {
         "Critical": [],
-        "Behind Base": [],
-        "Orphan": [],
-        "Stale": [],
-        "Long-Running": [],
-        "PR: Open": [],
-        "PR: Merged": [],
-        "PR: Closed": [],
+        "PR Status": [],
         "WIP": [],
         "Direct Pushes": [],
         "Squashed PRs": [],
@@ -174,24 +209,8 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
     for commit in graph:
         if commit.is_tagged(Tag.CRITICAL.value):
             summary["Critical"].append(commit)
-        if commit.is_tagged(Tag.BEHIND.value):
-            summary["Behind Base"].append(commit)
-        if commit.is_tagged(Tag.ORPHAN.value):
-            summary["Orphan"].append(commit)
-        if commit.is_tagged(Tag.STALE_COLOR.value):
-            summary["Stale"].append(commit)
-        if commit.is_tagged(Tag.LONG_RUNNING.value):
-            # Only count branch tips for long-running summary to avoid redundancy
-            if commit.reference.branches:
-                summary["Long-Running"].append(commit)
-
-        if commit.is_tagged(Tag.PR_OPEN.value):
-            summary["PR: Open"].append(commit)
-        if commit.is_tagged(Tag.PR_MERGED.value):
-            summary["PR: Merged"].append(commit)
-        if commit.is_tagged(Tag.PR_CLOSED.value):
-            summary["PR: Closed"].append(commit)
-
+        if commit.is_tagged(Tag.PR_STATUS.value):
+            summary["PR Status"].append(commit)
         if commit.is_tagged(Tag.WIP.value):
             summary["WIP"].append(commit)
         if commit.is_tagged(Tag.DIRECT_PUSH.value):
@@ -218,43 +237,28 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
     return summary
 
 
-def process_repo(input_path: str, config: GitLogConfig) -> Graph[GitCommit]:
-    """Clones (if URL) and processes the repo, returning a Graph of GitCommits."""
-    from .highlighter import apply_highlights
+def process_repo(repo_path: str, config: GitLogConfig) -> Graph[GitCommit]:
+    """Process a repository and return a graph of commits."""
     from .parser import get_git_log
 
-    repo_path = input_path
-    temp_dir = None
+    commits_dict = get_git_log(repo_path, config)
+    graph = Graph()
 
-    if input_path.startswith(("http://", "https://", "git@", "ssh://")):
-        temp_dir = tempfile.mkdtemp()
-        try:
-            import subprocess
+    # Create nodes
+    for node in commits_dict.values():
+        graph.add_node(node)
 
-            subprocess.run(
-                ["git", "clone", input_path, temp_dir], check=True, capture_output=True
-            )
-            repo_path = temp_dir
-        except Exception as e:
-            if temp_dir:
-                shutil.rmtree(temp_dir)
-            raise RuntimeError(f"Failed to clone repository: {e}")
+    # Create edges (parent -> child)
+    for node in commits_dict.values():
+        for parent_hash in node.reference.parents:
+            if parent_hash in commits_dict:
+                parent = commits_dict[parent_hash]
+                # In Git, parents are 'depended on' by children
+                node.add_dependency(parent)
 
-    try:
-        if not os.path.exists(os.path.join(repo_path, ".git")):
-            raise RuntimeError(f"{repo_path} is not a git repository.")
+    # Apply highlights
+    from .highlighter import apply_highlights
 
-        commits_dict = get_git_log(repo_path, config=config)
+    apply_highlights(graph, config, repo_path)
 
-        for sha, commit in commits_dict.items():
-            for p_sha in commit.reference.parents:
-                if p_sha in commits_dict:
-                    commit.requires(commits_dict[p_sha])
-
-        graph = Graph(list(commits_dict.values()))
-        apply_highlights(graph, config, repo_path=repo_path)
-        return graph
-
-    finally:
-        if temp_dir and os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
+    return graph

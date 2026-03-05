@@ -15,8 +15,10 @@ git graphable .
 - **Advanced Highlighting**: Visualize author patterns, topological distance, and specific merge paths.
 - **GitHub Integration**: Highlight commits based on pull request status (Merged, Open, Closed, Draft) using the `gh` CLI.
 - **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, squashed PRs, back-merges, and contributor silos.
-- **Issue Tracker Integration**: Connect to Jira or GitHub Issues to highlight status desyncs (e.g., PR is open but the Jira ticket is closed).
+- **Issue Tracker Integration**: Connect to Jira, GitHub Issues, or custom scripts to highlight status desyncs.
+- **Release & Assignment Validation**: Verify that "Released" tickets are actually tagged in Git and that commit authors match ticket assignees.
 - **Health Scoring**: Get a numeric "Hygiene Score" (0-100%) with a color-coded grade and detailed breakdown of workflow anti-patterns.
+- **Configurable Penalties**: Fully customize the scoring logic by adjusting penalties and caps for each metric.
 - **CI Gating**: Use the `--check` flag to return a non-zero exit code if the hygiene score falls below a threshold (configurable via `--min-score`).
 - **Flexible Input**: Works with local repository paths or remote Git URLs.
 - **Dual CLI**: Modern Rich/Typer interface with a robust argparse fallback for bare environments.
@@ -67,6 +69,9 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 | `--highlight-back-merges` | **Stroke** | Orange Dashed outline | None |
 | `--highlight-silos` | **Stroke** | Blue Solid outline | None |
 | `--highlight-issue-inconsistencies` | **Label** | Adds `[ISSUE-DESYNC]` label | None |
+| `--highlight-release-inconsistencies`| **Label** | Adds `[NOT-RELEASED]` label | None |
+| `--highlight-collaboration-gaps` | **Label** | Adds `[COLLAB-GAP]` label | None |
+| `--highlight-longevity-mismatch` | **Label** | Adds `[LONGEVITY]` label | None |
 
 ### Highlighting Priorities
 - **Fill**: `--highlight-authors`, `--highlight-pr-status`, `--highlight-distance-from`, `--highlight-stale`, and `--highlight-wip` are mutually exclusive.
@@ -99,21 +104,16 @@ Flag mismatches between your code and your tickets:
 uv run git-graphable . --highlight-issue-inconsistencies --issue-pattern "[A-Z]+-[0-9]+" --issue-engine jira --jira-url "https://your-org.atlassian.net"
 ```
 
-### Large Repositories
-For repositories with long histories, use the `--limit` flag to keep the graph readable and avoid engine rendering limits:
+### Customizable Scoring
+Adjust hygiene penalties to match your team's workflow:
 ```bash
-uv run git-graphable . --limit 100 --highlight-authors
+# Aggressive penalty for direct pushes
+uv run git-graphable . --check --penalty direct_push_penalty:50
 ```
 
 ## Configuration
 
 Git Graphable can be configured via a TOML file (`.git-graphable.toml` or `pyproject.toml`). CLI flags always take precedence over configuration file settings.
-
-### Configuration Locations
-The tool searches for configuration in the following order:
-1. File specified via `--config <path>`
-2. `.git-graphable.toml` in the repository root
-3. `pyproject.toml` in the repository root (under `[tool.git-graphable]`)
 
 ### Example `.git-graphable.toml`
 ```toml
@@ -134,20 +134,25 @@ highlight_back_merges = true
 highlight_silos = true
 silo_commit_threshold = 20
 silo_author_count = 1
+
+# Issue Tracker
 highlight_issue_inconsistencies = true
+highlight_release_inconsistencies = true
+highlight_collaboration_gaps = true
+highlight_longevity_mismatch = true
 issue_pattern = "JIRA-[0-9]+"
 issue_engine = "jira"
 jira_url = "https://your-org.atlassian.net"
-jira_closed_statuses = ["Done", "Closed", "Resolved", "Released"]
-min_hygiene_score = 80
-```
+jira_closed_statuses = ["Done", "Closed", "Resolved"]
+released_statuses = ["Released"]
+author_mapping = { "Git Name" = "Jira Name" }
+longevity_threshold_days = 14
 
-### Example `pyproject.toml`
-```toml
-[tool.git-graphable]
-development_branch = "main"
-simplify = true
-highlight_authors = true
+# Custom Scoring
+[git-graphable.hygiene_weights]
+direct_push_penalty = 25
+direct_push_cap = 75
+wip_commit_penalty = 5
 ```
 
 ## Development
