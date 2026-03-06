@@ -60,6 +60,20 @@ def test_cli_bare_output(test_repo):
                 os.unlink(out_path)
 
 
+def test_cli_convert_html(test_repo):
+    output_file = os.path.join(test_repo, "test.html")
+    # Use full typer app for this one
+    result = runner.invoke(
+        app, [test_repo, "--engine", "html", "--output", output_file]
+    )
+    assert result.exit_code == 0
+    assert os.path.exists(output_file)
+    with open(output_file, "r") as f:
+        content = f.read()
+        assert "Git Graph" in content
+        assert "cytoscape" in content.lower()
+
+
 def test_cli_engine_options(test_repo):
     if app is not None:
         for engine_val in ["mermaid", "d2"]:

@@ -1,11 +1,10 @@
 import os
+import subprocess
 import tempfile
 import webbrowser
 from typing import Any, Dict, Optional
 
-from graphable.enums import Engine
-
-from .core import GitLogConfig, generate_summary, process_repo
+from .core import Engine, GitLogConfig, generate_summary, process_repo
 from .styler import export_graph
 
 
@@ -18,7 +17,7 @@ def get_extension(engine: Engine, as_image: bool) -> str:
         Engine.MERMAID: ".mmd",
         Engine.GRAPHVIZ: ".dot",
         Engine.D2: ".d2",
-        Engine.PLANTUML: ".puml",
+        Engine.HTML: ".html",
     }
     return extensions.get(engine, ".txt")
 
@@ -87,6 +86,25 @@ def load_config(
     return base_config.merge(cli_overrides)
 
 
+def ensure_local_repo(path: str) -> tuple[str, Optional[tempfile.TemporaryDirectory]]:
+    """Ensures the path is a local repository. Clones if it's a URL."""
+    if path.startswith(("http://", "https://", "git@", "ssh://")):
+        temp_dir = tempfile.TemporaryDirectory()
+        print(f"Cloning remote repository {path}...")
+        try:
+            # Clone bare repo for speed and less disk space
+            subprocess.run(
+                ["git", "clone", "--bare", path, temp_dir.name],
+                check=True,
+                capture_output=True,
+            )
+            return temp_dir.name, temp_dir
+        except subprocess.CalledProcessError as e:
+            temp_dir.cleanup()
+            raise RuntimeError(f"Failed to clone repository: {e.stderr.decode()}")
+    return path, None
+
+
 def convert_command(
     path: str,
     config_path: Optional[str],
@@ -100,17 +118,22 @@ def convert_command(
     Core logic for the convert command.
     Returns the summary dictionary.
     """
-    config = load_config(path, config_path, cli_overrides)
-    graph = process_repo(path, config)
+    local_path, temp_repo = ensure_local_repo(path)
+    try:
+        config = load_config(local_path, config_path, cli_overrides)
+        graph = process_repo(local_path, config)
 
-    content = None
-    if not is_check:
-        content = handle_output(graph, engine, output, config, as_image=as_image)
+        content = None
+        if not is_check:
+            content = handle_output(graph, engine, output, config, as_image=as_image)
 
-    summary = generate_summary(graph, config)
-    return {
-        "summary": summary,
-        "config": config,
-        "graph_size": len(graph),
-        "content": content,
-    }
+        summary = generate_summary(graph, config)
+        return {
+            "summary": summary,
+            "config": config,
+            "graph_size": len(graph),
+            "content": content,
+        }
+    finally:
+        if temp_repo:
+            temp_repo.cleanup()

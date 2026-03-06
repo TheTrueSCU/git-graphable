@@ -1,7 +1,24 @@
 from dataclasses import asdict, dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from graphable import Graph, Graphable
+from graphable.enums import Engine as BaseEngine
+
+
+class Engine(str, Enum):
+    MERMAID = "mermaid"
+    GRAPHVIZ = "graphviz"
+    D2 = "d2"
+    HTML = "html"
+
+    def to_base(self) -> BaseEngine:
+        """Convert to graphable BaseEngine if applicable."""
+        if self == Engine.HTML:
+            raise ValueError(
+                "HTML engine is not supported by base graphable Engine enum"
+            )
+        return BaseEngine(self.value)
 
 
 @dataclass
@@ -80,6 +97,18 @@ class ThemeConfig:
     contributor_silo: StyleInfo = field(
         default_factory=lambda: StyleInfo(stroke="blue", width=6)
     )
+    issue_inconsistency: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="orange", width=4)
+    )
+    release_inconsistency: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="red", width=2, dash="dashed")
+    )
+    collaboration_gap: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="purple", width=4, dash="dotted")
+    )
+    longevity_mismatch: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="brown", width=3)
+    )
 
     # PR Status Fills
     pr_open: StyleInfo = field(default_factory=lambda: StyleInfo(fill="#28a745"))
@@ -115,6 +144,7 @@ class ThemeConfig:
 
 @dataclass
 class GitLogConfig:
+    engine: Engine = Engine.MERMAID
     simplify: bool = False
     limit: Optional[int] = None
     date_format: str = "%Y%m%d%H%M%S"

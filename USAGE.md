@@ -1,6 +1,6 @@
 # `git-graphable`
 
-Git graph to Mermaid/Graphviz/D2/PlantUML converter.
+Git graph to Mermaid/Graphviz/D2/HTML converter.
 
 **Usage**:
 
@@ -18,8 +18,12 @@ $ git-graphable [OPTIONS] PATH
 * `--production-branch TEXT`: Production branch name (e.g. main, master)
 * `--development-branch TEXT`: Development branch name (e.g. develop, main)
 * `--date-format TEXT`: Date format for commit labels  [default: %Y%m%d%H%M%S]
-* `--engine [mermaid|graphviz|d2|plantuml]`: Visualization engine  [default: mermaid]
-* `-o, --output TEXT`: Output file path
+* `--engine [mermaid|graphviz|d2|html]`: Visualization engine.
+    *   **mermaid**: Static text export (default).
+    *   **graphviz**: Static text export.
+    *   **d2**: Static text export.
+    *   **html**: **Interactive HTML Viewer**. Generates a self-contained file with a searchable graph, details sidebar, and a **dynamic legend** to toggle all highlight modes on/off. Note: HTML mode automatically runs all hygiene highlighters to populate metadata for the browser.
+* `-o, --output TEXT`: Output file path. If no output is provided, a temporary file is created and opened automatically in your default browser/viewer.
 * `--image`: Export as image even when output path is provided
 * `--simplify`: Pass --simplify-by-decoration to git log
 * `--limit INTEGER`: Limit the number of commits to process

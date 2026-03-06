@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Git Graph: main</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            color: #333;
+            overflow: hidden;
+        }
+        #cy {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        .header {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            color: #333;
+        }
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 10px;
+        }
+        .controls input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .sidebar {
+            position: absolute;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333;
+            overflow-y: auto;
+        }
+        .sidebar.open {
+            right: 0;
+        }
+        .sidebar h3 { margin-top: 0; }
+        .sidebar .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .metadata-item { margin-bottom: 10px; }
+        .metadata-label { font-weight: bold; display: block; font-size: 0.8em; color: #666; }
+        .tag {
+            display: inline-block;
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 4px;
+            font-size: 0.9em;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.85em;
+            max-height: 50vh;
+            overflow-y: auto;
+            min-width: 180px;
+        }
+        .legend h4 { margin: 0 0 8px 0; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+        .legend-section { margin-bottom: 12px; }
+        .legend-section-title { font-weight: bold; margin-bottom: 6px; display: block; color: #555; font-size: 0.9em; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 4px; cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+        .legend-item:hover { background: #f0f0f0; }
+        .legend-color { width: 12px; height: 12px; border-radius: 2px; margin-right: 8px; border: 1px solid #999; flex-shrink: 0; }
+        .legend-label { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .legend-input { margin-left: 10px; flex-shrink: 0; }
+    </style>
+
+    <script src="https://unpkg.com/dagre@0.7.4/dist/dagre.js"></script>
+    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h2>Git Graph: main</h2>
+        <p>Scroll to zoom, drag to move nodes.</p>
+    </div>
+    <div class="controls">
+        <input type="text" id="search" placeholder="Search nodes...">
+    </div>
+    <div id="sidebar" class="sidebar">
+        <span class="close-btn" onclick="closeSidebar()">&times;</span>
+        <div id="sidebar-content">
+            <p>Select a node to view details.</p>
+        </div>
+    </div>
+    
+    <div class="legend" id="legend">
+        <h4>Git Graph</h4>
+        <div class="legend-section">
+            <span class="legend-section-title">Color Mode</span>
+            <div class="legend-item" onclick="setMode('none', event)"><div class="legend-color" style="background-color: #007bff"></div><span class="legend-label">Default</span><input type="radio" name="fill-mode" id="mode-none" class="legend-input" checked onclick="event.stopPropagation(); setMode('none', event)"></div><div class="legend-item" onclick="setMode('authors', event)"><div class="legend-color" style="background: linear-gradient(to right, #ff0000, #00ff00, #0000ff)"></div><span class="legend-label">Authors</span><input type="radio" name="fill-mode" id="mode-authors" class="legend-input" onclick="event.stopPropagation(); setMode('authors', event)"></div><div class="legend-item" onclick="setMode('distance', event)"><div class="legend-color" style="background: linear-gradient(to right, #eee, #00f)"></div><span class="legend-label">Distance</span><input type="radio" name="fill-mode" id="mode-distance" class="legend-input" onclick="event.stopPropagation(); setMode('distance', event)"></div><div class="legend-item" onclick="setMode('stale', event)"><div class="legend-color" style="background: linear-gradient(to right, #f00, #ff0)"></div><span class="legend-label">Staleness</span><input type="radio" name="fill-mode" id="mode-stale" class="legend-input" onclick="event.stopPropagation(); setMode('stale', event)"></div><div class="legend-item" onclick="setMode('pr_status', event)"><div class="legend-color" style="background: #28a745"></div><span class="legend-label">PR Status</span><input type="radio" name="fill-mode" id="mode-pr_status" class="legend-input" onclick="event.stopPropagation(); setMode('pr_status', event)"></div>
+        </div>
+        <div class="legend-section">
+            <span class="legend-section-title">Overlays</span>
+            <div class="legend-item" onclick="toggleOverlay('wip', event)"><div class="legend-color" style="border-color: #ccc; border-width: 2px; background: none;"></div><span class="legend-label">WIP</span><input type="checkbox" id="overlay-wip" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('wip', event)"></div><div class="legend-item" onclick="toggleOverlay('critical', event)"><div class="legend-color" style="border-color: red; border-width: 2px; background: none;"></div><span class="legend-label">Critical</span><input type="checkbox" id="overlay-critical" class="legend-input" checked onclick="event.stopPropagation(); toggleOverlay('critical', event)"></div><div class="legend-item" onclick="toggleOverlay('behind', event)"><div class="legend-color" style="border-color: orange; border-width: 2px; background: none;"></div><span class="legend-label">Divergence</span><input type="checkbox" id="overlay-behind" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('behind', event)"></div><div class="legend-item" onclick="toggleOverlay('orphan', event)"><div class="legend-color" style="border-color: grey; border-width: 2px; background: none;"></div><span class="legend-label">Orphan</span><input type="checkbox" id="overlay-orphan" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('orphan', event)"></div><div class="legend-item" onclick="toggleOverlay('long_running', event)"><div class="legend-color" style="border-color: purple; border-width: 2px; background: none;"></div><span class="legend-label">Long Running</span><input type="checkbox" id="overlay-long_running" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('long_running', event)"></div><div class="legend-item" onclick="toggleOverlay('pr:conflict', event)"><div class="legend-color" style="border-color: red; border-width: 2px; background: none;"></div><span class="legend-label">Pr Conflict</span><input type="checkbox" id="overlay-pr:conflict" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('pr:conflict', event)"></div><div class="legend-item" onclick="toggleOverlay('direct_push', event)"><div class="legend-color" style="border-color: #ff0000; border-width: 2px; background: none;"></div><span class="legend-label">Direct Push</span><input type="checkbox" id="overlay-direct_push" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('direct_push', event)"></div><div class="legend-item" onclick="toggleOverlay('back_merge', event)"><div class="legend-color" style="border-color: orange; border-width: 2px; background: none;"></div><span class="legend-label">Back Merge</span><input type="checkbox" id="overlay-back_merge" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('back_merge', event)"></div><div class="legend-item" onclick="toggleOverlay('contributor_silo', event)"><div class="legend-color" style="border-color: blue; border-width: 2px; background: none;"></div><span class="legend-label">Silo</span><input type="checkbox" id="overlay-contributor_silo" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('contributor_silo', event)"></div><div class="legend-item" onclick="toggleOverlay('issue_inconsistency', event)"><div class="legend-color" style="border-color: orange; border-width: 2px; background: none;"></div><span class="legend-label">Issue Inconsistency</span><input type="checkbox" id="overlay-issue_inconsistency" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('issue_inconsistency', event)"></div><div class="legend-item" onclick="toggleOverlay('release_inconsistency', event)"><div class="legend-color" style="border-color: red; border-width: 2px; background: none;"></div><span class="legend-label">Rel. Gap</span><input type="checkbox" id="overlay-release_inconsistency" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('release_inconsistency', event)"></div><div class="legend-item" onclick="toggleOverlay('collaboration_gap', event)"><div class="legend-color" style="border-color: purple; border-width: 2px; background: none;"></div><span class="legend-label">Collaboration Gap</span><input type="checkbox" id="overlay-collaboration_gap" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('collaboration_gap', event)"></div><div class="legend-item" onclick="toggleOverlay('longevity_mismatch', event)"><div class="legend-color" style="border-color: brown; border-width: 2px; background: none;"></div><span class="legend-label">Longevity Mismatch</span><input type="checkbox" id="overlay-longevity_mismatch" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('longevity_mismatch', event)"></div><div class="legend-item" onclick="toggleOverlay('highlight', event)"><div class="legend-color" style="border-color: #FFA500; border-width: 2px; background: none;"></div><span class="legend-label">Highlight</span><input type="checkbox" id="overlay-highlight" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('highlight', event)"></div><div class="legend-item" onclick="toggleOverlay('long_running_edge', event)"><div class="legend-color" style="border-color: purple; border-width: 2px; background: none;"></div><span class="legend-label">Long Running Edge</span><input type="checkbox" id="overlay-long_running_edge" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('long_running_edge', event)"></div><div class="legend-item" onclick="toggleOverlay('logical_merge', event)"><div class="legend-color" style="border-color: #808080; border-width: 2px; background: none;"></div><span class="legend-label">Logical Merge</span><input type="checkbox" id="overlay-logical_merge" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('logical_merge', event)"></div>
+        </div>
+    </div>
+    <div id="cy"></div>
+    <script>
+        var tagStyles = {
+  "wip": {
+    "background-color": "#ffff00",
+    "color": "black"
+  },
+  "pr:open": {
+    "background-color": "#28a745",
+    "color": "black"
+  },
+  "pr:merged": {
+    "background-color": "#6f42c1",
+    "color": "white"
+  },
+  "pr:closed": {
+    "background-color": "#d73a49",
+    "color": "white"
+  },
+  "pr:draft": {
+    "background-color": "#808080",
+    "color": "black"
+  },
+  "critical": {
+    "border-color": "red",
+    "border-width": "4",
+    "border-style": "solid",
+    "shape": "diamond"
+  },
+  "behind": {
+    "border-color": "orange",
+    "border-width": "2",
+    "border-style": "dashed"
+  },
+  "orphan": {
+    "border-color": "grey",
+    "border-width": "2",
+    "border-style": "dashed"
+  },
+  "long_running": {
+    "border-color": "purple",
+    "border-width": "3",
+    "border-style": "solid"
+  },
+  "pr:conflict": {
+    "border-color": "red",
+    "border-width": "6",
+    "border-style": "solid"
+  },
+  "direct_push": {
+    "border-color": "#ff0000",
+    "border-width": "8",
+    "border-style": "dashed"
+  },
+  "back_merge": {
+    "border-color": "orange",
+    "border-width": "4",
+    "border-style": "dashed"
+  },
+  "contributor_silo": {
+    "border-color": "blue",
+    "border-width": "6",
+    "border-style": "solid"
+  },
+  "issue_inconsistency": {
+    "border-color": "orange",
+    "border-width": "4",
+    "border-style": "solid"
+  },
+  "release_inconsistency": {
+    "border-color": "red",
+    "border-width": "2",
+    "border-style": "dashed"
+  },
+  "collaboration_gap": {
+    "border-color": "purple",
+    "border-width": "4",
+    "border-style": "dashed"
+  },
+  "longevity_mismatch": {
+    "border-color": "brown",
+    "border-width": "3",
+    "border-style": "solid"
+  },
+  "highlight": {
+    "line-color": "#FFA500",
+    "width": 4
+  },
+  "long_running_edge": {
+    "line-color": "purple",
+    "width": 3
+  },
+  "logical_merge": {
+    "line-color": "#808080",
+    "width": 2,
+    "line-style": "dashed"
+  },
+  "author_highlight:#FFD700": {
+    "background-color": "#FFD700",
+    "color": "black"
+  },
+  "distance_color:#e6e6ff": {
+    "background-color": "#e6e6ff",
+    "color": "black"
+  },
+  "distance_color:#0000ff": {
+    "background-color": "#0000ff",
+    "color": "white"
+  },
+  "stale_color:#fffefe": {
+    "background-color": "#fffefe",
+    "color": "black"
+  },
+  "distance_color:#9999ff": {
+    "background-color": "#9999ff",
+    "color": "black"
+  },
+  "distance_color:#4c4cff": {
+    "background-color": "#4c4cff",
+    "color": "white"
+  }
+};
+        var activeMode = 'none';
+        var disabledOverlays = new Set();
+        var fillTags = ["pr:open", "pr:merged", "pr:closed", "pr:draft"];
+
+        function syncOverlayState() {
+            disabledOverlays.clear();
+            document.querySelectorAll('.legend-input[type="checkbox"]').forEach(function(cb) {
+                var tag = cb.id.replace('overlay-', '');
+                if (!cb.checked) { disabledOverlays.add(tag); }
+            });
+        }
+
+        function setMode(mode, event) {
+            activeMode = mode;
+            var radio = document.getElementById('mode-' + mode);
+            if (radio) radio.checked = true;
+            applyStyles();
+        }
+
+        function toggleOverlay(tag, event) {
+            var checkbox = document.getElementById('overlay-' + tag);
+            if (event && event.target !== checkbox) { checkbox.checked = !checkbox.checked; }
+            if (checkbox.checked) { disabledOverlays.delete(tag); } 
+            else { disabledOverlays.add(tag); }
+            applyStyles();
+        }
+
+        function applyStyles() {
+            if (typeof cyGraph === 'undefined') return;
+            
+            // 1. Reset base styles
+            cyGraph.nodes().style({
+                'background-color': '#007bff', 'color': '#333', 'border-width': 0,
+                'border-color': 'transparent', 'shape': 'ellipse', 'opacity': 1
+            });
+            cyGraph.edges().style({ 'line-color': '#ccc', 'width': 2, 'line-style': 'solid', 'opacity': 1 });
+
+            // 2. Apply Fill Mode
+            if (activeMode === 'authors') {
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('author_highlight:'))).forEach(function(el) {
+                    var tag = el.data('tags').find(t => t.startsWith('author_highlight:'));
+                    if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
+                });
+            } else if (activeMode === 'distance') {
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('distance_color:'))).forEach(function(el) {
+                    var tag = el.data('tags').find(t => t.startsWith('distance_color:'));
+                    if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
+                });
+            } else if (activeMode === 'stale') {
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('stale_color:'))).forEach(function(el) {
+                    var tag = el.data('tags').find(t => t.startsWith('stale_color:'));
+                    if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
+                });
+            } else if (activeMode === 'pr_status') {
+                fillTags.forEach(function(tag) {
+                    if (tagStyles[tag]) { cyGraph.nodes().filter(n => (n.data('tags') || []).includes(tag)).style(tagStyles[tag]); }
+                });
+            }
+
+            // 3. Apply Overlays (Skipping Fill Tags to prevent conflicts)
+            Object.keys(tagStyles).forEach(function(tag) {
+                if (fillTags.includes(tag) || tag === 'pr_status') return;
+                if (tag.startsWith('author_highlight:') || tag.startsWith('distance_color:') || tag.startsWith('stale_color:')) return;
+                if (disabledOverlays.has(tag)) return;
+                
+                var selector = (tag.includes('edge') || tag.includes('highlight') || tag.includes('logical_merge') || tag.includes('long_running_edge')) ? 'edge' : 'node';
+                cyGraph.elements(selector).filter(el => (el.data('tags') || []).includes(tag)).style(tagStyles[tag]);
+            });
+            
+            // 4. Re-apply selection style
+            cyGraph.elements(':selected').style({ 'border-width': '4px', 'border-color': '#ff0', 'background-color': '#0056b3' });
+        }
+
+        function initStyles() {
+            if (typeof cyGraph !== 'undefined') { syncOverlayState(); applyStyles(); } 
+            else { setTimeout(initStyles, 50); }
+        }
+        initStyles();
+        
+
+        window.cyGraph = cytoscape({
+            container: document.getElementById('cy'),
+            elements: [
+  {
+    "data": {
+      "id": "25c758505bae49de6cea925d5a19ff3834b29307",
+      "label": "25c7585 - Richard West - 20260303124238",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700",
+        "distance_color:#e6e6ff"
+      ],
+      "author": "Richard West",
+      "hash": "25c758505bae49de6cea925d5a19ff3834b29307",
+      "message": "feat: complete git-graph implementation with Graphable integration"
+    }
+  },
+  {
+    "data": {
+      "id": "25c758505bae49de6cea925d5a19ff3834b29307_fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "source": "25c758505bae49de6cea925d5a19ff3834b29307",
+      "target": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "label": "fbc62a9 - tags: v0.1.0 - Richard West - 20260304005424",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700",
+        "distance_color:#9999ff",
+        "tag:v0.1.0"
+      ],
+      "author": "Richard West",
+      "hash": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "message": "chore: add project metadata and URLs to pyproject.toml"
+    }
+  },
+  {
+    "data": {
+      "id": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395_e080443bfe481458c1cadac3457a16b995a93834",
+      "source": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "target": "e080443bfe481458c1cadac3457a16b995a93834",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "e080443bfe481458c1cadac3457a16b995a93834",
+      "label": "e080443 [SQUASH] [PR Merged] - tags: v0.2.0 - Richard West - 20260305112346",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700",
+        "pr_status",
+        "squash_commit",
+        "tag:v0.2.0",
+        "pr:merged",
+        "distance_color:#4c4cff"
+      ],
+      "author": "Richard West",
+      "hash": "e080443bfe481458c1cadac3457a16b995a93834",
+      "message": "Merge pull request #13 from TheTrueSCU/release/prepare-v0.2.0"
+    }
+  },
+  {
+    "data": {
+      "id": "e080443bfe481458c1cadac3457a16b995a93834_dbd3578cdac482e6206c18306bc588768eda8f98",
+      "source": "e080443bfe481458c1cadac3457a16b995a93834",
+      "target": "dbd3578cdac482e6206c18306bc588768eda8f98",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "e080443bfe481458c1cadac3457a16b995a93834_6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "source": "e080443bfe481458c1cadac3457a16b995a93834",
+      "target": "6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "dbd3578cdac482e6206c18306bc588768eda8f98",
+      "label": "dbd3578 [PR Open] (CONFLICT) - feature/interactive-html-graph - Richard West - 20260305185733",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700",
+        "pr_status",
+        "behind",
+        "pr:open",
+        "branch:feature/interactive-html-graph",
+        "pr:conflict",
+        "stale_color:#fffefe",
+        "distance_color:#9999ff"
+      ],
+      "author": "Richard West",
+      "hash": "dbd3578cdac482e6206c18306bc588768eda8f98",
+      "message": "test: final test refinements and linting fixes"
+    }
+  },
+  {
+    "data": {
+      "id": "6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "label": "6206abc [SQUASH] [DIRECT] [PR Merged] - main - tags: v0.3.0 - Richard West - 20260305152052",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700",
+        "pr_status",
+        "squash_commit",
+        "direct_push",
+        "tag:v0.3.0",
+        "branch:main",
+        "distance_color:#0000ff",
+        "stale_color:#fffefe",
+        "pr:merged",
+        "critical"
+      ],
+      "author": "Richard West",
+      "hash": "6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "message": "Merge pull request #17 from TheTrueSCU/release/v0.3.0"
+    }
+  }
+],
+            style: [
+  {
+    "selector": "node",
+    "style": {
+      "background-color": "#007bff",
+      "label": "data(label)",
+      "color": "#333",
+      "text-valign": "center",
+      "text-halign": "center",
+      "width": "60px",
+      "height": "60px",
+      "font-size": "12px",
+      "text-wrap": "wrap",
+      "text-max-width": "150px"
+    }
+  },
+  {
+    "selector": "node:selected",
+    "style": {
+      "border-width": "4px",
+      "border-color": "#ff0",
+      "background-color": "#0056b3"
+    }
+  },
+  {
+    "selector": "edge",
+    "style": {
+      "width": 2,
+      "line-color": "#ccc",
+      "target-arrow-color": "#ccc",
+      "target-arrow-shape": "triangle",
+      "curve-style": "bezier"
+    }
+  }
+],
+            layout: {
+  "name": "dagre",
+  "rankDir": "BT",
+  "nodeSep": 50,
+  "edgeSep": 10,
+  "rankSep": 100,
+  "nodeDimensionsIncludeLabels": true,
+  "animate": false
+}
+        });
+
+        // Sidebar logic
+        function openSidebar(node) {
+            var data = node.data();
+            var content = '<h3>' + data.label + '</h3>';
+            
+            content += '<div class="metadata-item"><span class="metadata-label">ID</span>' + data.id + '</div>';
+            
+            if (data.tags && data.tags.length > 0) {
+                content += '<div class="metadata-item"><span class="metadata-label">Tags</span>';
+                data.tags.forEach(function(tag) {
+                    content += '<span class="tag">' + tag + '</span>';
+                });
+                content += '</div>';
+            }
+            
+            if (data.duration !== undefined) {
+                content += '<div class="metadata-item"><span class="metadata-label">Duration</span>' + data.duration + 's</div>';
+            }
+            
+            if (data.status) {
+                content += '<div class="metadata-item"><span class="metadata-label">Status</span>' + data.status + '</div>';
+            }
+
+            document.getElementById('sidebar-content').innerHTML = content;
+            document.getElementById('sidebar').classList.add('open');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            cy.$(':selected').unselect();
+        }
+
+        cy.on('tap', 'node', function(evt){
+            openSidebar(evt.target);
+        });
+
+        cy.on('tap', function(evt){
+            if (evt.target === cy) {
+                closeSidebar();
+            }
+        });
+
+        // Search logic
+        document.getElementById('search').addEventListener('input', function(e) {
+            var query = e.target.value.toLowerCase();
+            cy.nodes().forEach(function(node) {
+                if (query && node.data('label').toLowerCase().includes(query)) {
+                    node.addClass('highlighted');
+                    node.style('background-color', '#ff0');
+                } else {
+                    node.removeClass('highlighted');
+                    node.style('background-color', '#007bff');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
