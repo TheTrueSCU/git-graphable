@@ -52,12 +52,7 @@ def main():
         if repo_name == "repo-pristine":
             cmd.extend(["--highlight-authors", "--highlight-critical"])
         elif repo_name == "repo-messy":
-            cmd.extend(
-                [
-                    "--highlight-direct-pushes",
-                    "--highlight-stale"
-                ]
-            )
+            cmd.extend(["--highlight-direct-pushes", "--highlight-stale"])
         elif repo_name == "repo-risk-silo":
             cmd.extend(["--highlight-silos", "--silo-threshold", "20"])
         elif repo_name == "repo-complex-hygiene":
