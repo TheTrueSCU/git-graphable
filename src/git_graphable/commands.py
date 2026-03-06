@@ -38,20 +38,20 @@ def handle_output(
         ext = get_extension(engine, as_image=as_image)
         with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tf:
             temp_path = tf.name
-        
+
         # Export to the temporary file, respecting the as_image flag
         export_graph(graph, temp_path, config, engine, as_image=as_image)
-        
+
         # Read the content of the temporary file
-        mode = 'rb' if as_image else 'r'
-        encoding = None if as_image else 'utf-8'
-        
+        mode = "rb" if as_image else "r"
+        encoding = None if as_image else "utf-8"
+
         with open(temp_path, mode, encoding=encoding) as f:
             content = f.read()
-        
+
         # Clean up the temporary file
         os.remove(temp_path)
-        
+
         return content
 
     if output:
