@@ -37,16 +37,41 @@ For a complete reference of all command-line options, see the [USAGE.md](USAGE.m
 
 ```bash
 # Basic usage (opens a Mermaid image)
-uv run git-graphable .
+uv run git-graphable analyze .
 
 # Highlight PR status (requires gh CLI)
-uv run git-graphable . --highlight-pr-status
+uv run git-graphable analyze . --highlight-pr-status
 
 # Specify an engine and output file
-uv run git-graphable https://github.com/TheTrueSCU/graphable/ --engine d2 -o graph.svg
+uv run git-graphable analyze https://github.com/TheTrueSCU/graphable/ --engine d2 -o graph.svg
+
+# Initialize a default configuration file
+uv run git-graphable init
 
 # Simplify the graph (only show branches/tags)
-uv run git-graphable . --simplify
+uv run git-graphable analyze . --simplify
+
+## GitHub Action
+
+Git Graphable can be easily integrated into your GitHub workflows to automatically generate hygiene reports on every push or pull request.
+
+```yaml
+jobs:
+  git-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required to see full history
+
+      - name: Generate Git Graph Reports
+        uses: TheTrueSCU/git-graphable/.github/actions/git-graphable@v0.4.0
+        with:
+          production_branch: 'main'
+          output_dir: 'reports'
+```
+
+The action generates a **simplified Mermaid summary** (for quick review) and a **full interactive HTML graph** (for deep-dive auditing), uploading them as workflow artifacts.
 ```
 
 ## Highlighting Options
@@ -81,38 +106,38 @@ For a full reference of the default visual styles and how to customize them, see
 ### Hygiene Analysis
 Identify problematic patterns like direct pushes to `main`, messy WIP commits, back-merges from `main`, or contributor silos:
 ```bash
-uv run git-graphable . --highlight-direct-pushes --highlight-wip --highlight-squashed --highlight-back-merges --highlight-silos
+uv run git-graphable analyze . --highlight-direct-pushes --highlight-wip --highlight-squashed --highlight-back-merges --highlight-silos
 ```
 
 ### PR Status Highlighting
 View the current state of all PRs in your repository graph:
 ```bash
-uv run git-graphable . --highlight-pr-status
+uv run git-graphable analyze . --highlight-pr-status
 ```
 
 ### Divergence Analysis (Hygiene)
 Highlight commits that exist in `main` but are missing from your feature branches:
 ```bash
-uv run git-graphable . --highlight-diverging-from main
+uv run git-graphable analyze . --highlight-diverging-from main
 ```
 
 ### Issue Tracker Integration
 Flag mismatches between your code and your tickets:
 ```bash
-uv run git-graphable . --highlight-issue-inconsistencies --issue-pattern "[A-Z]+-[0-9]+" --issue-engine jira --jira-url "https://your-org.atlassian.net"
+uv run git-graphable analyze . --highlight-issue-inconsistencies --issue-pattern "[A-Z]+-[0-9]+" --issue-engine jira --jira-url "https://your-org.atlassian.net"
 ```
 
 ### Customizable Scoring & Styling
 Adjust hygiene penalties and visual styles to match your team's workflow:
 ```bash
 # Aggressive penalty for direct pushes and custom teal color for critical branches
-uv run git-graphable . --check --penalty direct_push_penalty:50 --style critical:stroke:teal
+uv run git-graphable analyze . --check --penalty direct_push_penalty:50 --style critical:stroke:teal
 ```
 
 ### Interactive HTML Viewer
 Generate a self-contained HTML file with a searchable graph, details sidebar, and an interactive legend to live-toggle all highlight modes:
 ```bash
-uv run git-graphable . --engine html -o graph.html
+uv run git-graphable analyze . --engine html -o graph.html
 ```
 
 ## Configuration

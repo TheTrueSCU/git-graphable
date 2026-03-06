@@ -1,3 +1,5 @@
+import concurrent.futures
+import threading
 from typing import Any, Dict
 
 from graphable import Graph
@@ -13,18 +15,24 @@ class HygieneScorer:
         self.score = 100
         self.deductions = []
         self.weights = config.hygiene_weights
+        self._lock = threading.Lock()
 
     def calculate(self) -> Dict[str, Any]:
         """Calculate hygiene score and return report."""
-        self._check_process_integrity()
-        self._check_cleanliness()
-        self._check_connectivity()
-        self._check_back_merges()
-        self._check_contributor_silos()
-        self._check_issue_inconsistencies()
-        self._check_release_inconsistencies()
-        self._check_collaboration_gaps()
-        self._check_longevity_mismatches()
+        checks = [
+            self._check_process_integrity,
+            self._check_cleanliness,
+            self._check_connectivity,
+            self._check_back_merges,
+            self._check_contributor_silos,
+            self._check_issue_inconsistencies,
+            self._check_release_inconsistencies,
+            self._check_collaboration_gaps,
+            self._check_longevity_mismatches,
+        ]
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(lambda f: f(), checks)
 
         # Ensure score doesn't go below 0
         final_score = max(0, self.score)
@@ -54,8 +62,9 @@ class HygieneScorer:
     def _add_deduction(self, amount: int, message: str):
         if amount <= 0:
             return
-        self.score -= amount
-        self.deductions.append({"amount": amount, "message": message})
+        with self._lock:
+            self.score -= amount
+            self.deductions.append({"amount": amount, "message": message})
 
     def _check_process_integrity(self):
         # Direct Pushes

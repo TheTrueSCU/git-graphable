@@ -1,7 +1,9 @@
+import concurrent.futures
 import os
 import shutil
 import subprocess
 import tempfile
+from unittest.mock import patch
 
 import pytest
 
@@ -41,3 +43,51 @@ def test_get_git_log(test_repo):
     commit = commits[sha]
     assert commit.reference.author == "Test User"
     assert commit.reference.message == "initial commit"
+
+
+def test_get_git_log_large_mock(test_repo):
+    """Test parallel parsing with a mocked large log output."""
+    # Generate 2500 lines of fake log data
+    fake_lines = []
+    for i in range(2500):
+        # Format: hash|parents|refs|timestamp|author|message
+        fake_lines.append(f"hash{i}|||123456789|Author{i}|Message{i}")
+
+    fake_output = "\n".join(fake_lines)
+
+    with patch("git_graphable.parser.run_git_command", return_value=fake_output):
+        config = GitLogConfig()
+        commits = get_git_log(test_repo, config)
+
+        assert len(commits) == 2500
+        assert "hash0" in commits
+        assert "hash2499" in commits
+        assert commits["hash1000"].reference.author == "Author1000"
+
+
+@pytest.mark.slow
+def test_get_git_log_parallel_trigger(test_repo):
+    """Verify that parallel parsing is triggered when threshold is exceeded."""
+    # Create 20 commits
+    for i in range(20):
+        subprocess.run(
+            ["git", "commit", "--allow-empty", "-m", f"commit {i}"],
+            cwd=test_repo,
+            check=True,
+            capture_output=True,
+        )
+
+    config = GitLogConfig()
+
+    # 1. Mock threshold to 10 so 20 commits trigger it
+    # 2. Mock ProcessPoolExecutor to verify it's used
+    with patch("git_graphable.parser.PARALLEL_THRESHOLD", 10):
+        with patch(
+            "concurrent.futures.ProcessPoolExecutor",
+            wraps=concurrent.futures.ProcessPoolExecutor,
+        ) as mock_executor:
+            commits = get_git_log(test_repo, config)
+
+            assert len(commits) >= 21
+            # Verify executor was actually instantiated and used
+            assert mock_executor.called

@@ -1,0 +1,54 @@
+# Git Graphable Configuration
+[git-graphable]
+production_branch = "main"
+development_branch = "develop"
+simplify = true
+limit = 100
+date_format = "%Y-%m-%d"
+highlight_critical = true
+critical_branches = ["main", "prod"]
+highlight_pr_status = true
+highlight_wip = true
+wip_keywords = ["wip", "todo", "fixme", "temp"]
+highlight_direct_pushes = true
+highlight_squashed = true
+highlight_back_merges = true
+highlight_silos = true
+silo_commit_threshold = 20
+silo_author_count = 1
+
+# Issue Tracker Integration
+highlight_issue_inconsistencies = true
+highlight_release_inconsistencies = true
+highlight_collaboration_gaps = true
+highlight_longevity_mismatch = true
+issue_pattern = "JIRA-[0-9]+"
+issue_engine = "jira"
+jira_url = "https://your-org.atlassian.net"
+jira_closed_statuses = ["Done", "Closed", "Resolved"]
+released_statuses = ["Released"]
+longevity_threshold_days = 14
+
+# Custom Scoring Weights
+[git-graphable.hygiene_weights]
+direct_push_penalty = 25
+direct_push_cap = 75
+wip_commit_penalty = 5
+pr_conflict_penalty = 15
+orphan_commit_penalty = 10
+long_running_branch_penalty = 20
+back_merge_penalty = 15
+contributor_silo_penalty = 30
+issue_inconsistency_penalty = 20
+release_inconsistency_penalty = 20
+collaboration_gap_penalty = 15
+longevity_mismatch_penalty = 10
+
+# Custom Visual Theme
+[git-graphable.theme.critical]
+stroke = "teal"
+width = 2
+
+[git-graphable.theme.direct_push]
+stroke = "magenta"
+dash = "dotted"
