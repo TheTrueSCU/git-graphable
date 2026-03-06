@@ -69,7 +69,7 @@ jobs:
           fetch-depth: 0 # Required to see full history
 
       - name: Generate Git Graph Reports
-        uses: TheTrueSCU/git-graphable@v0.4.0
+        uses: TheTrueSCU/git-graphable@v0.5.0
         with:
           production_branch: 'main'
           output_dir: 'reports'
