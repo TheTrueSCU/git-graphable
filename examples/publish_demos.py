@@ -53,7 +53,10 @@ def main():
             cmd.extend(["--highlight-authors", "--highlight-critical"])
         elif repo_name == "repo-messy":
             cmd.extend(
-                ["--highlight-wip", "--highlight-direct-pushes", "--highlight-stale"]
+                [
+                    "--highlight-direct-pushes",
+                    "--highlight-stale"
+                ]
             )
         elif repo_name == "repo-risk-silo":
             cmd.extend(["--highlight-silos", "--silo-threshold", "20"])
