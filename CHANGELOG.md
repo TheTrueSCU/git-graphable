@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-03-05
+
+### Added
+- **Interactive Demos**: Implemented `examples/publish_demos.py` to generate and host live HTML demos via GitHub Pages.
+- **Marketplace Preparation**: Moved `action.yml` to the root directory for GitHub Marketplace publishing and updated related documentation and CI workflows.
+
 ## [0.4.0] - 2026-03-05
 
 ### Added
