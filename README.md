@@ -75,8 +75,31 @@ jobs:
           output_dir: 'reports'
 ```
 
+### Inputs
+
+The following inputs are available for the `git-graphable` action:
+
+*   **`path`**
+    *   Description: Path to the git repository
+    *   Required: `false`
+    *   Default: `'.'`
+*   **`production_branch`**
+    *   Description: The main production branch (e.g. main, master)
+    *   Required: `false`
+    *   Default: `'main'`
+*   **`issue_engine`**
+    *   Description: Issue tracker engine (github or jira)
+    *   Required: `false`
+*   **`github_token`**
+    *   Description: GitHub token for issue integration
+    *   Required: `false`
+    *   Default: `${{ github.token }}`
+*   **`output_dir`**
+    *   Description: Directory to save the generated reports
+    *   Required: `false`
+    *   Default: `'git-graph-reports'`
+
 The action generates a **simplified Mermaid summary** (for quick review) and a **full interactive HTML graph** (for deep-dive auditing), uploading them as workflow artifacts.
-```
 
 ## Highlighting Options
 
