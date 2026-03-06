@@ -10,7 +10,15 @@ OUTPUT_DIR = Path("demo-site")
 
 def run_command(cmd):
     print(f"Running: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed with exit code {e.returncode}")
+        print("--- stdout ---")
+        print(e.stdout)
+        print("--- stderr ---")
+        print(e.stderr)
+        raise
 
 
 def main():
