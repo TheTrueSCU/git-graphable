@@ -13,22 +13,26 @@ def apply_highlights(
     """Apply highlighting tags based on configuration."""
     is_html = config.engine == Engine.HTML
 
-    _apply_pr_highlights(graph, config, repo_path, force=is_html)
+    # We now always apply hygiene tags so the summary/score is stable.
+    # The 'force=True' ensures tags are added to nodes.
+    # The CLI flags now only control the VISUAL highlighting (color: tags).
+    
+    _apply_pr_highlights(graph, config, repo_path, force=True)
     _apply_author_highlights(graph, config, force=is_html)
-    _apply_critical_highlights(graph, config, force=is_html)
+    _apply_critical_highlights(graph, config, force=True)
     _apply_distance_highlights(graph, config, force=is_html)
     _apply_path_highlights(graph, config)
-    _apply_divergence_highlights(graph, config, force=is_html)
-    _apply_orphan_highlights(graph, config, force=is_html)
-    _apply_stale_highlights(graph, config, force=is_html)
-    _apply_long_running_highlights(graph, config, force=is_html)
-    _apply_wip_highlights(graph, config, force=is_html)
-    _apply_direct_push_highlights(graph, config, force=is_html)
-    _apply_squash_highlights(graph, config, repo_path, force=is_html)
-    _apply_back_merge_highlights(graph, config, force=is_html)
-    _apply_silo_highlights(graph, config, force=is_html)
-    _apply_issue_highlights(graph, config, repo_path, force=is_html)
-    _apply_release_highlights(graph, config, repo_path, force=is_html)
+    _apply_divergence_highlights(graph, config, force=True)
+    _apply_orphan_highlights(graph, config, force=True)
+    _apply_stale_highlights(graph, config, force=True)
+    _apply_long_running_highlights(graph, config, force=True)
+    _apply_wip_highlights(graph, config, force=True)
+    _apply_direct_push_highlights(graph, config, force=True)
+    _apply_squash_highlights(graph, config, repo_path, force=True)
+    _apply_back_merge_highlights(graph, config, force=True)
+    _apply_silo_highlights(graph, config, force=True)
+    _apply_issue_highlights(graph, config, repo_path, force=True)
+    _apply_release_highlights(graph, config, repo_path, force=True)
 
 
 def _apply_release_highlights(
@@ -38,9 +42,9 @@ def _apply_release_highlights(
     force: bool = False,
 ):
     """Highlight issues marked as 'Released' but not reachable from a Git tag."""
-    if not force and not config.highlight_release_inconsistencies:
-        return
-
+    # If not force and not config, we don't apply VISUAL highlights, 
+    # but for hygiene we always need the tags.
+    # Since we want stable hygiene, we now ALWAYS run this if pattern is provided.
     if not config.issue_pattern or not repo_path:
         return
 
@@ -99,14 +103,6 @@ def _apply_issue_highlights(
     force: bool = False,
 ):
     """Highlight inconsistencies between Git/PR status and Issue Tracker status."""
-    if (
-        not force
-        and not config.highlight_issue_inconsistencies
-        and not config.highlight_collaboration_gaps
-        and not config.highlight_longevity_mismatch
-    ):
-        return
-
     if not config.issue_pattern:
         return
 
@@ -170,69 +166,55 @@ def _apply_issue_highlights(
         ext_created = info.created_at
 
         for commit in commits:
-            # A. Status Comparison
-            if force or config.highlight_issue_inconsistencies:
-                git_status = IssueStatus.UNKNOWN
-                # Explicit PR tags take priority
-                if commit.is_tagged(Tag.PR_OPEN.value):
-                    git_status = IssueStatus.OPEN
-                elif commit.is_tagged(Tag.PR_MERGED.value) or commit.is_tagged(
-                    Tag.PR_CLOSED.value
+            # A. Status Comparison (Always tag for hygiene)
+            git_status = IssueStatus.UNKNOWN
+            if commit.is_tagged(Tag.PR_OPEN.value):
+                git_status = IssueStatus.OPEN
+            elif commit.is_tagged(Tag.PR_MERGED.value) or commit.is_tagged(
+                Tag.PR_CLOSED.value
+            ):
+                git_status = IssueStatus.CLOSED
+            else:
+                if (
+                    commit.reference.branches
+                    and base_branch not in commit.reference.branches
                 ):
-                    git_status = IssueStatus.CLOSED
-                else:
-                    # If no PR, infer from topology: if it's a branch tip NOT in base, it's 'OPEN'
-                    if (
-                        commit.reference.branches
-                        and base_branch not in commit.reference.branches
-                    ):
-                        if commit not in base_reach:
-                            git_status = IssueStatus.OPEN
+                    if commit not in base_reach:
+                        git_status = IssueStatus.OPEN
 
-                if git_status != IssueStatus.UNKNOWN and git_status != ext_status:
-                    commit.add_tag(Tag.ISSUE_INCONSISTENCY.value)
-                    commit.add_tag(f"issue_status:{ext_status.lower()}")
+            if git_status != IssueStatus.UNKNOWN and git_status != ext_status:
+                commit.add_tag(Tag.ISSUE_INCONSISTENCY.value)
+                commit.add_tag(f"issue_status:{ext_status.lower()}")
 
-            # B. Assignee Comparison (Collaboration Gap)
-            if (force or config.highlight_collaboration_gaps) and ext_assignee:
+            # B. Assignee Comparison (Always tag for hygiene)
+            if ext_assignee:
                 author_raw = commit.reference.author
-                # Map author if alias exists
                 git_author = config.author_mapping.get(author_raw, author_raw).lower()
-
                 if git_author != ext_assignee:
                     commit.add_tag(Tag.COLLABORATION_GAP.value)
                     commit.add_tag(f"issue_assignee:{ext_assignee}")
 
-            # C. Longevity Mismatch
-            if (force or config.highlight_longevity_mismatch) and ext_created:
+            # C. Longevity Mismatch (Always tag for hygiene)
+            if ext_created:
                 try:
-                    # Convert ext_created (ISO 8601) to timestamp
                     from datetime import datetime
-
                     clean_ts = ext_created.replace("Z", "+00:00")
                     created_dt = datetime.fromisoformat(clean_ts)
                     issue_ts = created_dt.timestamp()
-
                     commit_ts = commit.reference.timestamp
-
-                    # Calculate difference in days
                     diff_sec = abs(commit_ts - issue_ts)
                     diff_days = diff_sec / 86400
-
                     if diff_days > config.longevity_threshold_days:
                         commit.add_tag(Tag.LONGEVITY_MISMATCH.value)
                         commit.add_tag(f"longevity_gap:{int(diff_days)}")
                 except Exception:
-                    pass  # Ignore parsing errors
+                    pass
 
 
 def _apply_silo_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight branches with high commit counts but low author diversity."""
-    if not force and not config.highlight_silos:
-        return
-
     def find_base_tip(query: str) -> Optional[GitCommit]:
         for commit in graph:
             if query in commit.reference.branches or commit.reference.hash.startswith(
@@ -244,7 +226,6 @@ def _apply_silo_highlights(
     base_branch = config.development_branch
     base_tip = find_base_tip(base_branch)
     if not base_tip:
-        # Fallback to production branch
         base_branch = config.production_branch
         base_tip = find_base_tip(base_branch)
 
@@ -255,17 +236,13 @@ def _apply_silo_highlights(
     base_reach.add(base_tip)
 
     for tip in graph:
-        # Check each branch tip that is not the base branch itself
         if tip.reference.branches and base_branch not in tip.reference.branches:
             branch_reach = set(graph.ancestors(tip))
             branch_reach.add(tip)
-
-            # Find commits unique to this branch
             unique_commits = branch_reach - base_reach
             if len(unique_commits) >= config.silo_commit_threshold:
                 authors = {c.reference.author for c in unique_commits}
                 if len(authors) <= config.silo_author_count:
-                    # Mark the tip as a silo
                     tip.add_tag(Tag.CONTRIBUTOR_SILO.value)
 
 
@@ -273,10 +250,6 @@ def _apply_back_merge_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight redundant merges (base branch merged into feature branch)."""
-    if not force and not config.highlight_back_merges:
-        return
-
-    # Use development_branch as base for determining 'redundant' merges
     def find_base_tip(query: str) -> Optional[GitCommit]:
         for commit in graph:
             if query in commit.reference.branches or commit.reference.hash.startswith(
@@ -288,7 +261,6 @@ def _apply_back_merge_highlights(
     base_branch = config.development_branch
     base_tip = find_base_tip(base_branch)
     if not base_tip:
-        # Fallback to production branch
         base_branch = config.production_branch
         base_tip = find_base_tip(base_branch)
 
@@ -299,30 +271,20 @@ def _apply_back_merge_highlights(
     base_reach.add(base_tip)
 
     for commit in graph:
-        # Check if it's a merge commit
         if len(commit.reference.parents) <= 1:
             continue
-
-        # If this commit itself is on the base branch, it's a regular merge into base
         if base_branch in commit.reference.branches:
             continue
-
-        # Check if one of the parents is in the base reach
         parents = []
         for p_sha in commit.reference.parents:
-            # Find the parent node in the graph
             parent_node = next((c for c in graph if c.reference.hash == p_sha), None)
             if parent_node:
                 parents.append(parent_node)
-
         if len(parents) < 2:
             continue
-
         has_base_parent = any(p in base_reach for p in parents)
         has_non_base_parent = any(p not in base_reach for p in parents)
-
         if has_base_parent and has_non_base_parent:
-            # This is a back-merge!
             commit.add_tag(Tag.BACK_MERGE.value)
 
 
@@ -333,35 +295,21 @@ def _apply_squash_highlights(
     force: bool = False,
 ):
     """Detect and highlight 'logical' merges from squashed GitHub PRs."""
-    if not force and not config.highlight_squashed:
-        return
-
     if not repo_path:
         return
 
     from .github import get_repo_prs
 
     prs = get_repo_prs(repo_path)
-    # Filter for merged PRs that have a head branch name
     merged_prs = [pr for pr in prs if pr.state == "MERGED" and pr.merge_commit_oid]
-
     commits_by_hash = {c.reference.hash: c for c in graph}
 
     for pr in merged_prs:
         if pr.merge_commit_oid in commits_by_hash:
             squash_commit = commits_by_hash[pr.merge_commit_oid]
-
-            # Label the squash commit
             squash_commit.add_tag(Tag.SQUASH_COMMIT.value)
-
-            # Find the original feature branch commits if they still exist locally.
-            # They would be tagged with the branch name.
             branch_tag = f"{Tag.BRANCH.value}{pr.head_ref_name}"
-
-            # Find commits that have this branch tag but are NOT reachable
-            # from the squash commit's ancestors (meaning they were squashed).
             squash_ancestors = set(graph.ancestors(squash_commit))
-
             potential_squashed = [
                 c
                 for c in graph
@@ -369,9 +317,7 @@ def _apply_squash_highlights(
                 and c not in squash_ancestors
                 and c != squash_commit
             ]
-
             if potential_squashed:
-                # Find the 'tip' of the squashed commits
                 tips = []
                 for c in potential_squashed:
                     is_tip = True
@@ -381,13 +327,10 @@ def _apply_squash_highlights(
                             break
                     if is_tip:
                         tips.append(c)
-
-                # Link each tip logically to the squash commit
                 for tip in tips:
                     squash_commit.set_edge_attribute(
                         tip, Tag.EDGE_LOGICAL_MERGE.value, True
                     )
-                    # Also tag the tip as squashed
                     tip.add_tag(Tag.SQUASHED.value)
 
 
@@ -395,9 +338,6 @@ def _apply_wip_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight commits with WIP/TODO keywords in message."""
-    if not force and not config.highlight_wip:
-        return
-
     keywords = [k.lower() for k in config.wip_keywords]
     for commit in graph:
         message = commit.reference.message.lower()
@@ -409,9 +349,6 @@ def _apply_direct_push_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight non-merge commits made directly to protected branches."""
-    if not force and not config.highlight_direct_pushes:
-        return
-
     protected = {
         config.production_branch,
         config.development_branch,
@@ -419,11 +356,8 @@ def _apply_direct_push_highlights(
     }
 
     for commit in graph:
-        # Check if it's a non-merge commit (1 parent or 0 for root)
         if len(commit.reference.parents) > 1:
             continue
-
-        # For each branch this commit is on, check if it's protected
         for branch in commit.reference.branches:
             if branch in protected:
                 if not commit.reference.parents:
@@ -439,9 +373,6 @@ def _apply_pr_highlights(
     force: bool = False,
 ):
     """Highlight commits based on GitHub PR status."""
-    if not force and not config.highlight_pr_status:
-        return
-
     if not repo_path:
         return
 
@@ -473,9 +404,6 @@ def _apply_author_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Assign colors to different authors."""
-    if not force and not config.highlight_authors:
-        return
-
     authors = sorted(list(set(c.reference.author for c in graph)))
     palette = config.theme.author_palette
     author_to_color = {
@@ -486,9 +414,11 @@ def _apply_author_highlights(
     for commit in graph:
         color = author_to_color.get(commit.reference.author)
         if color:
-            if not is_html:
+            # ONLY apply visual 'color:' tag if requested or HTML (hidden)
+            if config.highlight_authors:
                 commit.add_tag(f"{Tag.COLOR.value}{color}")
-            # Always add author_highlight tag for HTML legend mapping
+            
+            # Always add helper tag for HTML legend
             commit.add_tag(f"{Tag.AUTHOR_HIGHLIGHT.value}{color}")
 
 
@@ -497,10 +427,6 @@ def _apply_distance_highlights(
 ):
     """Highlight commits based on distance from a base branch/hash."""
     base_query = config.highlight_distance_from
-    if not force and not base_query:
-        return
-
-    # If force but no query, default to development branch
     if force and not base_query:
         base_query = config.development_branch
 
@@ -541,11 +467,9 @@ def _apply_distance_highlights(
                 intensity = int(230 * (dist / max_dist)) if max_dist > 0 else 0
                 color = f"#{intensity:02x}{intensity:02x}ff"
                 commit.add_tag(f"{Tag.DISTANCE_COLOR.value}{color}")
-                if (
-                    not force
-                    and not config.highlight_authors
-                    and not config.highlight_stale
-                ):
+                
+                # ONLY apply visual highlight if explicitly requested
+                if config.highlight_distance_from:
                     commit.add_tag(f"{Tag.COLOR.value}{color}")
 
 
@@ -581,9 +505,6 @@ def _apply_divergence_highlights(
 ):
     """Highlight divergence/behind analysis from a base branch/hash."""
     base_branch = (config.highlight_diverging_from or "").strip()
-    if not force and not base_branch:
-        return
-
     if force and not base_branch:
         base_branch = config.production_branch
 
@@ -620,9 +541,6 @@ def _apply_orphan_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight dangling/orphan commits."""
-    if not force and not config.highlight_orphans:
-        return
-
     branch_reachable = set()
     for commit in graph:
         if commit.reference.branches:
@@ -638,9 +556,6 @@ def _apply_stale_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight stale branch tips."""
-    if not force and not config.highlight_stale:
-        return
-
     now = time.time()
     stale_threshold_sec = config.stale_days * 86400
 
@@ -652,7 +567,9 @@ def _apply_stale_highlights(
                 gb_value = int(255 - (ratio * 85))  # 255 -> 170
                 color = f"#ff{gb_value:02x}{gb_value:02x}"
                 commit.add_tag(f"{Tag.STALE_COLOR.value}{color}")
-                if not force and not config.highlight_authors:
+                
+                # ONLY apply visual highlight if explicitly requested
+                if config.highlight_stale:
                     commit.add_tag(f"{Tag.COLOR.value}{color}")
 
 
@@ -660,9 +577,6 @@ def _apply_long_running_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight long-running branches."""
-    if not force and not config.highlight_long_running:
-        return
-
     now = time.time()
     threshold_sec = config.long_running_days * 86400
     if config.long_running_days == 0:
@@ -712,9 +626,6 @@ def _apply_critical_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Ensure critical branches are tagged for overlay support."""
-    if not force and not config.highlight_critical:
-        return
-
     critical_set = {
         config.production_branch,
         config.development_branch,
