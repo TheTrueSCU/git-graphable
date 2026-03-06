@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file.
 - **Interactive Demos**: Implemented `examples/publish_demos.py` to generate and host live HTML demos via GitHub Pages.
 - **Marketplace Preparation**: Moved `action.yml` to the root directory for GitHub Marketplace publishing and updated related documentation and CI workflows.
 
+### Fixed
+- **Squash Merge Detection**: Resolved a `KeyError` and `CycleError` in the logical merge visualization for squashed pull requests when local branch tips were present.
+
 ## [0.4.0] - 2026-03-05
 
 ### Added
