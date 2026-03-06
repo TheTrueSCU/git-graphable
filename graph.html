@@ -1,0 +1,2253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Git Graph: main</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            color: #333;
+            overflow: hidden;
+        }
+        #cy {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        .header {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            color: #333;
+        }
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            gap: 10px;
+        }
+        .controls input {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .sidebar {
+            position: absolute;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            padding: 20px;
+            box-sizing: border-box;
+            color: #333;
+            overflow-y: auto;
+        }
+        .sidebar.open {
+            right: 0;
+        }
+        .sidebar h3 { margin-top: 0; }
+        .sidebar .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .metadata-item { margin-bottom: 10px; }
+        .metadata-label { font-weight: bold; display: block; font-size: 0.8em; color: #666; }
+        .tag {
+            display: inline-block;
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 4px;
+            font-size: 0.9em;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 10px;
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.85em;
+            max-height: 50vh;
+            overflow-y: auto;
+            min-width: 180px;
+        }
+        .legend h4 { margin: 0 0 8px 0; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+        .legend-section { margin-bottom: 12px; }
+        .legend-section-title { font-weight: bold; margin-bottom: 6px; display: block; color: #555; font-size: 0.9em; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 4px; cursor: pointer; padding: 2px 4px; border-radius: 3px; }
+        .legend-item:hover { background: #f0f0f0; }
+        .legend-color { width: 12px; height: 12px; border-radius: 2px; margin-right: 8px; border: 1px solid #999; flex-shrink: 0; }
+        .legend-label { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .legend-input { margin-left: 10px; flex-shrink: 0; }
+    </style>
+
+    <script src="https://unpkg.com/dagre@0.7.4/dist/dagre.js"></script>
+    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h2>Git Graph: main</h2>
+        <p>Scroll to zoom, drag to move nodes.</p>
+    </div>
+    <div class="controls">
+        <input type="text" id="search" placeholder="Search nodes...">
+    </div>
+    <div id="sidebar" class="sidebar">
+        <span class="close-btn" onclick="closeSidebar()">&times;</span>
+        <div id="sidebar-content">
+            <p>Select a node to view details.</p>
+        </div>
+    </div>
+    
+    <div class="legend" id="legend">
+        <h4>Git Graph</h4>
+        <div class="legend-section">
+            <span class="legend-section-title">Color Mode</span>
+            <div class="legend-item" onclick="setMode('none', event)"><div class="legend-color" style="background-color: #007bff"></div><span class="legend-label">Default</span><input type="radio" name="fill-mode" id="mode-none" class="legend-input" checked onclick="event.stopPropagation(); setMode('none', event)"></div><div class="legend-item" onclick="setMode('authors', event)"><div class="legend-color" style="background: linear-gradient(to right, #ff0000, #00ff00, #0000ff)"></div><span class="legend-label">Authors</span><input type="radio" name="fill-mode" id="mode-authors" class="legend-input" onclick="event.stopPropagation(); setMode('authors', event)"></div><div class="legend-item" onclick="setMode('stale', event)"><div class="legend-color" style="background: linear-gradient(to right, #f00, #ff0)"></div><span class="legend-label">Staleness</span><input type="radio" name="fill-mode" id="mode-stale" class="legend-input" onclick="event.stopPropagation(); setMode('stale', event)"></div><div class="legend-item" onclick="setMode('pr_status', event)"><div class="legend-color" style="background: #28a745"></div><span class="legend-label">PR Status</span><input type="radio" name="fill-mode" id="mode-pr_status" class="legend-input" onclick="event.stopPropagation(); setMode('pr_status', event)"></div>
+        </div>
+        <div class="legend-section">
+            <span class="legend-section-title">Overlays</span>
+            <div class="legend-item" onclick="toggleOverlay('wip', event)"><div class="legend-color" style="border-color: #ccc; border-width: 2px; background: none;"></div><span class="legend-label">Wip</span><input type="checkbox" id="overlay-wip" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('wip', event)"></div><div class="legend-item" onclick="toggleOverlay('critical', event)"><div class="legend-color" style="border-color: red; border-width: 2px; background: none;"></div><span class="legend-label">Critical</span><input type="checkbox" id="overlay-critical" class="legend-input" checked onclick="event.stopPropagation(); toggleOverlay('critical', event)"></div><div class="legend-item" onclick="toggleOverlay('behind', event)"><div class="legend-color" style="border-color: orange; border-width: 2px; background: none;"></div><span class="legend-label">Behind</span><input type="checkbox" id="overlay-behind" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('behind', event)"></div><div class="legend-item" onclick="toggleOverlay('orphan', event)"><div class="legend-color" style="border-color: grey; border-width: 2px; background: none;"></div><span class="legend-label">Orphan</span><input type="checkbox" id="overlay-orphan" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('orphan', event)"></div><div class="legend-item" onclick="toggleOverlay('long_running', event)"><div class="legend-color" style="border-color: purple; border-width: 2px; background: none;"></div><span class="legend-label">Long Running</span><input type="checkbox" id="overlay-long_running" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('long_running', event)"></div><div class="legend-item" onclick="toggleOverlay('pr:conflict', event)"><div class="legend-color" style="border-color: red; border-width: 2px; background: none;"></div><span class="legend-label">Pr Conflict</span><input type="checkbox" id="overlay-pr:conflict" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('pr:conflict', event)"></div><div class="legend-item" onclick="toggleOverlay('direct_push', event)"><div class="legend-color" style="border-color: #ff0000; border-width: 2px; background: none;"></div><span class="legend-label">Direct Push</span><input type="checkbox" id="overlay-direct_push" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('direct_push', event)"></div><div class="legend-item" onclick="toggleOverlay('back_merge', event)"><div class="legend-color" style="border-color: orange; border-width: 2px; background: none;"></div><span class="legend-label">Back Merge</span><input type="checkbox" id="overlay-back_merge" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('back_merge', event)"></div><div class="legend-item" onclick="toggleOverlay('contributor_silo', event)"><div class="legend-color" style="border-color: blue; border-width: 2px; background: none;"></div><span class="legend-label">Silo</span><input type="checkbox" id="overlay-contributor_silo" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('contributor_silo', event)"></div><div class="legend-item" onclick="toggleOverlay('issue_inconsistency', event)"><div class="legend-color" style="border-color: orange; border-width: 2px; background: none;"></div><span class="legend-label">Issue Inconsistency</span><input type="checkbox" id="overlay-issue_inconsistency" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('issue_inconsistency', event)"></div><div class="legend-item" onclick="toggleOverlay('release_inconsistency', event)"><div class="legend-color" style="border-color: red; border-width: 2px; background: none;"></div><span class="legend-label">Rel. Gap</span><input type="checkbox" id="overlay-release_inconsistency" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('release_inconsistency', event)"></div><div class="legend-item" onclick="toggleOverlay('collaboration_gap', event)"><div class="legend-color" style="border-color: purple; border-width: 2px; background: none;"></div><span class="legend-label">Collaboration Gap</span><input type="checkbox" id="overlay-collaboration_gap" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('collaboration_gap', event)"></div><div class="legend-item" onclick="toggleOverlay('longevity_mismatch', event)"><div class="legend-color" style="border-color: brown; border-width: 2px; background: none;"></div><span class="legend-label">Longevity Mismatch</span><input type="checkbox" id="overlay-longevity_mismatch" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('longevity_mismatch', event)"></div><div class="legend-item" onclick="toggleOverlay('highlight', event)"><div class="legend-color" style="border-color: #FFA500; border-width: 2px; background: none;"></div><span class="legend-label">Highlight</span><input type="checkbox" id="overlay-highlight" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('highlight', event)"></div><div class="legend-item" onclick="toggleOverlay('long_running_edge', event)"><div class="legend-color" style="border-color: purple; border-width: 2px; background: none;"></div><span class="legend-label">Long Running Edge</span><input type="checkbox" id="overlay-long_running_edge" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('long_running_edge', event)"></div><div class="legend-item" onclick="toggleOverlay('logical_merge', event)"><div class="legend-color" style="border-color: #808080; border-width: 2px; background: none;"></div><span class="legend-label">Logical Merge</span><input type="checkbox" id="overlay-logical_merge" class="legend-input"  onclick="event.stopPropagation(); toggleOverlay('logical_merge', event)"></div>
+        </div>
+    </div>
+    <div id="cy"></div>
+    <script>
+        var tagStyles = {
+  "wip": {
+    "background-color": "#ffff00",
+    "color": "black"
+  },
+  "pr:open": {
+    "background-color": "#28a745",
+    "color": "black"
+  },
+  "pr:merged": {
+    "background-color": "#6f42c1",
+    "color": "white"
+  },
+  "pr:closed": {
+    "background-color": "#d73a49",
+    "color": "white"
+  },
+  "pr:draft": {
+    "background-color": "#808080",
+    "color": "black"
+  },
+  "critical": {
+    "border-color": "red",
+    "border-width": "4",
+    "border-style": "solid",
+    "shape": "diamond"
+  },
+  "behind": {
+    "border-color": "orange",
+    "border-width": "2",
+    "border-style": "dashed"
+  },
+  "orphan": {
+    "border-color": "grey",
+    "border-width": "2",
+    "border-style": "dashed"
+  },
+  "long_running": {
+    "border-color": "purple",
+    "border-width": "3",
+    "border-style": "solid"
+  },
+  "pr:conflict": {
+    "border-color": "red",
+    "border-width": "6",
+    "border-style": "solid"
+  },
+  "direct_push": {
+    "border-color": "#ff0000",
+    "border-width": "8",
+    "border-style": "dashed"
+  },
+  "back_merge": {
+    "border-color": "orange",
+    "border-width": "4",
+    "border-style": "dashed"
+  },
+  "contributor_silo": {
+    "border-color": "blue",
+    "border-width": "6",
+    "border-style": "solid"
+  },
+  "issue_inconsistency": {
+    "border-color": "orange",
+    "border-width": "4",
+    "border-style": "solid"
+  },
+  "release_inconsistency": {
+    "border-color": "red",
+    "border-width": "2",
+    "border-style": "dashed"
+  },
+  "collaboration_gap": {
+    "border-color": "purple",
+    "border-width": "4",
+    "border-style": "dashed"
+  },
+  "longevity_mismatch": {
+    "border-color": "brown",
+    "border-width": "3",
+    "border-style": "solid"
+  },
+  "highlight": {
+    "line-color": "#FFA500",
+    "width": 4
+  },
+  "long_running_edge": {
+    "line-color": "purple",
+    "width": 3
+  },
+  "logical_merge": {
+    "line-color": "#808080",
+    "width": 2,
+    "line-style": "dashed"
+  },
+  "author_highlight:#C0C0C0": {
+    "background-color": "#C0C0C0",
+    "color": "black"
+  },
+  "stale_color:#fffefe": {
+    "background-color": "#fffefe",
+    "color": "black"
+  },
+  "author_highlight:#CD7F32": {
+    "background-color": "#CD7F32",
+    "color": "black"
+  },
+  "author_highlight:#FFD700": {
+    "background-color": "#FFD700",
+    "color": "black"
+  }
+};
+        var activeMode = 'none';
+        var disabledOverlays = new Set();
+        var fillTags = ["pr:open", "pr:merged", "pr:closed", "pr:draft"];
+
+        function syncOverlayState() {
+            disabledOverlays.clear();
+            document.querySelectorAll('.legend-input[type="checkbox"]').forEach(function(cb) {
+                var tag = cb.id.replace('overlay-', '');
+                if (!cb.checked) { disabledOverlays.add(tag); }
+            });
+        }
+
+        function setMode(mode, event) {
+            activeMode = mode;
+            var radio = document.getElementById('mode-' + mode);
+            if (radio) radio.checked = true;
+            applyStyles();
+        }
+
+        function toggleOverlay(tag, event) {
+            var checkbox = document.getElementById('overlay-' + tag);
+            if (event && event.target !== checkbox) { checkbox.checked = !checkbox.checked; }
+            if (checkbox.checked) { disabledOverlays.delete(tag); } 
+            else { disabledOverlays.add(tag); }
+            applyStyles();
+        }
+
+        function applyStyles() {
+            if (typeof cyGraph === 'undefined') return;
+            
+            // 1. Reset base styles
+            cyGraph.nodes().style({
+                'background-color': '#007bff', 'color': '#333', 'border-width': 0,
+                'border-color': 'transparent', 'shape': 'ellipse', 'opacity': 1
+            });
+            cyGraph.edges().style({ 'line-color': '#ccc', 'width': 2, 'line-style': 'solid', 'opacity': 1 });
+
+            // 2. Apply Fill Mode
+            if (activeMode === 'authors') {
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('author_highlight:'))).forEach(function(el) {
+                    var tag = el.data('tags').find(t => t.startsWith('author_highlight:'));
+                    if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
+                });
+            } else if (activeMode === 'distance') {
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('distance_color:'))).forEach(function(el) {
+                    var tag = el.data('tags').find(t => t.startsWith('distance_color:'));
+                    if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
+                });
+            } else if (activeMode === 'stale') {
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('stale_color:'))).forEach(function(el) {
+                    var tag = el.data('tags').find(t => t.startsWith('stale_color:'));
+                    if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
+                });
+            } else if (activeMode === 'pr_status') {
+                fillTags.forEach(function(tag) {
+                    if (tagStyles[tag]) { cyGraph.nodes().filter(n => (n.data('tags') || []).includes(tag)).style(tagStyles[tag]); }
+                });
+            }
+
+            // 3. Apply Overlays (Skipping Fill Tags to prevent conflicts)
+            Object.keys(tagStyles).forEach(function(tag) {
+                if (fillTags.includes(tag) || tag === 'pr_status') return;
+                if (tag.startsWith('author_highlight:') || tag.startsWith('distance_color:') || tag.startsWith('stale_color:')) return;
+                if (disabledOverlays.has(tag)) return;
+                
+                var selector = (tag.includes('edge') || tag.includes('highlight') || tag.includes('logical_merge') || tag.includes('long_running_edge')) ? 'edge' : 'node';
+                cyGraph.elements(selector).filter(el => (el.data('tags') || []).includes(tag)).style(tagStyles[tag]);
+            });
+            
+            // 4. Re-apply selection style
+            cyGraph.elements(':selected').style({ 'border-width': '4px', 'border-color': '#ff0', 'background-color': '#0056b3' });
+        }
+
+        function initStyles() {
+            if (typeof cyGraph !== 'undefined') { syncOverlayState(); applyStyles(); } 
+            else { setTimeout(initStyles, 50); }
+        }
+        initStyles();
+        
+
+        window.cyGraph = cytoscape({
+            container: document.getElementById('cy'),
+            elements: [
+  {
+    "data": {
+      "id": "25c758505bae49de6cea925d5a19ff3834b29307",
+      "label": "25c7585 - Richard West - 20260303124238",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "25c758505bae49de6cea925d5a19ff3834b29307",
+      "message": "feat: complete git-graph implementation with Graphable integration"
+    }
+  },
+  {
+    "data": {
+      "id": "25c758505bae49de6cea925d5a19ff3834b29307_56cb18bc20565f5bdc29b789b5f8092515eaa62a",
+      "source": "25c758505bae49de6cea925d5a19ff3834b29307",
+      "target": "56cb18bc20565f5bdc29b789b5f8092515eaa62a",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "56cb18bc20565f5bdc29b789b5f8092515eaa62a",
+      "label": "56cb18b - Richard West - 20260303165212",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "56cb18bc20565f5bdc29b789b5f8092515eaa62a",
+      "message": "refactor: introduce GitLogConfig dataclass for cleaner argument passing"
+    }
+  },
+  {
+    "data": {
+      "id": "56cb18bc20565f5bdc29b789b5f8092515eaa62a_2360025b5f2250c187fd1bc958ddeb4e4ee93e00",
+      "source": "56cb18bc20565f5bdc29b789b5f8092515eaa62a",
+      "target": "2360025b5f2250c187fd1bc958ddeb4e4ee93e00",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "2360025b5f2250c187fd1bc958ddeb4e4ee93e00",
+      "label": "2360025 - Richard West - 20260303224015",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "2360025b5f2250c187fd1bc958ddeb4e4ee93e00",
+      "message": "feat: add advanced git history analysis and highlighting features"
+    }
+  },
+  {
+    "data": {
+      "id": "2360025b5f2250c187fd1bc958ddeb4e4ee93e00_40b570fd75f90a43b1fa935f02cda23938ba5cf9",
+      "source": "2360025b5f2250c187fd1bc958ddeb4e4ee93e00",
+      "target": "40b570fd75f90a43b1fa935f02cda23938ba5cf9",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "40b570fd75f90a43b1fa935f02cda23938ba5cf9",
+      "label": "40b570f - Richard West - 20260303224721",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "40b570fd75f90a43b1fa935f02cda23938ba5cf9",
+      "message": "docs: add comprehensive README with highlighting documentation"
+    }
+  },
+  {
+    "data": {
+      "id": "40b570fd75f90a43b1fa935f02cda23938ba5cf9_704541f77e7fb33c0ffc19efc5c6eedd9c3551be",
+      "source": "40b570fd75f90a43b1fa935f02cda23938ba5cf9",
+      "target": "704541f77e7fb33c0ffc19efc5c6eedd9c3551be",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "704541f77e7fb33c0ffc19efc5c6eedd9c3551be",
+      "label": "704541f - Richard West - 20260303224938",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "704541f77e7fb33c0ffc19efc5c6eedd9c3551be",
+      "message": "feat: add orphan commit highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "704541f77e7fb33c0ffc19efc5c6eedd9c3551be_51c9b52c710b2dbd0650f8aca85e32d0214bf023",
+      "source": "704541f77e7fb33c0ffc19efc5c6eedd9c3551be",
+      "target": "51c9b52c710b2dbd0650f8aca85e32d0214bf023",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "51c9b52c710b2dbd0650f8aca85e32d0214bf023",
+      "label": "51c9b52 - Richard West - 20260303225817",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "51c9b52c710b2dbd0650f8aca85e32d0214bf023",
+      "message": "feat: add stale branch highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "51c9b52c710b2dbd0650f8aca85e32d0214bf023_d6fbf6ce152c7c8bc362a156cce5371a20ea167a",
+      "source": "51c9b52c710b2dbd0650f8aca85e32d0214bf023",
+      "target": "d6fbf6ce152c7c8bc362a156cce5371a20ea167a",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "d6fbf6ce152c7c8bc362a156cce5371a20ea167a",
+      "label": "d6fbf6c - Richard West - 20260303231148",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "d6fbf6ce152c7c8bc362a156cce5371a20ea167a",
+      "message": "fix: enforce mutual exclusion for fill-based highlighting options"
+    }
+  },
+  {
+    "data": {
+      "id": "d6fbf6ce152c7c8bc362a156cce5371a20ea167a_3a6bfa535d6090b13576904819b570ef6fcee894",
+      "source": "d6fbf6ce152c7c8bc362a156cce5371a20ea167a",
+      "target": "3a6bfa535d6090b13576904819b570ef6fcee894",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "3a6bfa535d6090b13576904819b570ef6fcee894",
+      "label": "3a6bfa5 - Richard West - 20260303231445",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "3a6bfa535d6090b13576904819b570ef6fcee894",
+      "message": "feat: add Git hygiene summary report"
+    }
+  },
+  {
+    "data": {
+      "id": "3a6bfa535d6090b13576904819b570ef6fcee894_0743a76658c41a55f1dcff88c3c8455c0e46f4e1",
+      "source": "3a6bfa535d6090b13576904819b570ef6fcee894",
+      "target": "0743a76658c41a55f1dcff88c3c8455c0e46f4e1",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "0743a76658c41a55f1dcff88c3c8455c0e46f4e1",
+      "label": "0743a76 - Richard West - 20260303235540",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "0743a76658c41a55f1dcff88c3c8455c0e46f4e1",
+      "message": "refactor: align unit tests 1:1 with source files"
+    }
+  },
+  {
+    "data": {
+      "id": "0743a76658c41a55f1dcff88c3c8455c0e46f4e1_d68d2cb5a2f041711d886bb59b2efdfa11e3dca4",
+      "source": "0743a76658c41a55f1dcff88c3c8455c0e46f4e1",
+      "target": "d68d2cb5a2f041711d886bb59b2efdfa11e3dca4",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "d68d2cb5a2f041711d886bb59b2efdfa11e3dca4",
+      "label": "d68d2cb - Richard West - 20260304000406",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "d68d2cb5a2f041711d886bb59b2efdfa11e3dca4",
+      "message": "docs: finalize documentation with typer-cli and USAGE.md"
+    }
+  },
+  {
+    "data": {
+      "id": "d68d2cb5a2f041711d886bb59b2efdfa11e3dca4_3b49a0d07591690159d6d01b8ba168e9b0682398",
+      "source": "d68d2cb5a2f041711d886bb59b2efdfa11e3dca4",
+      "target": "3b49a0d07591690159d6d01b8ba168e9b0682398",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "3b49a0d07591690159d6d01b8ba168e9b0682398",
+      "label": "3b49a0d - Richard West - 20260304001448",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "3b49a0d07591690159d6d01b8ba168e9b0682398",
+      "message": "refactor: rename package to git_graphable for consistency"
+    }
+  },
+  {
+    "data": {
+      "id": "3b49a0d07591690159d6d01b8ba168e9b0682398_8cfe7f4309fa97852a652e9b9816ca7cf68f9c72",
+      "source": "3b49a0d07591690159d6d01b8ba168e9b0682398",
+      "target": "8cfe7f4309fa97852a652e9b9816ca7cf68f9c72",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "8cfe7f4309fa97852a652e9b9816ca7cf68f9c72",
+      "label": "8cfe7f4 - Richard West - 20260304002046",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "8cfe7f4309fa97852a652e9b9816ca7cf68f9c72",
+      "message": "chore: remove unnecessary src/__init__.py and final cleanup"
+    }
+  },
+  {
+    "data": {
+      "id": "8cfe7f4309fa97852a652e9b9816ca7cf68f9c72_a658e7875ee267c14a1332552904fe93d5ae2279",
+      "source": "8cfe7f4309fa97852a652e9b9816ca7cf68f9c72",
+      "target": "a658e7875ee267c14a1332552904fe93d5ae2279",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "a658e7875ee267c14a1332552904fe93d5ae2279",
+      "label": "a658e78 - Richard West - 20260304002230",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "a658e7875ee267c14a1332552904fe93d5ae2279",
+      "message": "ci: add GitHub workflows for CI and PyPI publishing"
+    }
+  },
+  {
+    "data": {
+      "id": "a658e7875ee267c14a1332552904fe93d5ae2279_fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "source": "a658e7875ee267c14a1332552904fe93d5ae2279",
+      "target": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "label": "fbc62a9 - tags: v0.1.0 - Richard West - 20260304005424",
+      "tags": [
+        "author:Richard West",
+        "tag:v0.1.0",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "message": "chore: add project metadata and URLs to pyproject.toml"
+    }
+  },
+  {
+    "data": {
+      "id": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395_c239b76e8d441a573e53be3618917990ca1622f6",
+      "source": "fbc62a97cbcab12ec08580aaf1bfc053d7a4d395",
+      "target": "c239b76e8d441a573e53be3618917990ca1622f6",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "c239b76e8d441a573e53be3618917990ca1622f6",
+      "label": "c239b76 - Richard West - 20260304100744",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "c239b76e8d441a573e53be3618917990ca1622f6",
+      "message": "security: harden repository and workflows"
+    }
+  },
+  {
+    "data": {
+      "id": "c239b76e8d441a573e53be3618917990ca1622f6_8869c79582e8326050583144e812e37e4aa46ffd",
+      "source": "c239b76e8d441a573e53be3618917990ca1622f6",
+      "target": "8869c79582e8326050583144e812e37e4aa46ffd",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "8869c79582e8326050583144e812e37e4aa46ffd",
+      "label": "8869c79 - Richard West - 20260304100923",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "8869c79582e8326050583144e812e37e4aa46ffd",
+      "message": "fix: correct GitHub Action SHAs in workflows"
+    }
+  },
+  {
+    "data": {
+      "id": "8869c79582e8326050583144e812e37e4aa46ffd_5c893cad65d78322906298671a36fc8590acdb26",
+      "source": "8869c79582e8326050583144e812e37e4aa46ffd",
+      "target": "5c893cad65d78322906298671a36fc8590acdb26",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "5c893cad65d78322906298671a36fc8590acdb26",
+      "label": "5c893ca - Richard West - 20260304105202",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "5c893cad65d78322906298671a36fc8590acdb26",
+      "message": "ci: add dependabot configuration for weekly updates"
+    }
+  },
+  {
+    "data": {
+      "id": "5c893cad65d78322906298671a36fc8590acdb26_f2cdd3eae7f166a634dad7f2abd438e37f056efe",
+      "source": "5c893cad65d78322906298671a36fc8590acdb26",
+      "target": "f2cdd3eae7f166a634dad7f2abd438e37f056efe",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "5c893cad65d78322906298671a36fc8590acdb26_90b71a342bf7f5a5f17bf90166695fb822afafe0",
+      "source": "5c893cad65d78322906298671a36fc8590acdb26",
+      "target": "90b71a342bf7f5a5f17bf90166695fb822afafe0",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "90b71a342bf7f5a5f17bf90166695fb822afafe0",
+      "label": "90b71a3 [PR Merged] - dependabot[bot] - 20260304105247",
+      "tags": [
+        "author:dependabot[bot]",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#CD7F32"
+      ],
+      "author": "dependabot[bot]",
+      "hash": "90b71a342bf7f5a5f17bf90166695fb822afafe0",
+      "message": "chore(deps): bump the actions group with 3 updates"
+    }
+  },
+  {
+    "data": {
+      "id": "90b71a342bf7f5a5f17bf90166695fb822afafe0_f2cdd3eae7f166a634dad7f2abd438e37f056efe",
+      "source": "90b71a342bf7f5a5f17bf90166695fb822afafe0",
+      "target": "f2cdd3eae7f166a634dad7f2abd438e37f056efe",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "f2cdd3eae7f166a634dad7f2abd438e37f056efe",
+      "label": "f2cdd3e [PR Merged] [SQUASH] - TheTrueSCU - 20260304130352",
+      "tags": [
+        "author:TheTrueSCU",
+        "author_highlight:#C0C0C0",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit"
+      ],
+      "author": "TheTrueSCU",
+      "hash": "f2cdd3eae7f166a634dad7f2abd438e37f056efe",
+      "message": "Merge pull request #1 from TheTrueSCU/dependabot/github_actions/actions-c75aa303d0"
+    }
+  },
+  {
+    "data": {
+      "id": "f2cdd3eae7f166a634dad7f2abd438e37f056efe_4261a9930a204f979a0cc95ceaa4871306c753fa",
+      "source": "f2cdd3eae7f166a634dad7f2abd438e37f056efe",
+      "target": "4261a9930a204f979a0cc95ceaa4871306c753fa",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "f2cdd3eae7f166a634dad7f2abd438e37f056efe_fe4cbc395850b083547539b1c6cdd92facc213ff",
+      "source": "f2cdd3eae7f166a634dad7f2abd438e37f056efe",
+      "target": "fe4cbc395850b083547539b1c6cdd92facc213ff",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fe4cbc395850b083547539b1c6cdd92facc213ff",
+      "label": "fe4cbc3 [PR Merged] - Richard West - 20260304173411",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "fe4cbc395850b083547539b1c6cdd92facc213ff",
+      "message": "chore: add pull request task to Justfile and improve git variable robustness"
+    }
+  },
+  {
+    "data": {
+      "id": "fe4cbc395850b083547539b1c6cdd92facc213ff_5d872f2a42430f960fff07968699da8c06bba1a5",
+      "source": "fe4cbc395850b083547539b1c6cdd92facc213ff",
+      "target": "5d872f2a42430f960fff07968699da8c06bba1a5",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fe4cbc395850b083547539b1c6cdd92facc213ff_4261a9930a204f979a0cc95ceaa4871306c753fa",
+      "source": "fe4cbc395850b083547539b1c6cdd92facc213ff",
+      "target": "4261a9930a204f979a0cc95ceaa4871306c753fa",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "5d872f2a42430f960fff07968699da8c06bba1a5",
+      "label": "5d872f2 [PR Merged] - Richard West - 20260304175852",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "5d872f2a42430f960fff07968699da8c06bba1a5",
+      "message": "feat: add --highlight-pr-status and refactor highlighter"
+    }
+  },
+  {
+    "data": {
+      "id": "5d872f2a42430f960fff07968699da8c06bba1a5_1b110d22e1d96f4d9459ec711eafe51a3b4092fc",
+      "source": "5d872f2a42430f960fff07968699da8c06bba1a5",
+      "target": "1b110d22e1d96f4d9459ec711eafe51a3b4092fc",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "5d872f2a42430f960fff07968699da8c06bba1a5_ac4ac5c5ddc812291031ebeb37f7d356acc8b5c0",
+      "source": "5d872f2a42430f960fff07968699da8c06bba1a5",
+      "target": "ac4ac5c5ddc812291031ebeb37f7d356acc8b5c0",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "4261a9930a204f979a0cc95ceaa4871306c753fa",
+      "label": "4261a99 [PR Merged] [SQUASH] - Richard West - 20260304173628",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "4261a9930a204f979a0cc95ceaa4871306c753fa",
+      "message": "Merge pull request #2 from TheTrueSCU/chore/update-justfile-pr-task"
+    }
+  },
+  {
+    "data": {
+      "id": "4261a9930a204f979a0cc95ceaa4871306c753fa_ac4ac5c5ddc812291031ebeb37f7d356acc8b5c0",
+      "source": "4261a9930a204f979a0cc95ceaa4871306c753fa",
+      "target": "ac4ac5c5ddc812291031ebeb37f7d356acc8b5c0",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "1b110d22e1d96f4d9459ec711eafe51a3b4092fc",
+      "label": "1b110d2 [PR Merged] - Richard West - 20260304183920",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "1b110d22e1d96f4d9459ec711eafe51a3b4092fc",
+      "message": "feat: add TOML configuration and branch role-based highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "1b110d22e1d96f4d9459ec711eafe51a3b4092fc_9bd53776bf34d100942f52f519f42992dbcd2e14",
+      "source": "1b110d22e1d96f4d9459ec711eafe51a3b4092fc",
+      "target": "9bd53776bf34d100942f52f519f42992dbcd2e14",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "1b110d22e1d96f4d9459ec711eafe51a3b4092fc_6b8787db4bfb32a391032c830116731769d4e773",
+      "source": "1b110d22e1d96f4d9459ec711eafe51a3b4092fc",
+      "target": "6b8787db4bfb32a391032c830116731769d4e773",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "ac4ac5c5ddc812291031ebeb37f7d356acc8b5c0",
+      "label": "ac4ac5c [PR Merged] [SQUASH] - Richard West - 20260304180912",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "ac4ac5c5ddc812291031ebeb37f7d356acc8b5c0",
+      "message": "Merge pull request #3 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "ac4ac5c5ddc812291031ebeb37f7d356acc8b5c0_6b8787db4bfb32a391032c830116731769d4e773",
+      "source": "ac4ac5c5ddc812291031ebeb37f7d356acc8b5c0",
+      "target": "6b8787db4bfb32a391032c830116731769d4e773",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "9bd53776bf34d100942f52f519f42992dbcd2e14",
+      "label": "9bd5377 [PR Merged] [WIP] - Richard West - 20260304204211",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700",
+        "wip"
+      ],
+      "author": "Richard West",
+      "hash": "9bd53776bf34d100942f52f519f42992dbcd2e14",
+      "message": "feat: add hygiene checks for WIP detection and direct pushes"
+    }
+  },
+  {
+    "data": {
+      "id": "9bd53776bf34d100942f52f519f42992dbcd2e14_fe00936d2cc8b15262c5b332d98551f9de637c76",
+      "source": "9bd53776bf34d100942f52f519f42992dbcd2e14",
+      "target": "fe00936d2cc8b15262c5b332d98551f9de637c76",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "9bd53776bf34d100942f52f519f42992dbcd2e14_a5d887409020a7c4e5883f1a843364dd4e3bf48a",
+      "source": "9bd53776bf34d100942f52f519f42992dbcd2e14",
+      "target": "a5d887409020a7c4e5883f1a843364dd4e3bf48a",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "6b8787db4bfb32a391032c830116731769d4e773",
+      "label": "6b8787d [PR Merged] [SQUASH] - Richard West - 20260304193235",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "6b8787db4bfb32a391032c830116731769d4e773",
+      "message": "Merge pull request #4 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "6b8787db4bfb32a391032c830116731769d4e773_a5d887409020a7c4e5883f1a843364dd4e3bf48a",
+      "source": "6b8787db4bfb32a391032c830116731769d4e773",
+      "target": "a5d887409020a7c4e5883f1a843364dd4e3bf48a",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fe00936d2cc8b15262c5b332d98551f9de637c76",
+      "label": "fe00936 [PR Merged] - Richard West - 20260304212307",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "fe00936d2cc8b15262c5b332d98551f9de637c76",
+      "message": "feat: implement squash-and-merge detection and logical merge links"
+    }
+  },
+  {
+    "data": {
+      "id": "fe00936d2cc8b15262c5b332d98551f9de637c76_615647bb496eabddd8182d873e1d86d0d06cadb7",
+      "source": "fe00936d2cc8b15262c5b332d98551f9de637c76",
+      "target": "615647bb496eabddd8182d873e1d86d0d06cadb7",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fe00936d2cc8b15262c5b332d98551f9de637c76_b4003eb963a0e84afb75e340f3360256020e6a5e",
+      "source": "fe00936d2cc8b15262c5b332d98551f9de637c76",
+      "target": "b4003eb963a0e84afb75e340f3360256020e6a5e",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "a5d887409020a7c4e5883f1a843364dd4e3bf48a",
+      "label": "a5d8874 [PR Merged] [SQUASH] - Richard West - 20260304211357",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "a5d887409020a7c4e5883f1a843364dd4e3bf48a",
+      "message": "Merge pull request #5 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "a5d887409020a7c4e5883f1a843364dd4e3bf48a_b4003eb963a0e84afb75e340f3360256020e6a5e",
+      "source": "a5d887409020a7c4e5883f1a843364dd4e3bf48a",
+      "target": "b4003eb963a0e84afb75e340f3360256020e6a5e",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "615647bb496eabddd8182d873e1d86d0d06cadb7",
+      "label": "615647b - Richard West - 20260304213410",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "615647bb496eabddd8182d873e1d86d0d06cadb7",
+      "message": "feat: implement hygiene scorer and visual health report"
+    }
+  },
+  {
+    "data": {
+      "id": "615647bb496eabddd8182d873e1d86d0d06cadb7_2060ec62af063d9a5bae3e7c405059430e57d829",
+      "source": "615647bb496eabddd8182d873e1d86d0d06cadb7",
+      "target": "2060ec62af063d9a5bae3e7c405059430e57d829",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "b4003eb963a0e84afb75e340f3360256020e6a5e",
+      "label": "b4003eb [PR Merged] [SQUASH] - Richard West - 20260304212438",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "b4003eb963a0e84afb75e340f3360256020e6a5e",
+      "message": "Merge pull request #6 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "b4003eb963a0e84afb75e340f3360256020e6a5e_defd8665daeb1b6ed9f10902cda048d687ac4b3c",
+      "source": "b4003eb963a0e84afb75e340f3360256020e6a5e",
+      "target": "defd8665daeb1b6ed9f10902cda048d687ac4b3c",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "2060ec62af063d9a5bae3e7c405059430e57d829",
+      "label": "2060ec6 [PR Merged] - Richard West - 20260304220912",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "2060ec62af063d9a5bae3e7c405059430e57d829",
+      "message": "chore: purge temporary test file and add example infrastructure"
+    }
+  },
+  {
+    "data": {
+      "id": "2060ec62af063d9a5bae3e7c405059430e57d829_fdee7de04cb9194c322ed81fa3ff2d3f4ebdea89",
+      "source": "2060ec62af063d9a5bae3e7c405059430e57d829",
+      "target": "fdee7de04cb9194c322ed81fa3ff2d3f4ebdea89",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "2060ec62af063d9a5bae3e7c405059430e57d829_defd8665daeb1b6ed9f10902cda048d687ac4b3c",
+      "source": "2060ec62af063d9a5bae3e7c405059430e57d829",
+      "target": "defd8665daeb1b6ed9f10902cda048d687ac4b3c",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fdee7de04cb9194c322ed81fa3ff2d3f4ebdea89",
+      "label": "fdee7de - Richard West - 20260304223130",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "fdee7de04cb9194c322ed81fa3ff2d3f4ebdea89",
+      "message": "feat: improve visual examples with multi-author demo and Mermaid fixes"
+    }
+  },
+  {
+    "data": {
+      "id": "fdee7de04cb9194c322ed81fa3ff2d3f4ebdea89_8173d0c33b4b3e673a523b3a6e107c77bf871992",
+      "source": "fdee7de04cb9194c322ed81fa3ff2d3f4ebdea89",
+      "target": "8173d0c33b4b3e673a523b3a6e107c77bf871992",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fdee7de04cb9194c322ed81fa3ff2d3f4ebdea89_af5aec93c9bb09f4c3d6e0154a8a014d5a066e7d",
+      "source": "fdee7de04cb9194c322ed81fa3ff2d3f4ebdea89",
+      "target": "af5aec93c9bb09f4c3d6e0154a8a014d5a066e7d",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "defd8665daeb1b6ed9f10902cda048d687ac4b3c",
+      "label": "defd866 [PR Merged] [SQUASH] - Richard West - 20260304221042",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "defd8665daeb1b6ed9f10902cda048d687ac4b3c",
+      "message": "Merge pull request #7 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "defd8665daeb1b6ed9f10902cda048d687ac4b3c_ca3ee289b60c0cc74bada6d2a10835e017d7c21a",
+      "source": "defd8665daeb1b6ed9f10902cda048d687ac4b3c",
+      "target": "ca3ee289b60c0cc74bada6d2a10835e017d7c21a",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "defd8665daeb1b6ed9f10902cda048d687ac4b3c_af5aec93c9bb09f4c3d6e0154a8a014d5a066e7d",
+      "source": "defd8665daeb1b6ed9f10902cda048d687ac4b3c",
+      "target": "af5aec93c9bb09f4c3d6e0154a8a014d5a066e7d",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "8173d0c33b4b3e673a523b3a6e107c77bf871992",
+      "label": "8173d0c - Richard West - 20260304224616",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "8173d0c33b4b3e673a523b3a6e107c77bf871992",
+      "message": "feat: fix visual contrast, mermaid parsing, and docs formatting"
+    }
+  },
+  {
+    "data": {
+      "id": "8173d0c33b4b3e673a523b3a6e107c77bf871992_519dbb3b8fa860ac3c03f53d8da952620b95848d",
+      "source": "8173d0c33b4b3e673a523b3a6e107c77bf871992",
+      "target": "519dbb3b8fa860ac3c03f53d8da952620b95848d",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "8173d0c33b4b3e673a523b3a6e107c77bf871992_4c9088543b2e4df5cfabab8a2f951dbe0bdb5a70",
+      "source": "8173d0c33b4b3e673a523b3a6e107c77bf871992",
+      "target": "4c9088543b2e4df5cfabab8a2f951dbe0bdb5a70",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "af5aec93c9bb09f4c3d6e0154a8a014d5a066e7d",
+      "label": "af5aec9 [PR Merged] - Richard West - 20260304223232",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "af5aec93c9bb09f4c3d6e0154a8a014d5a066e7d",
+      "message": "Merge branch 'main' into feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "af5aec93c9bb09f4c3d6e0154a8a014d5a066e7d_ca3ee289b60c0cc74bada6d2a10835e017d7c21a",
+      "source": "af5aec93c9bb09f4c3d6e0154a8a014d5a066e7d",
+      "target": "ca3ee289b60c0cc74bada6d2a10835e017d7c21a",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "519dbb3b8fa860ac3c03f53d8da952620b95848d",
+      "label": "519dbb3 - Richard West - 20260304225737",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "519dbb3b8fa860ac3c03f53d8da952620b95848d",
+      "message": "feat: final documentation and contrast fixes"
+    }
+  },
+  {
+    "data": {
+      "id": "519dbb3b8fa860ac3c03f53d8da952620b95848d_007851b824bac2129abba482bc66c47aa585d8b0",
+      "source": "519dbb3b8fa860ac3c03f53d8da952620b95848d",
+      "target": "007851b824bac2129abba482bc66c47aa585d8b0",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "ca3ee289b60c0cc74bada6d2a10835e017d7c21a",
+      "label": "ca3ee28 [PR Merged] [SQUASH] - Richard West - 20260304223342",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "ca3ee289b60c0cc74bada6d2a10835e017d7c21a",
+      "message": "Merge pull request #8 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "ca3ee289b60c0cc74bada6d2a10835e017d7c21a_7f90b4cf07ee4763aadb0ba1bb56f4bbb0dfcf0e",
+      "source": "ca3ee289b60c0cc74bada6d2a10835e017d7c21a",
+      "target": "7f90b4cf07ee4763aadb0ba1bb56f4bbb0dfcf0e",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "ca3ee289b60c0cc74bada6d2a10835e017d7c21a_4c9088543b2e4df5cfabab8a2f951dbe0bdb5a70",
+      "source": "ca3ee289b60c0cc74bada6d2a10835e017d7c21a",
+      "target": "4c9088543b2e4df5cfabab8a2f951dbe0bdb5a70",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "007851b824bac2129abba482bc66c47aa585d8b0",
+      "label": "007851b - Richard West - 20260304225920",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "007851b824bac2129abba482bc66c47aa585d8b0",
+      "message": "feat: refine divergence logic and finalize visual documentation"
+    }
+  },
+  {
+    "data": {
+      "id": "007851b824bac2129abba482bc66c47aa585d8b0_b9e399feace8a07ef7d95f5574b6a1e8f02a3703",
+      "source": "007851b824bac2129abba482bc66c47aa585d8b0",
+      "target": "b9e399feace8a07ef7d95f5574b6a1e8f02a3703",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "4c9088543b2e4df5cfabab8a2f951dbe0bdb5a70",
+      "label": "4c90885 [PR Merged] - Richard West - 20260304224751",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "4c9088543b2e4df5cfabab8a2f951dbe0bdb5a70",
+      "message": "Merge branch 'main' into feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "4c9088543b2e4df5cfabab8a2f951dbe0bdb5a70_7f90b4cf07ee4763aadb0ba1bb56f4bbb0dfcf0e",
+      "source": "4c9088543b2e4df5cfabab8a2f951dbe0bdb5a70",
+      "target": "7f90b4cf07ee4763aadb0ba1bb56f4bbb0dfcf0e",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "b9e399feace8a07ef7d95f5574b6a1e8f02a3703",
+      "label": "b9e399f [PR Merged] - Richard West - 20260304230712",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "b9e399feace8a07ef7d95f5574b6a1e8f02a3703",
+      "message": "chore: apply formatting fixes from project check"
+    }
+  },
+  {
+    "data": {
+      "id": "b9e399feace8a07ef7d95f5574b6a1e8f02a3703_9cd3caee35eb46674ace543eea33938ef864fa28",
+      "source": "b9e399feace8a07ef7d95f5574b6a1e8f02a3703",
+      "target": "9cd3caee35eb46674ace543eea33938ef864fa28",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "b9e399feace8a07ef7d95f5574b6a1e8f02a3703_c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "source": "b9e399feace8a07ef7d95f5574b6a1e8f02a3703",
+      "target": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "7f90b4cf07ee4763aadb0ba1bb56f4bbb0dfcf0e",
+      "label": "7f90b4c [PR Merged] [SQUASH] - Richard West - 20260304224853",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "7f90b4cf07ee4763aadb0ba1bb56f4bbb0dfcf0e",
+      "message": "Merge pull request #9 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "7f90b4cf07ee4763aadb0ba1bb56f4bbb0dfcf0e_c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "source": "7f90b4cf07ee4763aadb0ba1bb56f4bbb0dfcf0e",
+      "target": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "9cd3caee35eb46674ace543eea33938ef864fa28",
+      "label": "9cd3cae - Richard West - 20260305093222",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "9cd3caee35eb46674ace543eea33938ef864fa28",
+      "message": "feat: add back-merge detection and scoring"
+    }
+  },
+  {
+    "data": {
+      "id": "9cd3caee35eb46674ace543eea33938ef864fa28_bc8993fbdc1d6e9a3a1c5ac693c5fb2f3aed75d9",
+      "source": "9cd3caee35eb46674ace543eea33938ef864fa28",
+      "target": "bc8993fbdc1d6e9a3a1c5ac693c5fb2f3aed75d9",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "label": "c0d7586 [PR Merged] [SQUASH] - Richard West - 20260304230909",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "message": "Merge pull request #10 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548_fa4cffa3268e996407bb42611dc49cec375d3001",
+      "source": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "target": "fa4cffa3268e996407bb42611dc49cec375d3001",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548_a3a399c1c9ac55257810ea6ab35145fdb83c1df5",
+      "source": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "target": "a3a399c1c9ac55257810ea6ab35145fdb83c1df5",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548_288e496cc0a4af91baf3598fc82e6d4a5c937d1b",
+      "source": "c0d7586bf9e7a75d38e5ff6ccd6eeebd7bddb548",
+      "target": "288e496cc0a4af91baf3598fc82e6d4a5c937d1b",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "bc8993fbdc1d6e9a3a1c5ac693c5fb2f3aed75d9",
+      "label": "bc8993f - Richard West - 20260305094419",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "bc8993fbdc1d6e9a3a1c5ac693c5fb2f3aed75d9",
+      "message": "feat: add contributor silo detection and scoring"
+    }
+  },
+  {
+    "data": {
+      "id": "bc8993fbdc1d6e9a3a1c5ac693c5fb2f3aed75d9_2d36a875656545a101331d0a36706ab72c7b456e",
+      "source": "bc8993fbdc1d6e9a3a1c5ac693c5fb2f3aed75d9",
+      "target": "2d36a875656545a101331d0a36706ab72c7b456e",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "288e496cc0a4af91baf3598fc82e6d4a5c937d1b",
+      "label": "288e496 - Richard West - 20260305101340",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "288e496cc0a4af91baf3598fc82e6d4a5c937d1b",
+      "message": "refactor: move core command logic to common commands module"
+    }
+  },
+  {
+    "data": {
+      "id": "288e496cc0a4af91baf3598fc82e6d4a5c937d1b_9ada6e548d602f84799eccb1862d66eb50044966",
+      "source": "288e496cc0a4af91baf3598fc82e6d4a5c937d1b",
+      "target": "9ada6e548d602f84799eccb1862d66eb50044966",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "2d36a875656545a101331d0a36706ab72c7b456e",
+      "label": "2d36a87 - Richard West - 20260305095646",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "2d36a875656545a101331d0a36706ab72c7b456e",
+      "message": "feat: integrate hygiene check into just check and cleanup CI"
+    }
+  },
+  {
+    "data": {
+      "id": "2d36a875656545a101331d0a36706ab72c7b456e_9ada6e548d602f84799eccb1862d66eb50044966",
+      "source": "2d36a875656545a101331d0a36706ab72c7b456e",
+      "target": "9ada6e548d602f84799eccb1862d66eb50044966",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "2d36a875656545a101331d0a36706ab72c7b456e_a3a399c1c9ac55257810ea6ab35145fdb83c1df5",
+      "source": "2d36a875656545a101331d0a36706ab72c7b456e",
+      "target": "a3a399c1c9ac55257810ea6ab35145fdb83c1df5",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "a3a399c1c9ac55257810ea6ab35145fdb83c1df5",
+      "label": "a3a399c [PR Merged] - Richard West - 20260305100508",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "a3a399c1c9ac55257810ea6ab35145fdb83c1df5",
+      "message": "Merge branch 'main' into feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "a3a399c1c9ac55257810ea6ab35145fdb83c1df5_fa4cffa3268e996407bb42611dc49cec375d3001",
+      "source": "a3a399c1c9ac55257810ea6ab35145fdb83c1df5",
+      "target": "fa4cffa3268e996407bb42611dc49cec375d3001",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "9ada6e548d602f84799eccb1862d66eb50044966",
+      "label": "9ada6e5 - Richard West - 20260305103627",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "9ada6e548d602f84799eccb1862d66eb50044966",
+      "message": "Merge branch 'feature/pr-status-highlighting' into refactor/command-logic and resolve conflicts"
+    }
+  },
+  {
+    "data": {
+      "id": "9ada6e548d602f84799eccb1862d66eb50044966_cd11772ec972b27ab5e57fd9e671ddeede201e29",
+      "source": "9ada6e548d602f84799eccb1862d66eb50044966",
+      "target": "cd11772ec972b27ab5e57fd9e671ddeede201e29",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fa4cffa3268e996407bb42611dc49cec375d3001",
+      "label": "fa4cffa [PR Merged] [SQUASH] - Richard West - 20260305103157",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "fa4cffa3268e996407bb42611dc49cec375d3001",
+      "message": "Merge pull request #11 from TheTrueSCU/feature/pr-status-highlighting"
+    }
+  },
+  {
+    "data": {
+      "id": "fa4cffa3268e996407bb42611dc49cec375d3001_d96ae4029d3b1e2a397f88a78feb21a63e2c11cf",
+      "source": "fa4cffa3268e996407bb42611dc49cec375d3001",
+      "target": "d96ae4029d3b1e2a397f88a78feb21a63e2c11cf",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "fa4cffa3268e996407bb42611dc49cec375d3001_cd11772ec972b27ab5e57fd9e671ddeede201e29",
+      "source": "fa4cffa3268e996407bb42611dc49cec375d3001",
+      "target": "cd11772ec972b27ab5e57fd9e671ddeede201e29",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "cd11772ec972b27ab5e57fd9e671ddeede201e29",
+      "label": "cd11772 [PR Merged] - Richard West - 20260305103850",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "cd11772ec972b27ab5e57fd9e671ddeede201e29",
+      "message": "Merge branch 'main' into refactor/command-logic"
+    }
+  },
+  {
+    "data": {
+      "id": "cd11772ec972b27ab5e57fd9e671ddeede201e29_d96ae4029d3b1e2a397f88a78feb21a63e2c11cf",
+      "source": "cd11772ec972b27ab5e57fd9e671ddeede201e29",
+      "target": "d96ae4029d3b1e2a397f88a78feb21a63e2c11cf",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "d96ae4029d3b1e2a397f88a78feb21a63e2c11cf",
+      "label": "d96ae40 [PR Merged] [SQUASH] - Richard West - 20260305104442",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "d96ae4029d3b1e2a397f88a78feb21a63e2c11cf",
+      "message": "Merge pull request #12 from TheTrueSCU/refactor/command-logic"
+    }
+  },
+  {
+    "data": {
+      "id": "d96ae4029d3b1e2a397f88a78feb21a63e2c11cf_e080443bfe481458c1cadac3457a16b995a93834",
+      "source": "d96ae4029d3b1e2a397f88a78feb21a63e2c11cf",
+      "target": "e080443bfe481458c1cadac3457a16b995a93834",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "d96ae4029d3b1e2a397f88a78feb21a63e2c11cf_0726b317d0e3e35bca012bdb4bf771f73e0b9448",
+      "source": "d96ae4029d3b1e2a397f88a78feb21a63e2c11cf",
+      "target": "0726b317d0e3e35bca012bdb4bf771f73e0b9448",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "0726b317d0e3e35bca012bdb4bf771f73e0b9448",
+      "label": "0726b31 [PR Merged] - Richard West - 20260305112204",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "0726b317d0e3e35bca012bdb4bf771f73e0b9448",
+      "message": "chore: prepare v0.2.0 release"
+    }
+  },
+  {
+    "data": {
+      "id": "0726b317d0e3e35bca012bdb4bf771f73e0b9448_e080443bfe481458c1cadac3457a16b995a93834",
+      "source": "0726b317d0e3e35bca012bdb4bf771f73e0b9448",
+      "target": "e080443bfe481458c1cadac3457a16b995a93834",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "e080443bfe481458c1cadac3457a16b995a93834",
+      "label": "e080443 [PR Merged] [SQUASH] - tags: v0.2.0 - Richard West - 20260305112346",
+      "tags": [
+        "author:Richard West",
+        "tag:v0.2.0",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "e080443bfe481458c1cadac3457a16b995a93834",
+      "message": "Merge pull request #13 from TheTrueSCU/release/prepare-v0.2.0"
+    }
+  },
+  {
+    "data": {
+      "id": "e080443bfe481458c1cadac3457a16b995a93834_f21dfb761a4fa2ab9fb951b8eaba1c0681b34228",
+      "source": "e080443bfe481458c1cadac3457a16b995a93834",
+      "target": "f21dfb761a4fa2ab9fb951b8eaba1c0681b34228",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "e080443bfe481458c1cadac3457a16b995a93834_5d2bda47310357fe492d75bcc3d25eeb163cdf56",
+      "source": "e080443bfe481458c1cadac3457a16b995a93834",
+      "target": "5d2bda47310357fe492d75bcc3d25eeb163cdf56",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "5d2bda47310357fe492d75bcc3d25eeb163cdf56",
+      "label": "5d2bda4 - Richard West - 20260305131150",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "5d2bda47310357fe492d75bcc3d25eeb163cdf56",
+      "message": "feat: implement issue tracker integration and release validation"
+    }
+  },
+  {
+    "data": {
+      "id": "5d2bda47310357fe492d75bcc3d25eeb163cdf56_b126e3a071f695b5cf1c42862f63bfb1a5b5437d",
+      "source": "5d2bda47310357fe492d75bcc3d25eeb163cdf56",
+      "target": "b126e3a071f695b5cf1c42862f63bfb1a5b5437d",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "b126e3a071f695b5cf1c42862f63bfb1a5b5437d",
+      "label": "b126e3a - Richard West - 20260305131653",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "b126e3a071f695b5cf1c42862f63bfb1a5b5437d",
+      "message": "chore: lower hygiene threshold to 75% for early development"
+    }
+  },
+  {
+    "data": {
+      "id": "b126e3a071f695b5cf1c42862f63bfb1a5b5437d_84179c6a6c6a2c6661af73c700bc88d98bfa761c",
+      "source": "b126e3a071f695b5cf1c42862f63bfb1a5b5437d",
+      "target": "84179c6a6c6a2c6661af73c700bc88d98bfa761c",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "84179c6a6c6a2c6661af73c700bc88d98bfa761c",
+      "label": "84179c6 - Richard West - 20260305135305",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "84179c6a6c6a2c6661af73c700bc88d98bfa761c",
+      "message": "feat: implement collaboration gap detection and expand visual gallery"
+    }
+  },
+  {
+    "data": {
+      "id": "84179c6a6c6a2c6661af73c700bc88d98bfa761c_3cb4605053fcd84bad4536b303631b649d400783",
+      "source": "84179c6a6c6a2c6661af73c700bc88d98bfa761c",
+      "target": "3cb4605053fcd84bad4536b303631b649d400783",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "3cb4605053fcd84bad4536b303631b649d400783",
+      "label": "3cb4605 [PR Merged] - Richard West - 20260305140634",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "3cb4605053fcd84bad4536b303631b649d400783",
+      "message": "feat: add longevity mismatch detection and scoring"
+    }
+  },
+  {
+    "data": {
+      "id": "3cb4605053fcd84bad4536b303631b649d400783_c54c9f00ecf3bbae1ea0bac5661b08f02e1351a2",
+      "source": "3cb4605053fcd84bad4536b303631b649d400783",
+      "target": "c54c9f00ecf3bbae1ea0bac5661b08f02e1351a2",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "3cb4605053fcd84bad4536b303631b649d400783_f21dfb761a4fa2ab9fb951b8eaba1c0681b34228",
+      "source": "3cb4605053fcd84bad4536b303631b649d400783",
+      "target": "f21dfb761a4fa2ab9fb951b8eaba1c0681b34228",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "c54c9f00ecf3bbae1ea0bac5661b08f02e1351a2",
+      "label": "c54c9f0 - Richard West - 20260305142001",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "c54c9f00ecf3bbae1ea0bac5661b08f02e1351a2",
+      "message": "feat: implement configurable hygiene penalties and caps"
+    }
+  },
+  {
+    "data": {
+      "id": "c54c9f00ecf3bbae1ea0bac5661b08f02e1351a2_b879dd172caec16c668cbcce33b6bf61a05760da",
+      "source": "c54c9f00ecf3bbae1ea0bac5661b08f02e1351a2",
+      "target": "b879dd172caec16c668cbcce33b6bf61a05760da",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "f21dfb761a4fa2ab9fb951b8eaba1c0681b34228",
+      "label": "f21dfb7 [PR Merged] [SQUASH] - Richard West - 20260305140823",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "f21dfb761a4fa2ab9fb951b8eaba1c0681b34228",
+      "message": "Merge pull request #14 from TheTrueSCU/feature/issue-tracker-integration"
+    }
+  },
+  {
+    "data": {
+      "id": "f21dfb761a4fa2ab9fb951b8eaba1c0681b34228_9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e",
+      "source": "f21dfb761a4fa2ab9fb951b8eaba1c0681b34228",
+      "target": "9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "b879dd172caec16c668cbcce33b6bf61a05760da",
+      "label": "b879dd1 [PR Merged] - Richard West - 20260305142250",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "b879dd172caec16c668cbcce33b6bf61a05760da",
+      "message": "docs: update README and USAGE with new hygiene and tracker features"
+    }
+  },
+  {
+    "data": {
+      "id": "b879dd172caec16c668cbcce33b6bf61a05760da_d67925f36ca347ef569f717bd3e18e25be126cd6",
+      "source": "b879dd172caec16c668cbcce33b6bf61a05760da",
+      "target": "d67925f36ca347ef569f717bd3e18e25be126cd6",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "b879dd172caec16c668cbcce33b6bf61a05760da_9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e",
+      "source": "b879dd172caec16c668cbcce33b6bf61a05760da",
+      "target": "9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "d67925f36ca347ef569f717bd3e18e25be126cd6",
+      "label": "d67925f - Richard West - 20260305145330",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "d67925f36ca347ef569f717bd3e18e25be126cd6",
+      "message": "feat: configurable visual styling and hygiene documentation"
+    }
+  },
+  {
+    "data": {
+      "id": "d67925f36ca347ef569f717bd3e18e25be126cd6_dbdb295dc06eced6e4d8613b701e7c75445b4554",
+      "source": "d67925f36ca347ef569f717bd3e18e25be126cd6",
+      "target": "dbdb295dc06eced6e4d8613b701e7c75445b4554",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e",
+      "label": "9f23811 [PR Merged] [SQUASH] - Richard West - 20260305142416",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e",
+      "message": "Merge pull request #15 from TheTrueSCU/feature/configurable-hygiene"
+    }
+  },
+  {
+    "data": {
+      "id": "9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e_dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "source": "9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e",
+      "target": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e_dbdb295dc06eced6e4d8613b701e7c75445b4554",
+      "source": "9f23811dc11c3094d5ba5c49a29299f5f4cc6f1e",
+      "target": "dbdb295dc06eced6e4d8613b701e7c75445b4554",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "dbdb295dc06eced6e4d8613b701e7c75445b4554",
+      "label": "dbdb295 [PR Merged] - Richard West - 20260305145417",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "dbdb295dc06eced6e4d8613b701e7c75445b4554",
+      "message": "Merge branch 'main' into feature/configurable-hygiene"
+    }
+  },
+  {
+    "data": {
+      "id": "dbdb295dc06eced6e4d8613b701e7c75445b4554_dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "source": "dbdb295dc06eced6e4d8613b701e7c75445b4554",
+      "target": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "label": "dfa38cd [PR Merged] [SQUASH] - Richard West - 20260305150536",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "git_commit",
+        "pr:merged",
+        "squash_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "message": "Merge pull request #16 from TheTrueSCU/feature/configurable-hygiene"
+    }
+  },
+  {
+    "data": {
+      "id": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75_90f1628608c1baf09301ddea2ac0df5152e3b239",
+      "source": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "target": "90f1628608c1baf09301ddea2ac0df5152e3b239",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75_c3cfa510a5c1223f79d4970b2dc19d31534d5177",
+      "source": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "target": "c3cfa510a5c1223f79d4970b2dc19d31534d5177",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75_6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "source": "dfa38cd5e8630e940f087f4f1e12748d10a3ac75",
+      "target": "6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "90f1628608c1baf09301ddea2ac0df5152e3b239",
+      "label": "90f1628 - Richard West - 20260305173815",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "90f1628608c1baf09301ddea2ac0df5152e3b239",
+      "message": "feat: interactive HTML graph with live highlight toggling"
+    }
+  },
+  {
+    "data": {
+      "id": "90f1628608c1baf09301ddea2ac0df5152e3b239_b4f6f34ef0203669d8acd35730682c8edd0042cc",
+      "source": "90f1628608c1baf09301ddea2ac0df5152e3b239",
+      "target": "b4f6f34ef0203669d8acd35730682c8edd0042cc",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "c3cfa510a5c1223f79d4970b2dc19d31534d5177",
+      "label": "c3cfa51 [PR Merged] - Richard West - 20260305150822",
+      "tags": [
+        "author:Richard West",
+        "pr_status",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "c3cfa510a5c1223f79d4970b2dc19d31534d5177",
+      "message": "chore: release v0.3.0"
+    }
+  },
+  {
+    "data": {
+      "id": "c3cfa510a5c1223f79d4970b2dc19d31534d5177_6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "source": "c3cfa510a5c1223f79d4970b2dc19d31534d5177",
+      "target": "6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "b4f6f34ef0203669d8acd35730682c8edd0042cc",
+      "label": "b4f6f34 - Richard West - 20260305175052",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "b4f6f34ef0203669d8acd35730682c8edd0042cc",
+      "message": "test: add automated tests for interactive HTML and improve highlighter robustness"
+    }
+  },
+  {
+    "data": {
+      "id": "b4f6f34ef0203669d8acd35730682c8edd0042cc_c3c8840d1f983069a6bddaa64a8988835cc920b5",
+      "source": "b4f6f34ef0203669d8acd35730682c8edd0042cc",
+      "target": "c3c8840d1f983069a6bddaa64a8988835cc920b5",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "label": "6206abc [SQUASH] [PR Merged] - main - tags: v0.3.0 - Richard West - 20260305152052",
+      "tags": [
+        "critical",
+        "branch:main",
+        "stale_color:#fffefe",
+        "pr_status",
+        "squash_commit",
+        "author:Richard West",
+        "tag:v0.3.0",
+        "pr:merged",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "6206abcfefcbae7de632f483d42ca8f04b686ca2",
+      "message": "Merge pull request #17 from TheTrueSCU/release/v0.3.0"
+    }
+  },
+  {
+    "data": {
+      "id": "c3c8840d1f983069a6bddaa64a8988835cc920b5",
+      "label": "c3c8840 - Richard West - 20260305184527",
+      "tags": [
+        "author:Richard West",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "c3c8840d1f983069a6bddaa64a8988835cc920b5",
+      "message": "test: implement reliable browser-based UI testing with Playwright"
+    }
+  },
+  {
+    "data": {
+      "id": "c3c8840d1f983069a6bddaa64a8988835cc920b5_47b5d3748dcf1a9534002c3f5ef657b2cfd14d24",
+      "source": "c3c8840d1f983069a6bddaa64a8988835cc920b5",
+      "target": "47b5d3748dcf1a9534002c3f5ef657b2cfd14d24",
+      "tags": []
+    }
+  },
+  {
+    "data": {
+      "id": "47b5d3748dcf1a9534002c3f5ef657b2cfd14d24",
+      "label": "47b5d37 (CONFLICT) [PR Open] - feature/interactive-html-graph - Richard West - 20260305185216",
+      "tags": [
+        "pr:conflict",
+        "stale_color:#fffefe",
+        "pr_status",
+        "branch:feature/interactive-html-graph",
+        "pr:open",
+        "author:Richard West",
+        "behind",
+        "git_commit",
+        "author_highlight:#FFD700"
+      ],
+      "author": "Richard West",
+      "hash": "47b5d3748dcf1a9534002c3f5ef657b2cfd14d24",
+      "message": "test: exhaustively verify all example repos and improve hygiene styling"
+    }
+  }
+],
+            style: [
+  {
+    "selector": "node",
+    "style": {
+      "background-color": "#007bff",
+      "label": "data(label)",
+      "color": "#333",
+      "text-valign": "center",
+      "text-halign": "center",
+      "width": "60px",
+      "height": "60px",
+      "font-size": "12px",
+      "text-wrap": "wrap",
+      "text-max-width": "150px"
+    }
+  },
+  {
+    "selector": "node:selected",
+    "style": {
+      "border-width": "4px",
+      "border-color": "#ff0",
+      "background-color": "#0056b3"
+    }
+  },
+  {
+    "selector": "edge",
+    "style": {
+      "width": 2,
+      "line-color": "#ccc",
+      "target-arrow-color": "#ccc",
+      "target-arrow-shape": "triangle",
+      "curve-style": "bezier"
+    }
+  }
+],
+            layout: {
+  "name": "dagre",
+  "rankDir": "BT",
+  "nodeSep": 50,
+  "edgeSep": 10,
+  "rankSep": 100,
+  "nodeDimensionsIncludeLabels": true,
+  "animate": false
+}
+        });
+
+        // Sidebar logic
+        function openSidebar(node) {
+            var data = node.data();
+            var content = '<h3>' + data.label + '</h3>';
+            
+            content += '<div class="metadata-item"><span class="metadata-label">ID</span>' + data.id + '</div>';
+            
+            if (data.tags && data.tags.length > 0) {
+                content += '<div class="metadata-item"><span class="metadata-label">Tags</span>';
+                data.tags.forEach(function(tag) {
+                    content += '<span class="tag">' + tag + '</span>';
+                });
+                content += '</div>';
+            }
+            
+            if (data.duration !== undefined) {
+                content += '<div class="metadata-item"><span class="metadata-label">Duration</span>' + data.duration + 's</div>';
+            }
+            
+            if (data.status) {
+                content += '<div class="metadata-item"><span class="metadata-label">Status</span>' + data.status + '</div>';
+            }
+
+            document.getElementById('sidebar-content').innerHTML = content;
+            document.getElementById('sidebar').classList.add('open');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            cy.$(':selected').unselect();
+        }
+
+        cy.on('tap', 'node', function(evt){
+            openSidebar(evt.target);
+        });
+
+        cy.on('tap', function(evt){
+            if (evt.target === cy) {
+                closeSidebar();
+            }
+        });
+
+        // Search logic
+        document.getElementById('search').addEventListener('input', function(e) {
+            var query = e.target.value.toLowerCase();
+            cy.nodes().forEach(function(node) {
+                if (query && node.data('label').toLowerCase().includes(query)) {
+                    node.addClass('highlighted');
+                    node.style('background-color', '#ff0');
+                } else {
+                    node.removeClass('highlighted');
+                    node.style('background-color', '#007bff');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
