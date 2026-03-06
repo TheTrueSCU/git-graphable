@@ -10,13 +10,17 @@ These styles are applied to commit nodes based on their state or identified hygi
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Critical** | `red` | - | `4` | `solid` | - | Thick Red Solid outline |
 | **WIP** | - | `#ffff00` | - | - | - | Yellow background |
-| **Behind Base** | `orange` | - | `2` | `dashed`| - | Orange Dashed outline (Divergence) |
+| **Divergence** | `orange` | - | `2` | `dashed`| - | Orange Dashed outline |
 | **Orphan** | `grey` | - | - | `dashed`| `0.6` | Faded Grey Dashed outline |
 | **Long Running**| `purple` | - | `3` | `solid` | - | Purple Solid outline |
 | **PR Conflict** | `red` | - | `6` | `solid` | - | Very Thick Red outline |
 | **Direct Push** | `#ff0000` | - | `8` | `dashed`| - | Thickest Red Dashed outline |
 | **Back Merge** | `orange` | - | `4` | `dashed`| - | Thick Orange Dashed outline |
 | **Silo** | `blue` | - | `6` | `solid` | - | Thick Blue Solid outline |
+| **Issue Desync** | `orange` | - | `4` | `solid` | - | Thick Orange outline |
+| **Release Gap** | `red` | - | `2` | `dashed`| - | Red Dashed outline |
+| **Collab Gap** | `purple` | - | `4` | `dotted`| - | Purple Dotted outline |
+| **Longevity** | `brown` | - | `3` | `solid` | - | Brown Solid outline |
 
 ## PR Status Colors
 

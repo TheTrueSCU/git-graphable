@@ -258,3 +258,21 @@ git-graphable repo-messy --check --min-score 80 --bare --highlight-wip --highlig
 ```text
 Error: Hygiene score 76% is below required 80%
 ```
+
+---
+
+## 10. Interactive HTML Viewer
+The HTML engine produces a self-contained, interactive visualization with a live-toggle legend.
+
+**Command:**
+```bash
+git-graphable repo-messy --engine html -o graph.html
+```
+
+**Key Features:**
+- **Live Legend**: Toggle hygiene overlays (WIP, Direct Push, Divergence) on/off.
+- **Color Modes**: Switch between Authors, PR Status, Distance, and Staleness views.
+- **Searchable**: Find specific commits by hash or message.
+- **Hierarchical Layout**: Powered by Dagre for a clean top-down flow.
+- **Details Sidebar**: View full commit metadata upon selection.
+

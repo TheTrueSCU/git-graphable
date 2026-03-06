@@ -547,24 +547,20 @@ def export_graph(
                 if Tag.PR_STATUS.value in node.tags:
                     has_prs = True
                 for tag in node.tags:
-                    if (
-                        any(
-                            tag.startswith(p)
-                            for p in [
-                                Tag.AUTHOR_HIGHLIGHT.value,
-                                Tag.DISTANCE_COLOR.value,
-                                Tag.STALE_COLOR.value,
-                            ]
-                        )
-                        or tag
-                        in [
-                            Tag.PR_OPEN.value,
-                            Tag.PR_MERGED.value,
-                            Tag.PR_CLOSED.value,
-                            Tag.PR_DRAFT.value,
-                            Tag.WIP.value,
+                    if any(
+                        tag.startswith(p)
+                        for p in [
+                            Tag.AUTHOR_HIGHLIGHT.value,
+                            Tag.DISTANCE_COLOR.value,
+                            Tag.STALE_COLOR.value,
                         ]
-                    ):
+                    ) or tag in [
+                        Tag.PR_OPEN.value,
+                        Tag.PR_MERGED.value,
+                        Tag.PR_CLOSED.value,
+                        Tag.PR_DRAFT.value,
+                        Tag.WIP.value,
+                    ]:
                         dynamic_tags.add(tag)
 
             for tag in dynamic_tags:
@@ -644,47 +640,47 @@ def export_graph(
 
             # 1. Fill Modes (Radio)
             fill_modes.append(
-                f'<div class="legend-item" onclick="setMode(\'none\', event)">'
-                f'<div class="legend-color" style="background-color: #007bff"></div>'
-                f'<span class="legend-label">Default</span>'
-                f'<input type="radio" name="fill-mode" id="mode-none" class="legend-input" checked onclick="event.stopPropagation(); setMode(\'none\', event)">'
-                f'</div>'
+                '<div class="legend-item" onclick="setMode(\'none\', event)">'
+                '<div class="legend-color" style="background-color: #007bff"></div>'
+                '<span class="legend-label">Default</span>'
+                '<input type="radio" name="fill-mode" id="mode-none" class="legend-input" checked onclick="event.stopPropagation(); setMode(\'none\', event)">'
+                "</div>"
             )
 
             if has_authors:
                 fill_modes.append(
-                    f'<div class="legend-item" onclick="setMode(\'authors\', event)">'
-                    f'<div class="legend-color" style="background: linear-gradient(to right, #ff0000, #00ff00, #0000ff)"></div>'
-                    f'<span class="legend-label">Authors</span>'
-                    f'<input type="radio" name="fill-mode" id="mode-authors" class="legend-input" onclick="event.stopPropagation(); setMode(\'authors\', event)">'
-                    f'</div>'
+                    '<div class="legend-item" onclick="setMode(\'authors\', event)">'
+                    '<div class="legend-color" style="background: linear-gradient(to right, #ff0000, #00ff00, #0000ff)"></div>'
+                    '<span class="legend-label">Authors</span>'
+                    '<input type="radio" name="fill-mode" id="mode-authors" class="legend-input" onclick="event.stopPropagation(); setMode(\'authors\', event)">'
+                    "</div>"
                 )
 
             if has_distance:
                 fill_modes.append(
-                    f'<div class="legend-item" onclick="setMode(\'distance\', event)">'
-                    f'<div class="legend-color" style="background: linear-gradient(to right, #eee, #00f)"></div>'
-                    f'<span class="legend-label">Distance</span>'
-                    f'<input type="radio" name="fill-mode" id="mode-distance" class="legend-input" onclick="event.stopPropagation(); setMode(\'distance\', event)">'
-                    f'</div>'
+                    '<div class="legend-item" onclick="setMode(\'distance\', event)">'
+                    '<div class="legend-color" style="background: linear-gradient(to right, #eee, #00f)"></div>'
+                    '<span class="legend-label">Distance</span>'
+                    '<input type="radio" name="fill-mode" id="mode-distance" class="legend-input" onclick="event.stopPropagation(); setMode(\'distance\', event)">'
+                    "</div>"
                 )
 
             if has_stale:
                 fill_modes.append(
-                    f'<div class="legend-item" onclick="setMode(\'stale\', event)">'
-                    f'<div class="legend-color" style="background: linear-gradient(to right, #f00, #ff0)"></div>'
-                    f'<span class="legend-label">Staleness</span>'
-                    f'<input type="radio" name="fill-mode" id="mode-stale" class="legend-input" onclick="event.stopPropagation(); setMode(\'stale\', event)">'
-                    f'</div>'
+                    '<div class="legend-item" onclick="setMode(\'stale\', event)">'
+                    '<div class="legend-color" style="background: linear-gradient(to right, #f00, #ff0)"></div>'
+                    '<span class="legend-label">Staleness</span>'
+                    '<input type="radio" name="fill-mode" id="mode-stale" class="legend-input" onclick="event.stopPropagation(); setMode(\'stale\', event)">'
+                    "</div>"
                 )
 
             if has_prs:
                 fill_modes.append(
-                    f'<div class="legend-item" onclick="setMode(\'pr_status\', event)">'
-                    f'<div class="legend-color" style="background: #28a745"></div>'
-                    f'<span class="legend-label">PR Status</span>'
-                    f'<input type="radio" name="fill-mode" id="mode-pr_status" class="legend-input" onclick="event.stopPropagation(); setMode(\'pr_status\', event)">'
-                    f'</div>'
+                    '<div class="legend-item" onclick="setMode(\'pr_status\', event)">'
+                    '<div class="legend-color" style="background: #28a745"></div>'
+                    '<span class="legend-label">PR Status</span>'
+                    '<input type="radio" name="fill-mode" id="mode-pr_status" class="legend-input" onclick="event.stopPropagation(); setMode(\'pr_status\', event)">'
+                    "</div>"
                 )
 
             # 2. Overlays (Checkbox)
@@ -761,7 +757,9 @@ def export_graph(
 
             # Ensure 'cyGraph' is globally accessible for testing
             new_html = re.sub(
-                r"var\s+cy\s*=\s*cytoscape\(\{", "window.cyGraph = cytoscape({", new_html
+                r"var\s+cy\s*=\s*cytoscape\(\{",
+                "window.cyGraph = cytoscape({",
+                new_html,
             )
 
             toggle_logic = f"""

@@ -55,12 +55,12 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 
 | Option | Target | Effect | Conflicts With |
 | :--- | :--- | :--- | :--- |
-| `--highlight-authors` | **Fill** | Unique color per author | PR Status, Distance, Stale, WIP |
-| `--highlight-pr-status` | **Fill/Stroke**| Color by PR state (Merged=Purple, Open=Green) | Authors, Distance, Stale, WIP |
-| `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | Authors, PR Status, Stale, WIP |
-| `--highlight-stale` | **Fill** | Gradient white to red by age | Authors, PR Status, Distance, WIP |
-| `--highlight-wip` | **Fill** | Yellow fill for WIP/TODO commits | Authors, PR Status, Distance, Stale |
+| `--highlight-authors` | **Fill** | Unique color per author | PR Status, Distance, Stale |
+| `--highlight-pr-status` | **Fill/Stroke**| Color by PR state (Merged=Purple, Open=Green) | Authors, Distance, Stale |
+| `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | Authors, PR Status, Stale |
+| `--highlight-stale` | **Fill** | Gradient white to red by age | Authors, PR Status, Distance |
 | `--highlight-path` | **Edge** | Thick Orange edge connecting nodes | None |
+| `--highlight-wip` | **Stroke/Fill** | Yellow highlight for WIP/TODO commits | None |
 | `--highlight-critical` | **Stroke** | Thick Red Solid outline | None |
 | `--highlight-diverging-from` | **Stroke** | Orange Dashed outline | None |
 | `--highlight-orphans` | **Stroke** | Grey Dashed outline | None |
@@ -110,7 +110,7 @@ uv run git-graphable . --check --penalty direct_push_penalty:50 --style critical
 ```
 
 ### Interactive HTML Viewer
-Generate a self-contained HTML file with a searchable graph and details sidebar:
+Generate a self-contained HTML file with a searchable graph, details sidebar, and an interactive legend to live-toggle all highlight modes:
 ```bash
 uv run git-graphable . --engine html -o graph.html
 ```

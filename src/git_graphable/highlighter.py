@@ -16,7 +16,7 @@ def apply_highlights(
     # We now always apply hygiene tags so the summary/score is stable.
     # The 'force=True' ensures tags are added to nodes.
     # The CLI flags now only control the VISUAL highlighting (color: tags).
-    
+
     _apply_pr_highlights(graph, config, repo_path, force=True)
     _apply_author_highlights(graph, config, force=is_html)
     _apply_critical_highlights(graph, config, force=True)
@@ -42,7 +42,7 @@ def _apply_release_highlights(
     force: bool = False,
 ):
     """Highlight issues marked as 'Released' but not reachable from a Git tag."""
-    # If not force and not config, we don't apply VISUAL highlights, 
+    # If not force and not config, we don't apply VISUAL highlights,
     # but for hygiene we always need the tags.
     # Since we want stable hygiene, we now ALWAYS run this if pattern is provided.
     if not config.issue_pattern or not repo_path:
@@ -198,6 +198,7 @@ def _apply_issue_highlights(
             if ext_created:
                 try:
                     from datetime import datetime
+
                     clean_ts = ext_created.replace("Z", "+00:00")
                     created_dt = datetime.fromisoformat(clean_ts)
                     issue_ts = created_dt.timestamp()
@@ -215,6 +216,7 @@ def _apply_silo_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight branches with high commit counts but low author diversity."""
+
     def find_base_tip(query: str) -> Optional[GitCommit]:
         for commit in graph:
             if query in commit.reference.branches or commit.reference.hash.startswith(
@@ -250,6 +252,7 @@ def _apply_back_merge_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight redundant merges (base branch merged into feature branch)."""
+
     def find_base_tip(query: str) -> Optional[GitCommit]:
         for commit in graph:
             if query in commit.reference.branches or commit.reference.hash.startswith(
@@ -410,14 +413,13 @@ def _apply_author_highlights(
         author: palette[i % len(palette)] for i, author in enumerate(authors)
     }
 
-    is_html = config.engine == Engine.HTML
     for commit in graph:
         color = author_to_color.get(commit.reference.author)
         if color:
             # ONLY apply visual 'color:' tag if requested or HTML (hidden)
             if config.highlight_authors:
                 commit.add_tag(f"{Tag.COLOR.value}{color}")
-            
+
             # Always add helper tag for HTML legend
             commit.add_tag(f"{Tag.AUTHOR_HIGHLIGHT.value}{color}")
 
@@ -467,7 +469,7 @@ def _apply_distance_highlights(
                 intensity = int(230 * (dist / max_dist)) if max_dist > 0 else 0
                 color = f"#{intensity:02x}{intensity:02x}ff"
                 commit.add_tag(f"{Tag.DISTANCE_COLOR.value}{color}")
-                
+
                 # ONLY apply visual highlight if explicitly requested
                 if config.highlight_distance_from:
                     commit.add_tag(f"{Tag.COLOR.value}{color}")
@@ -567,7 +569,7 @@ def _apply_stale_highlights(
                 gb_value = int(255 - (ratio * 85))  # 255 -> 170
                 color = f"#ff{gb_value:02x}{gb_value:02x}"
                 commit.add_tag(f"{Tag.STALE_COLOR.value}{color}")
-                
+
                 # ONLY apply visual highlight if explicitly requested
                 if config.highlight_stale:
                     commit.add_tag(f"{Tag.COLOR.value}{color}")
