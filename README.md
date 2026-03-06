@@ -5,8 +5,12 @@ A powerful Python tool to convert Git commit history into beautiful, interactive
 ## Git Plugin Support
 When installed in your PATH, you can use this as a native Git plugin:
 ```bash
-git graphable .
+git graphable analyze .
 ```
+
+## 🚀 Live Interactive Demo
+Check out the tool in action with our **[Live Interactive Demos](https://thetruescu.github.io/git-graphable/)**. Explore different hygiene scenarios and toggle overlays in real-time.
+
 
 ## Features
 
@@ -65,7 +69,7 @@ jobs:
           fetch-depth: 0 # Required to see full history
 
       - name: Generate Git Graph Reports
-        uses: TheTrueSCU/git-graphable/.github/actions/git-graphable@v0.4.0
+        uses: TheTrueSCU/git-graphable@v0.5.0
         with:
           production_branch: 'main'
           output_dir: 'reports'

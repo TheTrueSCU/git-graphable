@@ -1,9 +1,9 @@
 name: 'Git Graphable'
-description: 'Generate interactive Git hygiene graphs and reports.'
+description: 'Analyze and visualize Git history hygiene with interactive graphs and reports.'
 author: 'TheTrueSCU'
 branding:
-  icon: 'activity'
-  color: 'blue'
+  icon: 'bar-chart'
+  color: 'green'
 
 inputs:
   path:
@@ -38,7 +38,8 @@ runs:
       shell: bash
       run: |
         # Prefer installing local source if we are in the git-graphable repo
-        ROOT_DIR="${{ github.action_path }}/../../.."
+        # github.action_path points to the root in this case
+        ROOT_DIR="${{ github.action_path }}"
         if [ -f "$ROOT_DIR/pyproject.toml" ] && grep -q "name = \"git-graphable\"" "$ROOT_DIR/pyproject.toml"; then
           echo "Installing git-graphable from local source: $ROOT_DIR"
           uv tool install "$ROOT_DIR"
