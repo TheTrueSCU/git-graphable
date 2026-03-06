@@ -1,0 +1,77 @@
+name: 'Git Graphable'
+description: 'Analyze and visualize Git history hygiene with interactive graphs and reports.'
+author: 'TheTrueSCU'
+branding:
+  icon: 'bar-chart'
+  color: 'green'
+
+inputs:
+  path:
+    description: 'Path to the git repository'
+    required: false
+    default: '.'
+  production_branch:
+    description: 'The main production branch (e.g. main, master)'
+    required: false
+    default: 'main'
+  issue_engine:
+    description: 'Issue tracker engine (github or jira)'
+    required: false
+  github_token:
+    description: 'GitHub token for issue integration'
+    required: false
+    default: ${{ github.token }}
+  output_dir:
+    description: 'Directory to save the generated reports'
+    required: false
+    default: 'git-graph-reports'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Install git-graphable
+      shell: bash
+      run: |
+        # Prefer installing local source if we are in the git-graphable repo
+        # github.action_path points to the root in this case
+        ROOT_DIR="${{ github.action_path }}"
+        if [ -f "$ROOT_DIR/pyproject.toml" ] && grep -q "name = "git-graphable"" "$ROOT_DIR/pyproject.toml"; then
+          echo "Installing git-graphable from local source: $ROOT_DIR"
+          uv tool install "$ROOT_DIR[cli]" # Install with CLI extras
+        else
+          echo "Installing git-graphable from PyPI"
+          uv tool install "git-graphable[cli]" # Install with CLI extras
+        fi
+
+    - name: Create output directory
+      shell: bash
+      run: mkdir -p ${{ inputs.output_dir }}
+
+    - name: Generate Simplified Graph (Mermaid)
+      shell: bash
+      run: |
+        ARGS="--production-branch ${{ inputs.production_branch }} --simplify --engine mermaid -o ${{ inputs.output_dir }}/summary.mmd"
+        if [ -n "${{ inputs.issue_engine }}" ]; then ARGS="$ARGS --issue-engine ${{ inputs.issue_engine }}"; fi
+        uv tool run git-graphable --bare ${{ inputs.path }} $ARGS
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Generate Full Interactive Graph (HTML)
+      shell: bash
+      run: |
+        ARGS="--production-branch ${{ inputs.production_branch }} --engine html -o ${{ inputs.output_dir }}/graph.html"
+        if [ -n "${{ inputs.issue_engine }}" ]; then ARGS="$ARGS --issue-engine ${{ inputs.issue_engine }}"; fi
+        uv tool run git-graphable --bare ${{ inputs.path }} $ARGS
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Upload Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: git-graph-reports
+        path: ${{ inputs.output_dir }}
