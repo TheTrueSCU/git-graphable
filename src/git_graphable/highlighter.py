@@ -3,7 +3,7 @@ from typing import Optional
 
 from graphable import Graph
 
-from .core import GitCommit, GitLogConfig
+from .core import Engine, GitCommit, GitLogConfig
 from .models import Tag
 
 
@@ -11,32 +11,37 @@ def apply_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str] = None
 ):
     """Apply highlighting tags based on configuration."""
-    _apply_pr_highlights(graph, config, repo_path)
-    _apply_author_highlights(graph, config)
-    _apply_distance_highlights(graph, config)
+    is_html = config.engine == Engine.HTML
+
+    _apply_pr_highlights(graph, config, repo_path, force=is_html)
+    _apply_author_highlights(graph, config, force=is_html)
+    _apply_critical_highlights(graph, config, force=is_html)
+    _apply_distance_highlights(graph, config, force=is_html)
     _apply_path_highlights(graph, config)
-    _apply_divergence_highlights(graph, config)
-    _apply_orphan_highlights(graph, config)
-    _apply_stale_highlights(graph, config)
-    _apply_long_running_highlights(graph, config)
-    _apply_wip_highlights(graph, config)
-    _apply_direct_push_highlights(graph, config)
-    _apply_squash_highlights(graph, config, repo_path)
-    _apply_back_merge_highlights(graph, config)
-    _apply_silo_highlights(graph, config)
-    _apply_issue_highlights(graph, config, repo_path)
-    _apply_release_highlights(graph, config, repo_path)
+    _apply_divergence_highlights(graph, config, force=is_html)
+    _apply_orphan_highlights(graph, config, force=is_html)
+    _apply_stale_highlights(graph, config, force=is_html)
+    _apply_long_running_highlights(graph, config, force=is_html)
+    _apply_wip_highlights(graph, config, force=is_html)
+    _apply_direct_push_highlights(graph, config, force=is_html)
+    _apply_squash_highlights(graph, config, repo_path, force=is_html)
+    _apply_back_merge_highlights(graph, config, force=is_html)
+    _apply_silo_highlights(graph, config, force=is_html)
+    _apply_issue_highlights(graph, config, repo_path, force=is_html)
+    _apply_release_highlights(graph, config, repo_path, force=is_html)
 
 
 def _apply_release_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str]
+    graph: Graph[GitCommit],
+    config: GitLogConfig,
+    repo_path: Optional[str],
+    force: bool = False,
 ):
     """Highlight issues marked as 'Released' but not reachable from a Git tag."""
-    if (
-        not config.highlight_release_inconsistencies
-        or not config.issue_pattern
-        or not repo_path
-    ):
+    if not force and not config.highlight_release_inconsistencies:
+        return
+
+    if not config.issue_pattern or not repo_path:
         return
 
     import re
@@ -88,11 +93,15 @@ def _apply_release_highlights(
 
 
 def _apply_issue_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str]
+    graph: Graph[GitCommit],
+    config: GitLogConfig,
+    repo_path: Optional[str],
+    force: bool = False,
 ):
     """Highlight inconsistencies between Git/PR status and Issue Tracker status."""
     if (
-        not config.highlight_issue_inconsistencies
+        not force
+        and not config.highlight_issue_inconsistencies
         and not config.highlight_collaboration_gaps
         and not config.highlight_longevity_mismatch
     ):
@@ -158,7 +167,7 @@ def _apply_issue_highlights(
 
         for commit in commits:
             # A. Status Comparison
-            if config.highlight_issue_inconsistencies:
+            if force or config.highlight_issue_inconsistencies:
                 git_status = IssueStatus.UNKNOWN
                 # Explicit PR tags take priority
                 if commit.is_tagged(Tag.PR_OPEN.value):
@@ -181,7 +190,7 @@ def _apply_issue_highlights(
                     commit.add_tag(f"issue_status:{ext_status.lower()}")
 
             # B. Assignee Comparison (Collaboration Gap)
-            if config.highlight_collaboration_gaps and ext_assignee:
+            if (force or config.highlight_collaboration_gaps) and ext_assignee:
                 author_raw = commit.reference.author
                 # Map author if alias exists
                 git_author = config.author_mapping.get(author_raw, author_raw).lower()
@@ -191,7 +200,7 @@ def _apply_issue_highlights(
                     commit.add_tag(f"issue_assignee:{ext_assignee}")
 
             # C. Longevity Mismatch
-            if config.highlight_longevity_mismatch and ext_created:
+            if (force or config.highlight_longevity_mismatch) and ext_created:
                 try:
                     # Convert ext_created (ISO 8601) to timestamp
                     from datetime import datetime
@@ -213,9 +222,11 @@ def _apply_issue_highlights(
                     pass  # Ignore parsing errors
 
 
-def _apply_silo_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_silo_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight branches with high commit counts but low author diversity."""
-    if not config.highlight_silos:
+    if not force and not config.highlight_silos:
         return
 
     def find_base_tip(query: str) -> Optional[GitCommit]:
@@ -249,9 +260,11 @@ def _apply_silo_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                     tip.add_tag(Tag.CONTRIBUTOR_SILO.value)
 
 
-def _apply_back_merge_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_back_merge_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight redundant merges (base branch merged into feature branch)."""
-    if not config.highlight_back_merges:
+    if not force and not config.highlight_back_merges:
         return
 
     # Use development_branch as base for determining 'redundant' merges
@@ -300,10 +313,16 @@ def _apply_back_merge_highlights(graph: Graph[GitCommit], config: GitLogConfig):
 
 
 def _apply_squash_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str]
+    graph: Graph[GitCommit],
+    config: GitLogConfig,
+    repo_path: Optional[str],
+    force: bool = False,
 ):
     """Detect and highlight 'logical' merges from squashed GitHub PRs."""
-    if not config.highlight_squashed or not repo_path:
+    if not force and not config.highlight_squashed:
+        return
+
+    if not repo_path:
         return
 
     from .github import get_repo_prs
@@ -358,9 +377,11 @@ def _apply_squash_highlights(
                     tip.add_tag(Tag.SQUASHED.value)
 
 
-def _apply_wip_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_wip_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight commits with WIP/TODO keywords in message."""
-    if not config.highlight_wip:
+    if not force and not config.highlight_wip:
         return
 
     keywords = [k.lower() for k in config.wip_keywords]
@@ -370,9 +391,11 @@ def _apply_wip_highlights(graph: Graph[GitCommit], config: GitLogConfig):
             commit.add_tag(Tag.WIP.value)
 
 
-def _apply_direct_push_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_direct_push_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight non-merge commits made directly to protected branches."""
-    if not config.highlight_direct_pushes:
+    if not force and not config.highlight_direct_pushes:
         return
 
     protected = {
@@ -396,10 +419,16 @@ def _apply_direct_push_highlights(graph: Graph[GitCommit], config: GitLogConfig)
 
 
 def _apply_pr_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str]
+    graph: Graph[GitCommit],
+    config: GitLogConfig,
+    repo_path: Optional[str],
+    force: bool = False,
 ):
     """Highlight commits based on GitHub PR status."""
-    if not config.highlight_pr_status or not repo_path:
+    if not force and not config.highlight_pr_status:
+        return
+
+    if not repo_path:
         return
 
     from .github import get_repo_prs, map_prs_to_commits
@@ -426,9 +455,11 @@ def _apply_pr_highlights(
                 commit.add_tag(Tag.PR_CONFLICT.value)
 
 
-def _apply_author_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_author_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Assign colors to different authors."""
-    if not config.highlight_authors:
+    if not force and not config.highlight_authors:
         return
 
     authors = sorted(list(set(c.reference.author for c in graph)))
@@ -437,16 +468,27 @@ def _apply_author_highlights(graph: Graph[GitCommit], config: GitLogConfig):
         author: palette[i % len(palette)] for i, author in enumerate(authors)
     }
 
+    is_html = config.engine == Engine.HTML
     for commit in graph:
         color = author_to_color.get(commit.reference.author)
         if color:
-            commit.add_tag(f"{Tag.COLOR.value}{color}")
+            if not is_html:
+                commit.add_tag(f"{Tag.COLOR.value}{color}")
+            # Always add author_highlight tag for HTML legend mapping
+            commit.add_tag(f"{Tag.AUTHOR_HIGHLIGHT.value}{color}")
 
 
-def _apply_distance_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_distance_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight commits based on distance from a base branch/hash."""
-    if not config.highlight_distance_from:
+    base_query = config.highlight_distance_from
+    if not force and not base_query:
         return
+
+    # If force but no query, default to development branch
+    if force and not base_query:
+        base_query = config.development_branch
 
     def find_base_node(query: str) -> Optional[GitCommit]:
         for commit in graph:
@@ -456,7 +498,7 @@ def _apply_distance_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                 return commit
         return None
 
-    base_commit = find_base_node(config.highlight_distance_from)
+    base_commit = find_base_node(base_query) if base_query else None
 
     if base_commit:
         distances = {base_commit: 0}
@@ -482,7 +524,11 @@ def _apply_distance_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                 intensity = int(230 * (dist / max_dist)) if max_dist > 0 else 0
                 color = f"#{intensity:02x}{intensity:02x}ff"
                 commit.add_tag(f"{Tag.DISTANCE_COLOR.value}{color}")
-                if not config.highlight_authors and not config.highlight_stale:
+                if (
+                    not force
+                    and not config.highlight_authors
+                    and not config.highlight_stale
+                ):
                     commit.add_tag(f"{Tag.COLOR.value}{color}")
 
 
@@ -513,10 +559,16 @@ def _apply_path_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                     commit.set_edge_attribute(parent, Tag.EDGE_PATH.value, True)
 
 
-def _apply_divergence_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_divergence_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight divergence/behind analysis from a base branch/hash."""
-    if not config.highlight_diverging_from:
+    base_branch = (config.highlight_diverging_from or "").strip()
+    if not force and not base_branch:
         return
+
+    if force and not base_branch:
+        base_branch = config.production_branch
 
     def find_divergence_node(query: str) -> Optional[GitCommit]:
         for commit in graph:
@@ -526,7 +578,6 @@ def _apply_divergence_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                 return commit
         return None
 
-    base_branch = (config.highlight_diverging_from or "").strip()
     base_node = find_divergence_node(base_branch)
 
     if base_node:
@@ -545,9 +596,11 @@ def _apply_divergence_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                     commit.add_tag(Tag.BEHIND.value)
 
 
-def _apply_orphan_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_orphan_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight dangling/orphan commits."""
-    if not config.highlight_orphans:
+    if not force and not config.highlight_orphans:
         return
 
     branch_reachable = set()
@@ -561,9 +614,11 @@ def _apply_orphan_highlights(graph: Graph[GitCommit], config: GitLogConfig):
             commit.add_tag(Tag.ORPHAN.value)
 
 
-def _apply_stale_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_stale_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight stale branch tips."""
-    if not config.highlight_stale:
+    if not force and not config.highlight_stale:
         return
 
     now = time.time()
@@ -577,13 +632,15 @@ def _apply_stale_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                 gb_value = int(255 - (ratio * 85))  # 255 -> 170
                 color = f"#ff{gb_value:02x}{gb_value:02x}"
                 commit.add_tag(f"{Tag.STALE_COLOR.value}{color}")
-                if not config.highlight_authors:
+                if not force and not config.highlight_authors:
                     commit.add_tag(f"{Tag.COLOR.value}{color}")
 
 
-def _apply_long_running_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_long_running_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
     """Highlight long-running branches."""
-    if not config.highlight_long_running:
+    if not force and not config.highlight_long_running:
         return
 
     now = time.time()
@@ -625,3 +682,22 @@ def _apply_long_running_highlights(graph: Graph[GitCommit], config: GitLogConfig
                                     commit.set_edge_attribute(
                                         parent, Tag.EDGE_LONG_RUNNING.value, True
                                     )
+
+
+def _apply_critical_highlights(
+    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+):
+    """Ensure critical branches are tagged for overlay support."""
+    if not force and not config.highlight_critical:
+        return
+
+    critical_set = {
+        config.production_branch,
+        config.development_branch,
+        *config.critical_branches,
+    }
+    for commit in graph:
+        for branch in commit.reference.branches:
+            if branch in critical_set:
+                commit.add_tag(Tag.CRITICAL.value)
+                break

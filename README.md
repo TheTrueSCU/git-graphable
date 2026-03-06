@@ -1,6 +1,6 @@
 # Git Graphable
 
-A powerful Python tool to convert Git commit history into beautiful, interactive flowcharts using the `graphable` library. Supporting Mermaid, D2, Graphviz, and PlantUML.
+A powerful Python tool to convert Git commit history into beautiful, interactive flowcharts using the `graphable` library. Supporting Mermaid, D2, Graphviz, and HTML.
 
 ## Git Plugin Support
 When installed in your PATH, you can use this as a native Git plugin:
@@ -10,7 +10,7 @@ git graphable .
 
 ## Features
 
-- **Multi-Engine Support**: Export to Mermaid (.mmd), D2 (.d2), Graphviz (.dot), or PlantUML (.puml).
+- **Multi-Engine Support**: Export to Mermaid (.mmd), D2 (.d2), Graphviz (.dot), or HTML (.html).
 - **Automatic Visualization**: Generates and opens an image (SVG/PNG) automatically if no output is specified.
 - **Advanced Highlighting**: Visualize author patterns, topological distance, and specific merge paths.
 - **GitHub Integration**: Highlight commits based on pull request status (Merged, Open, Closed, Draft) using the `gh` CLI.
@@ -107,6 +107,12 @@ Adjust hygiene penalties and visual styles to match your team's workflow:
 ```bash
 # Aggressive penalty for direct pushes and custom teal color for critical branches
 uv run git-graphable . --check --penalty direct_push_penalty:50 --style critical:stroke:teal
+```
+
+### Interactive HTML Viewer
+Generate a self-contained HTML file with a searchable graph and details sidebar:
+```bash
+uv run git-graphable . --engine html -o graph.html
 ```
 
 ## Configuration

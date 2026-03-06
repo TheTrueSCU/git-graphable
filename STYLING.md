@@ -118,3 +118,4 @@ fill = "#00FF00"
 *   **Mermaid**: Supports all properties. Width is mapped to `stroke-width`. Dash is mapped to `stroke-dasharray`.
 *   **D2**: Supports all properties. `double-border` is automatically enabled for Critical nodes.
 *   **Graphviz**: Supports all properties. `penwidth` is used for width. Dash is mapped to `style=dashed/dotted`.
+*   **HTML**: Supports all properties via Cytoscape.js.

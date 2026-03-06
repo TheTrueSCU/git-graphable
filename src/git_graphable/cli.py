@@ -3,12 +3,12 @@ import sys
 from typing import Any, Dict, List, Optional
 
 import typer
-from graphable.enums import Engine
 from rich.console import Console
 
 from .commands import convert_command
+from .core import Engine
 
-app = typer.Typer(help="Git graph to Mermaid/Graphviz/D2/PlantUML converter.")
+app = typer.Typer(help="Git graph to Mermaid/Graphviz/D2/HTML converter.")
 console = Console()
 error_console = Console(stderr=True)
 
@@ -29,7 +29,7 @@ def _parse_style_overrides(styles: List[str]) -> Dict[str, Any]:
     return theme
 
 
-@app.command(help="Git graph to Mermaid/Graphviz/D2/PlantUML converter.")
+@app.command(help="Git graph to Mermaid/Graphviz/D2/HTML converter.")
 def convert(
     path: str = typer.Argument(..., help="Path to local directory or git URL"),
     config_path: Optional[str] = typer.Option(
@@ -46,7 +46,9 @@ def convert(
     date_format: Optional[str] = typer.Option(
         None, "--date-format", help="Date format for commit labels"
     ),
-    engine: str = typer.Option("mermaid", "--engine", help="Visualization engine"),
+    engine: str = typer.Option(
+        "mermaid", "--engine", help="Visualization engine (mermaid, graphviz, d2, html)"
+    ),
     output: Optional[str] = typer.Option(
         "-", "--output", "-o", help="Output file path"
     ),
@@ -215,6 +217,7 @@ def convert(
         raise typer.Exit(1)
 
     overrides = {
+        "engine": engine_enum,
         "production_branch": production_branch,
         "development_branch": development_branch,
         "date_format": date_format,
@@ -506,6 +509,7 @@ def run_bare_cli():
 
     engine_enum = Engine(args.engine.lower())
     overrides = {
+        "engine": engine_enum,
         "production_branch": args.production_branch,
         "development_branch": args.development_branch,
         "date_format": args.date_format,
