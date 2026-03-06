@@ -40,6 +40,7 @@ def main():
             "run",
             "git-graphable",
             "analyze",
+            "--bare",
             str(repo),
             "--engine",
             "html",
