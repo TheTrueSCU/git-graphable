@@ -35,7 +35,7 @@ jobs:
         run: just check
 
       - name: Git Graph Reports
-        uses: ./.github/actions/git-graphable
+        uses: ./
         with:
           production_branch: 'main'
           output_dir: 'git-graph-reports'

@@ -1,4 +1,3 @@
-import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -17,6 +16,7 @@ def run_command(cmd):
 def main():
     # 1. Generate the repo data
     import generate_demos
+
     generate_demos.main()
 
     # 2. Prepare output directory
@@ -26,26 +26,34 @@ def main():
 
     # 3. Analyze each repo and generate HTML
     repos = [d for d in REPOS_DIR.iterdir() if d.is_dir()]
-    
+
     html_links = []
-    
+
     for repo in sorted(repos):
         repo_name = repo.name
         output_file = f"{repo_name}.html"
         print(f"Analyzing {repo_name}...")
-        
+
         # Build command with relevant flags for the specific demo
         cmd = [
-            "uv", "run", "git-graphable", "analyze", str(repo),
-            "--engine", "html",
-            "-o", str(OUTPUT_DIR / output_file)
+            "uv",
+            "run",
+            "git-graphable",
+            "analyze",
+            str(repo),
+            "--engine",
+            "html",
+            "-o",
+            str(OUTPUT_DIR / output_file),
         ]
-        
+
         # Add flags based on the demo type
         if repo_name == "repo-pristine":
             cmd.extend(["--highlight-authors", "--highlight-critical"])
         elif repo_name == "repo-messy":
-            cmd.extend(["--highlight-wip", "--highlight-direct-pushes", "--highlight-stale"])
+            cmd.extend(
+                ["--highlight-wip", "--highlight-direct-pushes", "--highlight-stale"]
+            )
         elif repo_name == "repo-risk-silo":
             cmd.extend(["--highlight-silos", "--silo-threshold", "20"])
         elif repo_name == "repo-complex-hygiene":
@@ -53,11 +61,35 @@ def main():
         elif repo_name == "repo-features":
             cmd.extend(["--highlight-orphans", "--highlight-diverging-from", "main"])
         elif repo_name == "repo-issue-desync":
-            cmd.extend(["--highlight-issue-inconsistencies", "--issue-engine", "script", "--issue-script", "echo CLOSED"])
+            cmd.extend(
+                [
+                    "--highlight-issue-inconsistencies",
+                    "--issue-engine",
+                    "script",
+                    "--issue-script",
+                    "echo CLOSED",
+                ]
+            )
         elif repo_name == "repo-release-desync":
-            cmd.extend(["--highlight-release-inconsistencies", "--issue-engine", "script", "--issue-script", "echo CLOSED"])
+            cmd.extend(
+                [
+                    "--highlight-release-inconsistencies",
+                    "--issue-engine",
+                    "script",
+                    "--issue-script",
+                    "echo CLOSED",
+                ]
+            )
         elif repo_name == "repo-collab-gap":
-            cmd.extend(["--highlight-collaboration-gaps", "--issue-engine", "script", "--issue-script", "echo OPEN,Bob"])
+            cmd.extend(
+                [
+                    "--highlight-collaboration-gaps",
+                    "--issue-engine",
+                    "script",
+                    "--issue-script",
+                    "echo OPEN,Bob",
+                ]
+            )
 
         run_command(cmd)
         label = repo_name.replace("repo-", "").replace("-", " ").title()
