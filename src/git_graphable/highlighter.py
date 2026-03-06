@@ -331,8 +331,12 @@ def _apply_squash_highlights(
                     if is_tip:
                         tips.append(c)
                 for tip in tips:
-                    squash_commit.set_edge_attribute(
-                        tip, Tag.EDGE_LOGICAL_MERGE.value, True
+                    # For squash merges, the 'logical' edge doesn't exist in Git,
+                    # so we must create it in the graph.
+                    # In this graph's convention, child nodes add_dependency(parent).
+                    # The squash commit is the 'new' parent of the old tip.
+                    tip.add_dependency(
+                        squash_commit, **{Tag.EDGE_LOGICAL_MERGE.value: True}
                     )
                     tip.add_tag(Tag.SQUASHED.value)
 
