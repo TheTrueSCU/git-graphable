@@ -513,6 +513,9 @@ def _apply_distance_highlights(
         return None
 
     base_commit = find_base_node(base_query) if base_query else None
+    if force and not base_commit:
+        base_query = config.production_branch
+        base_commit = find_base_node(base_query) if base_query else None
 
     if base_commit:
         distances = {base_commit: 0}
@@ -592,7 +595,10 @@ def _apply_divergence_highlights(
                 return commit
         return None
 
-    base_node = find_divergence_node(base_branch)
+    base_node = find_divergence_node(base_branch) if base_branch else None
+    if force and not base_node:
+        base_branch = config.production_branch
+        base_node = find_divergence_node(base_branch) if base_branch else None
 
     if base_node:
         base_reach = set(graph.ancestors(base_node))

@@ -20,6 +20,7 @@ def normalize_rgb(c):
     "repo_name, mode_id, expected_tag",
     [
         ("repo-pristine", "mode-authors", "author_highlight:"),
+        ("repo-messy", "mode-distance", "distance_color:"),
         ("repo-messy", "overlay-wip", "wip"),
         ("repo-risk-silo", "overlay-contributor_silo", "contributor_silo"),
     ],
@@ -40,23 +41,23 @@ def test_example_repo_interactivity(repo_name, mode_id, expected_tag, page):
         page.goto(f"file://{os.path.abspath(html_path)}")
         page.wait_for_function("typeof window.cyGraph !== 'undefined'")
 
-        # 1. Test Color Mode (Authors)
-        if mode_id == "mode-authors":
+        # 1. Test Color Mode (Authors / Distance)
+        if mode_id.startswith("mode-"):
             # Initial state: Default blue
             colors = page.evaluate(
                 "window.cyGraph.nodes().map(n => n.style('background-color'))"
             )
             assert all("rgb(0,123,255)" in normalize_rgb(c) for c in colors)
 
-            # Switch to Authors
+            # Switch to Mode
             page.click(f"#{mode_id}")
             page.wait_for_timeout(300)
 
-            # Verify diversity in colors
-            author_colors = page.evaluate(
+            # Verify diversity in colors (should no longer be all blue)
+            new_colors = page.evaluate(
                 "window.cyGraph.nodes().map(n => n.style('background-color'))"
             )
-            assert any("rgb(0,123,255)" not in normalize_rgb(c) for c in author_colors)
+            assert any("rgb(0,123,255)" not in normalize_rgb(c) for c in new_colors)
 
         # 2. Test Overlays (WIP / Silo)
         elif mode_id.startswith("overlay-"):
