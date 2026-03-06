@@ -623,7 +623,6 @@ def export_graph(
                 Tag.PR_MERGED.value,
                 Tag.PR_CLOSED.value,
                 Tag.PR_DRAFT.value,
-                Tag.WIP.value,
             }
 
             # Discover what dynamic categories exist
@@ -738,18 +737,26 @@ def export_graph(
                 "nodeDimensionsIncludeLabels": True,
                 "animate": False,
             }
+            cy_config_json = json.dumps(layout_config, indent=2)
             new_html = re.sub(
                 r"layout:\s*\{.*?\}",
-                f"layout: {json.dumps(layout_config, indent=2)}",
+                f"layout: {cy_config_json}",
                 new_html,
                 flags=re.DOTALL,
+            )
+
+            # Ensure 'cyGraph' is globally accessible for testing
+            new_html = re.sub(
+                r"var\s+cy\s*=\s*cytoscape\(\{",
+                "window.cyGraph = cytoscape({",
+                new_html,
             )
 
             toggle_logic = f"""
         var tagStyles = {json.dumps(tag_to_style, indent=2)};
         var activeMode = 'none';
         var disabledOverlays = new Set();
-        var fillTags = {json.dumps(list(fill_tags))};
+        var fillTags = ["{Tag.PR_OPEN.value}", "{Tag.PR_MERGED.value}", "{Tag.PR_CLOSED.value}", "{Tag.PR_DRAFT.value}"];
 
         function syncOverlayState() {{
             disabledOverlays.clear();
@@ -775,34 +782,34 @@ def export_graph(
         }}
 
         function applyStyles() {{
-            if (typeof cy === 'undefined') return;
+            if (typeof cyGraph === 'undefined') return;
             
             // 1. Reset base styles
-            cy.nodes().style({{
+            cyGraph.nodes().style({{
                 'background-color': '#007bff', 'color': '#333', 'border-width': 0,
                 'border-color': 'transparent', 'shape': 'ellipse', 'opacity': 1
             }});
-            cy.edges().style({{ 'line-color': '#ccc', 'width': 2, 'line-style': 'solid', 'opacity': 1 }});
+            cyGraph.edges().style({{ 'line-color': '#ccc', 'width': 2, 'line-style': 'solid', 'opacity': 1 }});
 
             // 2. Apply Fill Mode
             if (activeMode === 'authors') {{
-                cy.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('{Tag.AUTHOR_HIGHLIGHT.value}'))).forEach(function(el) {{
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('{Tag.AUTHOR_HIGHLIGHT.value}'))).forEach(function(el) {{
                     var tag = el.data('tags').find(t => t.startsWith('{Tag.AUTHOR_HIGHLIGHT.value}'));
                     if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
                 }});
             }} else if (activeMode === 'distance') {{
-                cy.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('{Tag.DISTANCE_COLOR.value}'))).forEach(function(el) {{
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('{Tag.DISTANCE_COLOR.value}'))).forEach(function(el) {{
                     var tag = el.data('tags').find(t => t.startsWith('{Tag.DISTANCE_COLOR.value}'));
                     if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
                 }});
             }} else if (activeMode === 'stale') {{
-                cy.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('{Tag.STALE_COLOR.value}'))).forEach(function(el) {{
+                cyGraph.nodes().filter(n => (n.data('tags') || []).some(t => t.startsWith('{Tag.STALE_COLOR.value}'))).forEach(function(el) {{
                     var tag = el.data('tags').find(t => t.startsWith('{Tag.STALE_COLOR.value}'));
                     if (tag && tagStyles[tag]) el.style(tagStyles[tag]);
                 }});
             }} else if (activeMode === 'pr_status') {{
                 fillTags.forEach(function(tag) {{
-                    if (tagStyles[tag]) {{ cy.nodes().filter(n => (n.data('tags') || []).includes(tag)).style(tagStyles[tag]); }}
+                    if (tagStyles[tag]) {{ cyGraph.nodes().filter(n => (n.data('tags') || []).includes(tag)).style(tagStyles[tag]); }}
                 }});
             }}
 
@@ -813,15 +820,15 @@ def export_graph(
                 if (disabledOverlays.has(tag)) return;
                 
                 var selector = (tag.includes('edge') || tag.includes('highlight') || tag.includes('logical_merge') || tag.includes('long_running_edge')) ? 'edge' : 'node';
-                cy.elements(selector).filter(el => (el.data('tags') || []).includes(tag)).style(tagStyles[tag]);
+                cyGraph.elements(selector).filter(el => (el.data('tags') || []).includes(tag)).style(tagStyles[tag]);
             }});
             
             // 4. Re-apply selection style
-            cy.elements(':selected').style({{ 'border-width': '4px', 'border-color': '#ff0', 'background-color': '#0056b3' }});
+            cyGraph.elements(':selected').style({{ 'border-width': '4px', 'border-color': '#ff0', 'background-color': '#0056b3' }});
         }}
 
         function initStyles() {{
-            if (typeof cy !== 'undefined') {{ syncOverlayState(); applyStyles(); }} 
+            if (typeof cyGraph !== 'undefined') {{ syncOverlayState(); applyStyles(); }} 
             else {{ setTimeout(initStyles, 50); }}
         }}
         initStyles();

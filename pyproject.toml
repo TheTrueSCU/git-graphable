@@ -57,6 +57,10 @@ dev = [
     "ty>=0.0.20",
     "typer-cli>=0.24.0",
 ]
+ui = [
+    "playwright>=1.42.0",
+    "pytest-playwright>=0.4.4",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/git_graphable"]
@@ -73,3 +77,8 @@ omit = [
 fail_under = 75
 show_missing = true
 skip_covered = true
+
+[tool.pytest.ini_options]
+markers = [
+    "ui: UI and browser-based tests",
+]

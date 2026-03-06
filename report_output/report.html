@@ -438,7 +438,7 @@
     <div class="report-metadata" style="background: #f2f4f7;">
     <h2 onclick="this.nextElementSibling.classList.toggle('hidden')" style="cursor: pointer; font-size: 12px; ">
         Execution Metadata (click to toggle)
-         <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('eydyZXBvcnRfdGl0bGUnOiAncmVwb3J0X291dHB1dCcsICdlbnZpcm9ubWVudCc6ICdQYXNzIC0tcnAtZW52IHRvIHBvcHVsYXRlIGVudmlyb25tZW50JywgJ2JyYW5jaCc6ICdQYXNzIC0tZ2l0LWJyYW5jaCB0byBwb3B1bGF0ZSBnaXQgbWV0YWRhdGEnLCAnY29tbWl0JzogJ1Bhc3MgLS1naXQtY29tbWl0IHRvIHBvcHVsYXRlIGdpdCBtZXRhZGF0YScsICdweXRob25fdmVyc2lvbic6ICczLjEzLjExJywgJ2dlbmVyYXRlZF9hdCc6ICcyMDI2LTAzLTA1VDE0OjA0OjA4Ljk5MTk5MSd9', this)" title="Copy metadata">
+         <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('eydyZXBvcnRfdGl0bGUnOiAncmVwb3J0X291dHB1dCcsICdlbnZpcm9ubWVudCc6ICdQYXNzIC0tcnAtZW52IHRvIHBvcHVsYXRlIGVudmlyb25tZW50JywgJ2JyYW5jaCc6ICdQYXNzIC0tZ2l0LWJyYW5jaCB0byBwb3B1bGF0ZSBnaXQgbWV0YWRhdGEnLCAnY29tbWl0JzogJ1Bhc3MgLS1naXQtY29tbWl0IHRvIHBvcHVsYXRlIGdpdCBtZXRhZGF0YScsICdweXRob25fdmVyc2lvbic6ICczLjEzLjExJywgJ2dlbmVyYXRlZF9hdCc6ICcyMDI2LTAzLTA1VDE4OjM0OjA0LjQyODgxNyd9', this)" title="Copy metadata">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -451,7 +451,7 @@
         <tr><th>Environment</th><td>Pass --rp-env to populate environment</td></tr>
         <tr><th>Branch</th><td>Pass --git-branch to populate git metadata</td></tr>
         <tr><th>Commit</th><td>Pass --git-commit to populate git metadata</td></tr>
-        <tr><th>Generated At</th><td>2026-03-05T14:04:08.991991</td></tr>
+        <tr><th>Generated At</th><td>2026-03-05T18:34:04.428817</td></tr>
         <tr><th>Python version</th><td>3.13.11</td></tr>
     </table>
 </div>
@@ -532,26 +532,26 @@
 
     <div id="markersFilter" class="marker-filter" style="margin-bottom: 1rem;">
       <strong>Filter by Markers:</strong><br/>
-    <span class="muted-hint">Use <code>pytest.mark.*</code> to enable marker filters</span>
+    <label><input type="checkbox" value="ui" /> ui (1)</label> 
             <div style="padding: 1rem; background: #fdecea; 
             border: 1px solid #a83232; 
             border-radius: 5px; margin-bottom: 1rem;">
               Total tests: 1, Failures: 1, Errors: 0.
-              The slowest test was <strong>test_longevity_mismatch_detection</strong> at 0.04s.
+              The slowest test was <strong>test_interactivity_toggling_chromium_</strong> at 30.99s.
             </div>
             <div id="tests-container">
     
-<div class="test test-card" data-name="test_longevity_mismatch_detection" data-link="" data-markers="">
+<div class="test test-card" data-name="test_interactivity_toggling_chromium_" data-link="" data-markers="ui">
   <div class="header failed" onclick="toggleDetails(this)">
     <div class="header-section test-info">
       <span class="toggle"></span>
-      <strong>test_longevity_mismatch_detection</strong>
+      <strong>test_interactivity_toggling_chromium_</strong>
       <span>— FAILED</span>
     </div>
     <div class="header-section meta">
       <span class="nodeid-badge" style="display: flex; align-items: center; gap: 6px;">
-        <code style="font-size: 0.6em; color: #555;">tests/test_hygiene.py::test_longevity_mismatch_detection</code>
-          <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('dGVzdHMvdGVzdF9oeWdpZW5lLnB5Ojp0ZXN0X2xvbmdldml0eV9taXNtYXRjaF9kZXRlY3Rpb24=', this)" title="Copy nodeid">
+        <code style="font-size: 0.6em; color: #555;">tests/test_ui_interactive.py::test_interactivity_toggling[chromium]</code>
+          <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('dGVzdHMvdGVzdF91aV9pbnRlcmFjdGl2ZS5weTo6dGVzdF9pbnRlcmFjdGl2aXR5X3RvZ2dsaW5nW2Nocm9taXVtXQ==', this)" title="Copy nodeid">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -565,7 +565,7 @@
     <div class="header-section badges-and-timing">
       <span style="display:inline-block; min-width:40px;"></span>
       <span style="display:inline-block; min-width:45px;"></span>
-      <span class="timestamp">⏱ 0.04s</span>
+      <span class="timestamp">⏱ 30.99s</span>
     </div>
   </div>
 
@@ -573,72 +573,126 @@
     <div class="details-content">
       <div class="details-text">
          
-                    <div class="error-content"><strong>Error:</strong> <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('RSAgICAgICAgICAgYXNzZXJ0IDAgPj0gMQpFICAgICAgICAgICAgKyAgd2hlcmUgMCA9IGxlbihbXSk=', this)" title="Copy error">
+                    <div class="error-content"><strong>Error:</strong> <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('RSAgICAgICAgICAgcGxheXdyaWdodC5faW1wbC5fZXJyb3JzLlRpbWVvdXRFcnJvcjogUGFnZS5jbGljazogVGltZW91dCAzMDAwMG1zIGV4Y2VlZGVkLgpFICAgICAgICAgICBDYWxsIGxvZzoKRSAgICAgICAgICAgICAtIHdhaXRpbmcgZm9yIGxvY2F0b3IoIiNvdmVybGF5LXdpcCIp', this)" title="Copy error">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
                 </button>
             
-                    <pre>E           assert 0 >= 1
-E            +  where 0 = len([])</pre></div>
+                    <pre>E           playwright._impl._errors.TimeoutError: Page.click: Timeout 30000ms exceeded.
+E           Call log:
+E             - waiting for locator("#overlay-wip")</pre></div>
                     
         
-                    <div class="trace-content"><strong>Trace:</strong> <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('dGVzdF9yZXBvID0gJy90bXAvdG1wem14ZDB6XzcnCgogICAgZGVmIHRlc3RfbG9uZ2V2aXR5X21pc21hdGNoX2RldGVjdGlvbih0ZXN0X3JlcG8pOgogICAgICAgICMgMS4gQ3JlYXRlIGEgY29tbWl0IG5vdwogICAgICAgIHN1YnByb2Nlc3MucnVuKAogICAgICAgICAgICBbImdpdCIsICJjb25maWciLCAiY29tbWl0LmdwZ3NpZ24iLCAiZmFsc2UiXSwgY3dkPXRlc3RfcmVwbywgY2hlY2s9VHJ1ZQogICAgICAgICkKICAgICAgICB3aXRoIG9wZW4ob3MucGF0aC5qb2luKHRlc3RfcmVwbywgImxhdGUudHh0IiksICJ3IikgYXMgZjoKICAgICAgICAgICAgZi53cml0ZSgibGF0ZSIpCiAgICAgICAgc3VicHJvY2Vzcy5ydW4oWyJnaXQiLCAiYWRkIiwgImxhdGUudHh0Il0sIGN3ZD10ZXN0X3JlcG8sIGNoZWNrPVRydWUpCiAgICAgICAgc3VicHJvY2Vzcy5ydW4oWyJnaXQiLCAiY29tbWl0IiwgIi1tIiwgImZlYXQ6IFBST0otT0xEIGZpbmFsbHkgc3RhcnRlZCJdLCBjd2Q9dGVzdF9yZXBvLCBjaGVjaz1UcnVlKQogICAgCiAgICAgICAgIyAyLiBNb2NrIElzc3VlIGNyZWF0ZWQgMzAgZGF5cyBhZ28KICAgICAgICBmcm9tIGRhdGV0aW1lIGltcG9ydCBkYXRldGltZSwgdGltZWRlbHRhLCB0aW1lem9uZQogICAgCiAgICAgICAgb2xkX2RhdGUgPSAoZGF0ZXRpbWUubm93KHRpbWV6b25lLnV0YykgLSB0aW1lZGVsdGEoZGF5cz0zMCkpLmlzb2Zvcm1hdCgpCiAgICAKICAgICAgICBmcm9tIGdpdF9ncmFwaGFibGUuaXNzdWVzIGltcG9ydCBJc3N1ZUluZm8sIElzc3VlU3RhdHVzCiAgICAgICAgd2l0aCBwYXRjaCgiZ2l0X2dyYXBoYWJsZS5pc3N1ZXMuZ2V0X2lzc3VlX2VuZ2luZSIpIGFzIG1vY2tfZ2V0X2VuZ2luZToKICAgICAgICAgICAgbW9ja19lbmdpbmUgPSBNYWdpY01vY2soKQogICAgICAgICAgICBtb2NrX2VuZ2luZS5nZXRfaXNzdWVfaW5mby5yZXR1cm5fdmFsdWUgPSB7CiAgICAgICAgICAgICAgICAiUFJPSi1PTEQiOiBJc3N1ZUluZm8oCiAgICAgICAgICAgICAgICAgICAgaWQ9IlBST0otT0xEIiwgc3RhdHVzPUlzc3VlU3RhdHVzLk9QRU4sIGNyZWF0ZWRfYXQ9b2xkX2RhdGUKICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgfQogICAgICAgICAgICBtb2NrX2dldF9lbmdpbmUucmV0dXJuX3ZhbHVlID0gbW9ja19lbmdpbmUKICAgIAogICAgICAgICAgICBjb25maWcgPSBHaXRMb2dDb25maWcoCiAgICAgICAgICAgICAgICBoaWdobGlnaHRfbG9uZ2V2aXR5X21pc21hdGNoPVRydWUsCiAgICAgICAgICAgICAgICBpc3N1ZV9wYXR0ZXJuPXIiUFJPSi1bQS1aXSsiLAogICAgICAgICAgICAgICAgaXNzdWVfZW5naW5lPSJqaXJhIiwKICAgICAgICAgICAgICAgIGxvbmdldml0eV90aHJlc2hvbGRfZGF5cz0xNAogICAgICAgICAgICApCiAgICAKICAgICAgICAgICAgZ3JhcGggPSBwcm9jZXNzX3JlcG8odGVzdF9yZXBvLCBjb25maWcpCiAgICAKICAgICAgICAgICAgIyBFeHBsaWNpdGx5IGFwcGx5IGhpZ2hsaWdodHMKICAgICAgICAgICAgZnJvbSBnaXRfZ3JhcGhhYmxlLmhpZ2hsaWdodGVyIGltcG9ydCBhcHBseV9oaWdobGlnaHRzCiAgICAgICAgICAgIGFwcGx5X2hpZ2hsaWdodHMoZ3JhcGgsIGNvbmZpZywgcmVwb19wYXRoPXRlc3RfcmVwbykKICAgIAogICAgICAgICAgICBtaXNtYXRjaGVzID0gW2MgZm9yIGMgaW4gZ3JhcGggaWYgYy5pc190YWdnZWQoVGFnLkxPTkdFVklUWV9NSVNNQVRDSC52YWx1ZSldCj4gICAgICAgICAgIGFzc2VydCBsZW4obWlzbWF0Y2hlcykgPj0gMQ==', this)" title="Copy trace">
+                    <div class="trace-content"><strong>Trace:</strong> <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('bWVzc3lfcmVwbyA9ICcvdG1wL3RtcGFwdGx0aGZ2JywgcGFnZSA9IDxQYWdlIHVybD0nZmlsZTovLy90bXAvdG1wYWcyeTZxOTMvaW50ZXJhY3RpdmUuaHRtbCc+CgogICAgQHB5dGVzdC5tYXJrLnVpCiAgICBkZWYgdGVzdF9pbnRlcmFjdGl2aXR5X3RvZ2dsaW5nKG1lc3N5X3JlcG8sIHBhZ2UpOgogICAgICAgICIiIlRlc3QgdGhhdCBjbGlja2luZyBsZWdlbmQgaXRlbXMgdXBkYXRlcyB0aGUgQ3l0b3NjYXBlIHZpc3VhbHMgdXNpbmcgUGxheXdyaWdodC4iIiIKICAgICAgICBjb25maWcgPSBHaXRMb2dDb25maWcoZW5naW5lPUVuZ2luZS5IVE1MKQogICAgICAgIGdyYXBoID0gcHJvY2Vzc19yZXBvKG1lc3N5X3JlcG8sIGNvbmZpZykKICAgIAogICAgICAgIHdpdGggdGVtcGZpbGUuVGVtcG9yYXJ5RGlyZWN0b3J5KCkgYXMgdG1wX291dDoKICAgICAgICAgICAgaHRtbF9wYXRoID0gb3MucGF0aC5qb2luKHRtcF9vdXQsICJpbnRlcmFjdGl2ZS5odG1sIikKICAgICAgICAgICAgZXhwb3J0X2dyYXBoKGdyYXBoLCBodG1sX3BhdGgsIGNvbmZpZywgZW5naW5lPUVuZ2luZS5IVE1MKQogICAgCiAgICAgICAgICAgICMgTG9hZCB0aGUgZmlsZSBpbiB0aGUgYnJvd3NlcgogICAgICAgICAgICBwYWdlLmdvdG8oZiJmaWxlOi8ve29zLnBhdGguYWJzcGF0aChodG1sX3BhdGgpfSIpCiAgICAKICAgICAgICAgICAgIyBXYWl0IGZvciBDeXRvc2NhcGUgdG8gaW5pdGlhbGl6ZSAoY2hlY2tpbmcgd2luZG93LmN5R3JhcGgpCiAgICAgICAgICAgIHBhZ2Uud2FpdF9mb3JfZnVuY3Rpb24oInR5cGVvZiB3aW5kb3cuY3lHcmFwaCAhPT0gJ3VuZGVmaW5lZCciKQogICAgCiAgICAgICAgICAgICMgSGVscGVyIHRvIGdldCBub2RlIGNvbG9ycwogICAgICAgICAgICBkZWYgZ2V0X25vZGVfY29sb3JzKCk6CiAgICAgICAgICAgICAgICByZXR1cm4gcGFnZS5ldmFsdWF0ZSgid2luZG93LmN5R3JhcGgubm9kZXMoKS5tYXAobiA9PiBuLnN0eWxlKCdiYWNrZ3JvdW5kLWNvbG9yJykpIikKICAgIAogICAgICAgICAgICAjIDEuIFZlcmlmeSBpbml0aWFsIHN0YXRlIChhbGwgYmx1ZSAjMDA3YmZmIC0+IHJnYigwLCAxMjMsIDI1NSkpCiAgICAgICAgICAgIGluaXRpYWxfY29sb3JzID0gZ2V0X25vZGVfY29sb3JzKCkKICAgICAgICAgICAgIyBSZW1vdmUgc3BhY2VzIGZvciByb2J1c3QgY29tcGFyaXNvbgogICAgICAgICAgICBkZWYgbm9ybWFsaXplX3JnYihjKToKICAgICAgICAgICAgICAgIHJldHVybiBjLnJlcGxhY2UoIiAiLCAiIikKICAgICAgICAgICAgYXNzZXJ0IGFsbCgicmdiKDAsMTIzLDI1NSkiIGluIG5vcm1hbGl6ZV9yZ2IoYykgZm9yIGMgaW4gaW5pdGlhbF9jb2xvcnMpCiAgICAKICAgICAgICAgICAgIyAyLiBUb2dnbGUgJ0F1dGhvcnMnIG1vZGUKICAgICAgICAgICAgIyBDbGlja2luZyB0aGUgbGFiZWwgb3IgcmFkaW8gYnV0dG9uCiAgICAgICAgICAgIHBhZ2UuY2xpY2soIiNtb2RlLWF1dGhvcnMiKQogICAgCiAgICAgICAgICAgICMgVmVyaWZ5IGNvbG9ycyBjaGFuZ2VkCiAgICAgICAgICAgIHBhZ2Uud2FpdF9mb3JfdGltZW91dCgyMDApICMgU21hbGwgd2FpdCBmb3Igc3R5bGUgYXBwbGljYXRpb24KICAgICAgICAgICAgYXV0aG9yX2NvbG9ycyA9IGdldF9ub2RlX2NvbG9ycygpCiAgICAgICAgICAgIGFzc2VydCBhbnkoInJnYigwLDEyMywyNTUpIiBub3QgaW4gbm9ybWFsaXplX3JnYihjKSBmb3IgYyBpbiBhdXRob3JfY29sb3JzKQogICAgCiAgICAgICAgICAgICMgMy4gVG9nZ2xlICdXSVAnIG92ZXJsYXkKICAgICAgICAgICAgIyBGaXJzdCB2ZXJpZnkgaXQncyBPRkYgYnkgZGVmYXVsdCAoYm9yZGVyLXdpZHRoIHNob3VsZCBiZSAwKQogICAgICAgICAgICBkZWYgZ2V0X3dpcF9ib3JkZXJfd2lkdGhzKCk6CiAgICAgICAgICAgICAgICByZXR1cm4gcGFnZS5ldmFsdWF0ZSgKICAgICAgICAgICAgICAgICAgICAid2luZG93LmN5R3JhcGgubm9kZXMoKS5maWx0ZXIobiA9PiAobi5kYXRhKCd0YWdzJykgfHwgW10pLmluY2x1ZGVzKCd3aXAnKSkubWFwKG4gPT4gbi5zdHlsZSgnYm9yZGVyLXdpZHRoJykpIgogICAgICAgICAgICAgICAgKQogICAgCiAgICAgICAgICAgICMgRGVidWc6IGxpc3QgYWxsIGNoZWNrYm94IElEcwogICAgICAgICAgICBjaGVja2JveF9pZHMgPSBwYWdlLmV2YWx1YXRlKCJBcnJheS5mcm9tKGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3JBbGwoJ2lucHV0W3R5cGU9Y2hlY2tib3hdJykpLm1hcChlbCA9PiBlbC5pZCkiKQogICAgICAgICAgICBwcmludChmIkRFQlVHOiBDaGVja2JveCBJRHMgZm91bmQ6IHtjaGVja2JveF9pZHN9IikKICAgIAogICAgICAgICAgICBhc3NlcnQgYWxsKHcgPT0gIjBweCIgZm9yIHcgaW4gZ2V0X3dpcF9ib3JkZXJfd2lkdGhzKCkpCiAgICAKICAgICAgICAgICAgIyBUb2dnbGUgaXQgT04KPiAgICAgICAgICAgcGFnZS5jbGljaygiI292ZXJsYXktd2lwIikKCnRlc3RzL3Rlc3RfdWlfaW50ZXJhY3RpdmUucHk6OTA6IApfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfCi52ZW52L2xpYi9weXRob24zLjEzL3NpdGUtcGFja2FnZXMvcGxheXdyaWdodC9zeW5jX2FwaS9fZ2VuZXJhdGVkLnB5Ojk5NjI6IGluIGNsaWNrCiAgICBzZWxmLl9zeW5jKAoudmVudi9saWIvcHl0aG9uMy4xMy9zaXRlLXBhY2thZ2VzL3BsYXl3cmlnaHQvX2ltcGwvX3BhZ2UucHk6ODU0OiBpbiBjbGljawogICAgcmV0dXJuIGF3YWl0IHNlbGYuX21haW5fZnJhbWUuX2NsaWNrKCoqbG9jYWxzX3RvX3BhcmFtcyhsb2NhbHMoKSkpCiAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4KLnZlbnYvbGliL3B5dGhvbjMuMTMvc2l0ZS1wYWNrYWdlcy9wbGF5d3JpZ2h0L19pbXBsL19mcmFtZS5weTo1NjY6IGluIF9jbGljawogICAgYXdhaXQgc2VsZi5fY2hhbm5lbC5zZW5kKCJjbGljayIsIHNlbGYuX3RpbWVvdXQsIGxvY2Fsc190b19wYXJhbXMobG9jYWxzKCkpKQoudmVudi9saWIvcHl0aG9uMy4xMy9zaXRlLXBhY2thZ2VzL3BsYXl3cmlnaHQvX2ltcGwvX2Nvbm5lY3Rpb24ucHk6Njk6IGluIHNlbmQKICAgIHJldHVybiBhd2FpdCBzZWxmLl9jb25uZWN0aW9uLndyYXBfYXBpX2NhbGwoCl8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8gXyBfIF8KCnNlbGYgPSA8cGxheXdyaWdodC5faW1wbC5fY29ubmVjdGlvbi5Db25uZWN0aW9uIG9iamVjdCBhdCAweDdiYmU0ZWUzZDdmMD4sIGNiID0gPGZ1bmN0aW9uIENoYW5uZWwuc2VuZC48bG9jYWxzPi48bGFtYmRhPiBhdCAweDdiYmU0ZTM0ZTQ4MD4sIGlzX2ludGVybmFsID0gRmFsc2UKdGl0bGUgPSBOb25lCgogICAgYXN5bmMgZGVmIHdyYXBfYXBpX2NhbGwoCiAgICAgICAgc2VsZiwgY2I6IENhbGxhYmxlW1tdLCBBbnldLCBpc19pbnRlcm5hbDogYm9vbCA9IEZhbHNlLCB0aXRsZTogc3RyID0gTm9uZQogICAgKSAtPiBBbnk6CiAgICAgICAgaWYgc2VsZi5fYXBpX3pvbmUuZ2V0KCk6CiAgICAgICAgICAgIHJldHVybiBhd2FpdCBjYigpCiAgICAgICAgdGFzayA9IGFzeW5jaW8uY3VycmVudF90YXNrKHNlbGYuX2xvb3ApCiAgICAgICAgc3Q6IExpc3RbaW5zcGVjdC5GcmFtZUluZm9dID0gZ2V0YXR0cigKICAgICAgICAgICAgdGFzaywgIl9fcHdfc3RhY2tfXyIsIE5vbmUKICAgICAgICApIG9yIGluc3BlY3Quc3RhY2soMCkKICAgIAogICAgICAgIHBhcnNlZF9zdCA9IF9leHRyYWN0X3N0YWNrX3RyYWNlX2luZm9ybWF0aW9uX2Zyb21fc3RhY2soc3QsIGlzX2ludGVybmFsLCB0aXRsZSkKICAgICAgICBzZWxmLl9hcGlfem9uZS5zZXQocGFyc2VkX3N0KQogICAgICAgIHRyeToKICAgICAgICAgICAgcmV0dXJuIGF3YWl0IGNiKCkKICAgICAgICBleGNlcHQgRXhjZXB0aW9uIGFzIGVycm9yOgo+ICAgICAgICAgICByYWlzZSByZXdyaXRlX2Vycm9yKGVycm9yLCBmIntwYXJzZWRfc3RbJ2FwaU5hbWUnXX06IHtlcnJvcn0iKSBmcm9tIE5vbmU=', this)" title="Copy trace">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                     </svg>
                 </button>
             
-                    <pre>test_repo = '/tmp/tmpzmxd0z_7'
+                    <pre>messy_repo = '/tmp/tmpaptlthfv', page = <Page url='file:///tmp/tmpag2y6q93/interactive.html'>
 
-    def test_longevity_mismatch_detection(test_repo):
-        # 1. Create a commit now
-        subprocess.run(
-            ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
-        )
-        with open(os.path.join(test_repo, "late.txt"), "w") as f:
-            f.write("late")
-        subprocess.run(["git", "add", "late.txt"], cwd=test_repo, check=True)
-        subprocess.run(["git", "commit", "-m", "feat: PROJ-OLD finally started"], cwd=test_repo, check=True)
+    @pytest.mark.ui
+    def test_interactivity_toggling(messy_repo, page):
+        """Test that clicking legend items updates the Cytoscape visuals using Playwright."""
+        config = GitLogConfig(engine=Engine.HTML)
+        graph = process_repo(messy_repo, config)
     
-        # 2. Mock Issue created 30 days ago
-        from datetime import datetime, timedelta, timezone
+        with tempfile.TemporaryDirectory() as tmp_out:
+            html_path = os.path.join(tmp_out, "interactive.html")
+            export_graph(graph, html_path, config, engine=Engine.HTML)
     
-        old_date = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+            # Load the file in the browser
+            page.goto(f"file://{os.path.abspath(html_path)}")
     
-        from git_graphable.issues import IssueInfo, IssueStatus
-        with patch("git_graphable.issues.get_issue_engine") as mock_get_engine:
-            mock_engine = MagicMock()
-            mock_engine.get_issue_info.return_value = {
-                "PROJ-OLD": IssueInfo(
-                    id="PROJ-OLD", status=IssueStatus.OPEN, created_at=old_date
+            # Wait for Cytoscape to initialize (checking window.cyGraph)
+            page.wait_for_function("typeof window.cyGraph !== 'undefined'")
+    
+            # Helper to get node colors
+            def get_node_colors():
+                return page.evaluate("window.cyGraph.nodes().map(n => n.style('background-color'))")
+    
+            # 1. Verify initial state (all blue #007bff -> rgb(0, 123, 255))
+            initial_colors = get_node_colors()
+            # Remove spaces for robust comparison
+            def normalize_rgb(c):
+                return c.replace(" ", "")
+            assert all("rgb(0,123,255)" in normalize_rgb(c) for c in initial_colors)
+    
+            # 2. Toggle 'Authors' mode
+            # Clicking the label or radio button
+            page.click("#mode-authors")
+    
+            # Verify colors changed
+            page.wait_for_timeout(200) # Small wait for style application
+            author_colors = get_node_colors()
+            assert any("rgb(0,123,255)" not in normalize_rgb(c) for c in author_colors)
+    
+            # 3. Toggle 'WIP' overlay
+            # First verify it's OFF by default (border-width should be 0)
+            def get_wip_border_widths():
+                return page.evaluate(
+                    "window.cyGraph.nodes().filter(n => (n.data('tags') || []).includes('wip')).map(n => n.style('border-width'))"
                 )
-            }
-            mock_get_engine.return_value = mock_engine
     
-            config = GitLogConfig(
-                highlight_longevity_mismatch=True,
-                issue_pattern=r"PROJ-[A-Z]+",
-                issue_engine="jira",
-                longevity_threshold_days=14
-            )
+            # Debug: list all checkbox IDs
+            checkbox_ids = page.evaluate("Array.from(document.querySelectorAll('input[type=checkbox]')).map(el => el.id)")
+            print(f"DEBUG: Checkbox IDs found: {checkbox_ids}")
     
-            graph = process_repo(test_repo, config)
+            assert all(w == "0px" for w in get_wip_border_widths())
     
-            # Explicitly apply highlights
-            from git_graphable.highlighter import apply_highlights
-            apply_highlights(graph, config, repo_path=test_repo)
+            # Toggle it ON
+>           page.click("#overlay-wip")
+
+tests/test_ui_interactive.py:90: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+.venv/lib/python3.13/site-packages/playwright/sync_api/_generated.py:9962: in click
+    self._sync(
+.venv/lib/python3.13/site-packages/playwright/_impl/_page.py:854: in click
+    return await self._main_frame._click(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/playwright/_impl/_frame.py:566: in _click
+    await self._channel.send("click", self._timeout, locals_to_params(locals()))
+.venv/lib/python3.13/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <playwright._impl._connection.Connection object at 0x7bbe4ee3d7f0>, cb = <function Channel.send.<locals>.<lambda> at 0x7bbe4e34e480>, is_internal = False
+title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
     
-            mismatches = [c for c in graph if c.is_tagged(Tag.LONGEVITY_MISMATCH.value)]
->           assert len(mismatches) >= 1</pre></div>
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None</pre></div>
                     
         
         
         
+                    <div><strong>Logs:</strong> <button class="inline-copy-btn" onclick="event.stopPropagation(); copyFromBase64('RXhwb3J0aW5nIEludGVyYWN0aXZlIEhUTUwgdG86IC90bXAvdG1wYWcyeTZxOTMvaW50ZXJhY3RpdmUuaHRtbA==', this)" title="Copy logs">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+            
+                    <pre>Exporting Interactive HTML to: /tmp/tmpag2y6q93/interactive.html</pre></div>
+                    
       </div>
-      
+      <div class="details-screenshot"><img src="screenshots/test_interactivity_toggling_chromium__failure.png" alt="Screenshot" onclick="toggleFullscreen(this)"></div>
     </div>
   </div>
 </div>

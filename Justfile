@@ -77,7 +77,15 @@ lint:
 
 [group('qa')]
 @test *args:
-    uv run -m pytest --git-branch {{ GIT_BRANCH }} --git-commit {{ GIT_COMMIT }} --html-output htmlrep -n auto --should-open-report never {{ args }}
+    uv run -m pytest --git-branch {{ GIT_BRANCH }} --git-commit {{ GIT_COMMIT }} --html-output htmlrep -n auto --should-open-report never -m "not ui" {{ args }}
+
+[group('qa')]
+install-ui:
+    uv run --group ui playwright install chromium
+
+[group('qa')]
+@test-ui *args:
+    uv run --group ui -m pytest --git-branch {{ GIT_BRANCH }} --git-commit {{ GIT_COMMIT }} --html-output htmlrep -n 1 --should-open-report never -m "ui" {{ args }}
 
 [group('qa')]
 [group('view')]
