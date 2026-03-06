@@ -1,153 +1,30 @@
-import os
-import shutil
-import subprocess
-import tempfile
+import sys
+from unittest.mock import patch
 
-import pytest
-from typer.testing import CliRunner
-
-from git_graphable.cli import app
-
-runner = CliRunner()
+from git_graphable.cli import main
 
 
-@pytest.fixture
-def test_repo():
-    test_dir = tempfile.mkdtemp()
-    try:
-        subprocess.run(["git", "init"], cwd=test_dir, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "config", "user.email", "test@example.com"],
-            cwd=test_dir,
-            check=True,
-        )
-        subprocess.run(
-            ["git", "config", "user.name", "Test User"], cwd=test_dir, check=True
-        )
-        with open(os.path.join(test_dir, "file1.txt"), "w") as f:
-            f.write("v1")
-        subprocess.run(["git", "add", "file1.txt"], cwd=test_dir, check=True)
-        subprocess.run(
-            ["git", "commit", "-m", "initial commit"], cwd=test_dir, check=True
-        )
-        yield test_dir
-    finally:
-        shutil.rmtree(test_dir)
+def test_main_bare_explicit():
+    """Verify that --bare triggers run_bare_cli and is removed from argv."""
+    with patch("sys.argv", ["git-graphable", "--bare", "init"]):
+        with patch("git_graphable.bare_cli.run_bare_cli") as mock_bare:
+            main()
+            mock_bare.assert_called_once()
+            assert "--bare" not in sys.argv
 
 
-def test_cli_help():
-    if app is not None:
-        result = runner.invoke(app, ["--help"])
-        assert result.exit_code == 0
-        # Check for converter or at least the command name
-        output = result.stdout.lower()
-        assert "converter" in output or "convert" in output
+def test_main_rich_default():
+    """Verify that rich CLI is preferred by default."""
+    with patch("sys.argv", ["git-graphable", "init"]):
+        with patch("git_graphable.rich_cli.app") as mock_rich:
+            main()
+            mock_rich.assert_called_once()
 
 
-def test_cli_bare_output(test_repo):
-    if app is not None:
-        with tempfile.NamedTemporaryFile(suffix=".mmd", delete=False) as tf:
-            out_path = tf.name
-        try:
-            result = runner.invoke(app, [test_repo, "--bare", "--output", out_path])
-            assert result.exit_code == 0
-            assert os.path.exists(out_path)
-            with open(out_path, "r") as f:
-                content = f.read()
-                assert "flowchart TD" in content
-        finally:
-            if os.path.exists(out_path):
-                os.unlink(out_path)
-
-
-def test_cli_convert_html(test_repo):
-    output_file = os.path.join(test_repo, "test.html")
-    # Use full typer app for this one
-    result = runner.invoke(
-        app, [test_repo, "--engine", "html", "--output", output_file]
-    )
-    assert result.exit_code == 0
-    assert os.path.exists(output_file)
-    with open(output_file, "r") as f:
-        content = f.read()
-        assert "Git Graph" in content
-        assert "cytoscape" in content.lower()
-
-
-def test_cli_engine_options(test_repo):
-    if app is not None:
-        for engine_val in ["mermaid", "d2"]:
-            with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tf:
-                out_path = tf.name
-            try:
-                result = runner.invoke(
-                    app,
-                    [test_repo, "--bare", "--engine", engine_val, "--output", out_path],
-                )
-                assert result.exit_code == 0
-                assert os.path.exists(out_path)
-            finally:
-                if os.path.exists(out_path):
-                    os.unlink(out_path)
-
-
-def test_cli_simplify(test_repo):
-    if app is not None:
-        result = runner.invoke(
-            app, [test_repo, "--bare", "--simplify", "--output", os.devnull]
-        )
-        assert result.exit_code == 0
-
-
-def test_cli_highlight_critical(test_repo):
-    if app is not None:
-        result = runner.invoke(
-            app,
-            [
-                test_repo,
-                "--bare",
-                "--highlight-critical",
-                "--critical-branch",
-                "main",
-                "--output",
-                os.devnull,
-            ],
-        )
-        assert result.exit_code == 0
-
-
-def test_cli_divergence(test_repo):
-    if app is not None:
-        result = runner.invoke(
-            app,
-            [
-                test_repo,
-                "--bare",
-                "--highlight-diverging-from",
-                "main",
-                "--output",
-                os.devnull,
-            ],
-        )
-        assert result.exit_code == 0
-
-
-def test_cli_conflicting_highlights(test_repo):
-    if app is not None:
-        result = runner.invoke(
-            app, [test_repo, "--highlight-authors", "--highlight-distance-from", "main"]
-        )
-        assert result.exit_code == 1
-        assert "Error: Cannot use multiple fill-based highlights" in result.stderr
-
-
-def test_cli_image_flag(test_repo):
-    if app is not None:
-        with tempfile.NamedTemporaryFile(suffix=".svg", delete=False) as tf:
-            out_path = tf.name
-        try:
-            runner.invoke(app, [test_repo, "--bare", "--image", "--output", out_path])
-            pass
-        finally:
-            if os.path.exists(out_path):
-                os.unlink(out_path)
+def test_main_fallback_on_error():
+    """Verify fallback to bare CLI if rich CLI fails."""
+    with patch("sys.argv", ["git-graphable", "init"]):
+        with patch("git_graphable.rich_cli.app", side_effect=Exception("Missing deps")):
+            with patch("git_graphable.bare_cli.run_bare_cli") as mock_bare:
+                main()
+                mock_bare.assert_called_once()

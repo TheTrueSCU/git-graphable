@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
 
       - name: Install uv
         uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
@@ -31,3 +33,9 @@ jobs:
 
       - name: Run checks
         run: just check
+
+      - name: Git Graph Reports
+        uses: ./.github/actions/git-graphable
+        with:
+          production_branch: 'main'
+          output_dir: 'git-graph-reports'

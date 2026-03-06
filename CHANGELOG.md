@@ -4,17 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-03-05
+
 ### Added
 - **Interactive HTML Viewer**: New `--engine html` output that generates a self-contained interactive graph using Cytoscape.js.
     - Includes searchable nodes and a details sidebar with live highlight toggling.
     - Preserves all visual themes and highlighting styles.
     - Lightweight and portable with zero local dependencies.
+- **Performance Optimizations**:
+    - **Parallel Log Parsing**: Parallelized `GitCommit` instantiation using `ProcessPoolExecutor` for large repositories.
+    - **Parallel Hygiene Scoring**: Concurrent execution of hygiene checks using `ThreadPoolExecutor` for faster report generation.
 - **Robust Distance/Divergence Highlights**: Enhanced visualization of branch distance and divergence with clearer legend labels.
 - **Remote URL Support**: Restored and improved ability to pass remote Git URLs (HTTPS/SSH) as the repository path.
 - **Comprehensive UI Testing**: Integrated Playwright for automated browser-based UI testing of the interactive graph.
 
 ### Changed
 - **Decoupled Hygiene Scoring**: Scoring logic is now independent of visual highlighting options, allowing for more granular configuration.
+- **Template System Refactor**: Extracted large HTML/JS blocks into `src/git_graphable/templates.py` for improved maintainability.
 - **Removed PlantUML Support**: Support for PlantUML has been removed in favor of more customizable engines (Mermaid, D2, HTML).
 
 ## [0.3.0] - 2026-03-05

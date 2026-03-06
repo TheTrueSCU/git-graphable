@@ -519,21 +519,22 @@ def test_cli_check_mode(test_repo):
 
     from typer.testing import CliRunner
 
-    from git_graphable.cli import app
+    from git_graphable.rich_cli import app
 
     assert app is not None
     runner = CliRunner()
 
     # 1. Should fail with high min-score
     result = runner.invoke(
-        app, [test_repo, "--check", "--min-score", "99", "--bare", "--highlight-wip"]
+        app, ["analyze", test_repo, "--check", "--min-score", "99", "--highlight-wip"]
     )
     assert result.exit_code != 0
     assert "Error: Hygiene score" in result.output
 
     # 2. Should pass with low min-score
     result = runner.invoke(
-        app, [test_repo, "--check", "--min-score", "10", "--bare", "--highlight-wip"]
+        app, ["analyze", test_repo, "--check", "--min-score", "50", "--highlight-wip"]
     )
+
     assert result.exit_code == 0
     assert "Success: Hygiene score" in result.output

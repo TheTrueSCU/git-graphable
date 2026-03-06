@@ -1,13 +1,13 @@
 # Git Graphable Examples
 
-This page demonstrates the visual output and hygiene analysis of `git-graphable` using generated example repositories.
+This page demonstrates the visual output and hygiene analysis of `git-graphable analyze` using generated example repositories.
 
 ## 1. Pristine Repository (Score: 100%)
 Demonstrates a clean, PR-based workflow with multi-author highlighting and critical branch marking.
 
 **Command:**
 ```bash
-git-graphable repo-pristine --highlight-critical --critical-branch main --highlight-authors
+git-graphable analyze repo-pristine --highlight-critical --critical-branch main --highlight-authors
 ```
 
 **Output:**
@@ -40,7 +40,7 @@ Demonstrates common hygiene issues: WIP commits, direct pushes to protected bran
 
 **Command:**
 ```bash
-git-graphable repo-messy --highlight-wip --highlight-direct-pushes --highlight-stale
+git-graphable analyze repo-messy --highlight-wip --highlight-direct-pushes --highlight-stale
 ```
 
 **Output:**
@@ -73,7 +73,7 @@ Highlights branches with many commits but only one contributor. This indicates a
 
 **Command:**
 ```bash
-git-graphable repo-risk-silo --highlight-silos --silo-threshold 20
+git-graphable analyze repo-risk-silo --highlight-silos --silo-threshold 20
 ```
 
 **Output:**
@@ -140,7 +140,7 @@ Highlights redundant back-merges.
 
 **Command:**
 ```bash
-git-graphable repo-complex-hygiene --highlight-back-merges
+git-graphable analyze repo-complex-hygiene --highlight-back-merges
 ```
 
 **Output:**
@@ -172,7 +172,7 @@ Highlights desyncs between Git and external trackers (Jira, GitHub Issues).
 
 **Command:**
 ```bash
-git-graphable repo-issue-desync --highlight-issue-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED"
+git-graphable analyze repo-issue-desync --highlight-issue-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED"
 ```
 
 **Output:**
@@ -190,7 +190,7 @@ Highlights issues marked as "Released" in the tracker but not yet reachable from
 
 **Command:**
 ```bash
-git-graphable repo-release-desync --highlight-release-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED"
+git-graphable analyze repo-release-desync --highlight-release-inconsistencies --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo CLOSED"
 ```
 
 **Output:**
@@ -210,7 +210,7 @@ Highlights when the Git commit author doesn't match the assigned issue owner in 
 
 **Command:**
 ```bash
-git-graphable repo-collab-gap --highlight-collaboration-gaps --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo OPEN,Bob"
+git-graphable analyze repo-collab-gap --highlight-collaboration-gaps --issue-pattern "PROJ-[0-9]+" --issue-engine script --issue-script "echo OPEN,Bob"
 ```
 
 **Output:**
@@ -228,7 +228,7 @@ Demonstrates features like orphan/dangling commits and divergence.
 
 **Command:**
 ```bash
-git-graphable repo-features --highlight-orphans --highlight-diverging-from main
+git-graphable analyze repo-features --highlight-orphans --highlight-diverging-from main
 ```
 
 **Output:**
@@ -247,11 +247,11 @@ style ebeaa6afb7b85a2d84d8aa5279ca3ad50f54a987 stroke:orange,stroke-width:2px,st
 ---
 
 ## 9. CI Mode (Gating)
-Demonstrates how to use `git-graphable` as a CI gate.
+Demonstrates how to use `git-graphable analyze` as a CI gate.
 
 **Command (Fails):**
 ```bash
-git-graphable repo-messy --check --min-score 80 --bare --highlight-wip --highlight-direct-pushes
+git-graphable analyze repo-messy --check --min-score 80 --highlight-wip --highlight-direct-pushes
 ```
 
 **Output:**
@@ -266,7 +266,7 @@ The HTML engine produces a self-contained, interactive visualization with a live
 
 **Command:**
 ```bash
-git-graphable repo-messy --engine html -o graph.html
+git-graphable analyze repo-messy --engine html -o graph.html
 ```
 
 **Key Features:**

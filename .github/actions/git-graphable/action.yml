@@ -1,0 +1,67 @@
+name: 'Git Graphable'
+description: 'Generate interactive Git hygiene graphs and reports.'
+author: 'TheTrueSCU'
+branding:
+  icon: 'activity'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'Path to the git repository'
+    required: false
+    default: '.'
+  production_branch:
+    description: 'The main production branch (e.g. main, master)'
+    required: false
+    default: 'main'
+  issue_engine:
+    description: 'Issue tracker engine (github or jira)'
+    required: false
+  github_token:
+    description: 'GitHub token for issue integration'
+    required: false
+    default: ${{ github.token }}
+  output_dir:
+    description: 'Directory to save the generated reports'
+    required: false
+    default: 'git-graph-reports'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Install git-graphable
+      shell: bash
+      run: uv tool install git-graphable
+
+    - name: Create output directory
+      shell: bash
+      run: mkdir -p ${{ inputs.output_dir }}
+
+    - name: Generate Simplified Graph (Mermaid)
+      shell: bash
+      run: |
+        ARGS="--production-branch ${{ inputs.production_branch }} --simplify --engine mermaid -o ${{ inputs.output_dir }}/summary.mmd"
+        if [ -n "${{ inputs.issue_engine }}" ]; then ARGS="$ARGS --issue-engine ${{ inputs.issue_engine }}"; fi
+        uv tool run git-graphable ${{ inputs.path }} $ARGS
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Generate Full Interactive Graph (HTML)
+      shell: bash
+      run: |
+        ARGS="--production-branch ${{ inputs.production_branch }} --engine html -o ${{ inputs.output_dir }}/graph.html"
+        if [ -n "${{ inputs.issue_engine }}" ]; then ARGS="$ARGS --issue-engine ${{ inputs.issue_engine }}"; fi
+        uv tool run git-graphable ${{ inputs.path }} $ARGS
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Upload Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: git-graph-reports
+        path: ${{ inputs.output_dir }}

@@ -1,12 +1,23 @@
 # `git-graphable`
 
-Git graph to Mermaid/Graphviz/D2/HTML converter.
+Git history hygiene analyzer and visualizer.
 
-**Usage**:
+## Usage
 
 ```console
-$ git-graphable [OPTIONS] PATH
+$ git-graphable [COMMAND] [ARGS]...
 ```
+
+**Commands**:
+
+* `analyze`: Analyze git history and generate a graph (default).
+* `init`: Initialize a default `.git-graphable.toml` configuration file.
+
+---
+
+## `analyze`
+
+Analyze git history and generate a graph. This is the default command; if no command is specified, `analyze` is assumed.
 
 **Arguments**:
 
@@ -17,13 +28,13 @@ $ git-graphable [OPTIONS] PATH
 * `--config TEXT`: Path to TOML configuration file
 * `--production-branch TEXT`: Production branch name (e.g. main, master)
 * `--development-branch TEXT`: Development branch name (e.g. develop, main)
-* `--date-format TEXT`: Date format for commit labels  [default: %Y%m%d%H%M%S]
+* `--date-format TEXT`: Date format for commit labels
 * `--engine [mermaid|graphviz|d2|html]`: Visualization engine.
     *   **mermaid**: Static text export (default).
     *   **graphviz**: Static text export.
     *   **d2**: Static text export.
-    *   **html**: **Interactive HTML Viewer**. Generates a self-contained file with a searchable graph, details sidebar, and a **dynamic legend** to toggle all highlight modes on/off. Note: HTML mode automatically runs all hygiene highlighters to populate metadata for the browser.
-* `-o, --output TEXT`: Output file path. If no output is provided, a temporary file is created and opened automatically in your default browser/viewer.
+    *   **html**: **Interactive HTML Viewer**. Generates a self-contained file with a searchable graph, details sidebar, and a **dynamic legend** to toggle all highlight modes on/off.
+* `-o, --output TEXT`: Output file path. If no output is provided, a temporary file is created and opened automatically.
 * `--image`: Export as image even when output path is provided
 * `--simplify`: Pass --simplify-by-decoration to git log
 * `--limit INTEGER`: Limit the number of commits to process
@@ -63,6 +74,16 @@ $ git-graphable [OPTIONS] PATH
 * `--check`: Exit with non-zero if hygiene score is below threshold
 * `--min-score INTEGER`: Minimum hygiene score required for --check
 * `--bare`: Force bare mode (no rich output)
-* `--install-completion`: Install completion for the current shell.
-* `--show-completion`: Show completion for the current shell, to copy it or customize the installation.
+* `--help`: Show this message and exit.
+
+---
+
+## `init`
+
+Initialize a default `.git-graphable.toml` configuration file.
+
+**Options**:
+
+* `-o, --output TEXT`: Path to create the config file  [default: .git-graphable.toml]
+* `-f, --force`: Overwrite existing config file
 * `--help`: Show this message and exit.
