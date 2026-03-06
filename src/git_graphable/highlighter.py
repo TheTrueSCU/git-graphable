@@ -151,6 +151,10 @@ def _apply_issue_highlights(
 
     base_branch = config.development_branch
     base_tip = find_node(base_branch)
+    if not base_tip:
+        base_branch = config.production_branch
+        base_tip = find_node(base_branch)
+
     base_reach = set()
     if base_tip:
         base_reach = set(graph.ancestors(base_tip))
@@ -240,6 +244,11 @@ def _apply_silo_highlights(
     base_branch = config.development_branch
     base_tip = find_base_tip(base_branch)
     if not base_tip:
+        # Fallback to production branch
+        base_branch = config.production_branch
+        base_tip = find_base_tip(base_branch)
+
+    if not base_tip:
         return
 
     base_reach = set(graph.ancestors(base_tip))
@@ -278,6 +287,11 @@ def _apply_back_merge_highlights(
 
     base_branch = config.development_branch
     base_tip = find_base_tip(base_branch)
+    if not base_tip:
+        # Fallback to production branch
+        base_branch = config.production_branch
+        base_tip = find_base_tip(base_branch)
+
     if not base_tip:
         return
 
@@ -658,6 +672,10 @@ def _apply_long_running_highlights(
 
     base_branch = config.long_running_base or config.development_branch
     base_tip = find_base_tip(base_branch)
+    if not base_tip and not config.long_running_base:
+        base_branch = config.production_branch
+        base_tip = find_base_tip(base_branch)
+
     if base_tip:
         base_reach = set(graph.ancestors(base_tip))
         base_reach.add(base_tip)
