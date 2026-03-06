@@ -97,6 +97,18 @@ class ThemeConfig:
     contributor_silo: StyleInfo = field(
         default_factory=lambda: StyleInfo(stroke="blue", width=6)
     )
+    issue_inconsistency: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="orange", width=4)
+    )
+    release_inconsistency: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="red", width=2, dash="dashed")
+    )
+    collaboration_gap: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="purple", width=4, dash="dotted")
+    )
+    longevity_mismatch: StyleInfo = field(
+        default_factory=lambda: StyleInfo(stroke="brown", width=3)
+    )
 
     # PR Status Fills
     pr_open: StyleInfo = field(default_factory=lambda: StyleInfo(fill="#28a745"))

@@ -311,6 +311,10 @@ def _get_cytoscape_stylesheet(config: GitLogConfig) -> List[Dict[str, Any]]:
         Tag.DIRECT_PUSH.value: theme.direct_push,
         Tag.BACK_MERGE.value: theme.back_merge,
         Tag.CONTRIBUTOR_SILO.value: theme.contributor_silo,
+        Tag.ISSUE_INCONSISTENCY.value: theme.issue_inconsistency,
+        Tag.RELEASE_INCONSISTENCY.value: theme.release_inconsistency,
+        Tag.COLLABORATION_GAP.value: theme.collaboration_gap,
+        Tag.LONGEVITY_MISMATCH.value: theme.longevity_mismatch,
     }
 
     for tag, style in tag_styles.items():

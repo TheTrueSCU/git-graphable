@@ -1,118 +1,83 @@
 import os
-import shutil
 import subprocess
 import tempfile
-
+import shutil
 import pytest
-
+from pathlib import Path
 from git_graphable.core import Engine, GitLogConfig, process_repo
 from git_graphable.styler import export_graph
 
+EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
+REPOS_DIR = EXAMPLES_DIR / "repos"
 
-@pytest.fixture
-def messy_repo():
-    """Create a repository with various hygiene issues."""
-    test_dir = tempfile.mkdtemp()
-
-    def run_git(args):
-        subprocess.run(["git"] + args, cwd=test_dir, check=True, capture_output=True)
-
-    try:
-        run_git(["init", "-b", "main"])
-        run_git(["config", "user.email", "test@example.com"])
-        run_git(["config", "user.name", "Test User"])
-        run_git(["config", "commit.gpgsign", "false"])
-
-        # 1. Root commit
-        with open(os.path.join(test_dir, "README.md"), "w") as f:
-            f.write("# Test Repo")
-        run_git(["add", "README.md"])
-        run_git(["commit", "-m", "initial commit"])
-
-        # 2. WIP commit
-        run_git(["checkout", "-b", "feature/wip"])
-        with open(os.path.join(test_dir, "wip.txt"), "w") as f:
-            f.write("wip")
-        run_git(["add", "wip.txt"])
-        run_git(["commit", "-m", "WIP: work in progress"])
-
-        yield test_dir
-    finally:
-        shutil.rmtree(test_dir)
-
+def normalize_rgb(c):
+    return c.replace(" ", "")
 
 @pytest.mark.ui
-def test_interactivity_toggling(messy_repo, page):
-    """Test that clicking legend items updates the Cytoscape visuals using Playwright."""
+@pytest.mark.parametrize("repo_name, mode_id, expected_tag", [
+    ("repo-pristine", "mode-authors", "author_highlight:"),
+    ("repo-messy", "overlay-wip", "wip"),
+    ("repo-risk-silo", "overlay-contributor_silo", "contributor_silo"),
+])
+def test_example_repo_interactivity(repo_name, mode_id, expected_tag, page):
+    """Test interactivity for specific modes across multiple example repositories."""
+    repo_path = str(REPOS_DIR / repo_name)
+    if not os.path.exists(repo_path):
+        pytest.skip(f"Example repo {repo_name} not found")
+
     config = GitLogConfig(engine=Engine.HTML)
-    graph = process_repo(messy_repo, config)
-
+    graph = process_repo(repo_path, config)
+    
     with tempfile.TemporaryDirectory() as tmp_out:
-        html_path = os.path.join(tmp_out, "interactive.html")
+        html_path = os.path.join(tmp_out, f"{repo_name}_interactive.html")
         export_graph(graph, html_path, config, engine=Engine.HTML)
-
-        # Load the file in the browser
+        
         page.goto(f"file://{os.path.abspath(html_path)}")
-
-        # Wait for Cytoscape to initialize (checking window.cyGraph)
         page.wait_for_function("typeof window.cyGraph !== 'undefined'")
+        
+        # 1. Test Color Mode (Authors)
+        if mode_id == "mode-authors":
+            # Initial state: Default blue
+            colors = page.evaluate("window.cyGraph.nodes().map(n => n.style('background-color'))")
+            assert all("rgb(0,123,255)" in normalize_rgb(c) for c in colors)
+            
+            # Switch to Authors
+            page.click(f"#{mode_id}")
+            page.wait_for_timeout(300)
+            
+            # Verify diversity in colors
+            author_colors = page.evaluate("window.cyGraph.nodes().map(n => n.style('background-color'))")
+            assert any("rgb(0,123,255)" not in normalize_rgb(c) for c in author_colors)
 
-        # Helper to get node colors
-        def get_node_colors():
-            return page.evaluate(
-                "window.cyGraph.nodes().map(n => n.style('background-color'))"
-            )
-
-        def normalize_rgb(c):
-            return c.replace(" ", "")
-
-        # 1. Verify initial state (all blue #007bff -> rgb(0, 123, 255))
-        initial_colors = get_node_colors()
-        assert all("rgb(0,123,255)" in normalize_rgb(c) for c in initial_colors)
-
-        # 2. Toggle 'Authors' mode
-        # Clicking the radio button
-        page.click("#mode-authors")
-
-        # Verify colors changed
-        page.wait_for_timeout(300)  # Small wait for style application
-        author_colors = get_node_colors()
-        assert any("rgb(0,123,255)" not in normalize_rgb(c) for c in author_colors)
-
-        # 3. Toggle 'WIP' overlay
-        # First verify it's OFF by default (not yellow)
-        def get_wip_colors():
-            return page.evaluate(
-                "window.cyGraph.nodes().filter(n => (n.data('tags') || []).includes('wip')).map(n => n.style('background-color'))"
-            )
-
-        # Initially they should be the mode color (Authors mode is active)
-        assert all("rgb(255,255,0)" not in normalize_rgb(c) for c in get_wip_colors())
-
-        # Toggle it ON
-        page.click("#overlay-wip")
-
-        # Verify color is now yellow
-        page.wait_for_timeout(300)
-        assert any("rgb(255,255,0)" in normalize_rgb(c) for c in get_wip_colors())
-
-        # 4. Switch back to Default mode
-        page.click("#mode-none")
-        page.wait_for_timeout(300)
-
-        # Non-WIP nodes should be blue, WIP nodes should stay yellow
-        def get_all_node_data():
-            return page.evaluate("""
-                window.cyGraph.nodes().map(n => ({
-                    is_wip: (n.data('tags') || []).includes('wip'),
-                    color: n.style('background-color')
-                }))
-            """)
-
-        final_data = get_all_node_data()
-        for item in final_data:
-            color = normalize_rgb(item["color"])
-            if item["is_wip"]:
-                assert "rgb(255,255,0)" in color
-            else:
-                assert "rgb(0,123,255)" in color
+        # 2. Test Overlays (WIP / Silo)
+        elif mode_id.startswith("overlay-"):
+            tag = mode_id.replace("overlay-", "")
+            
+            # Initial state: Style should be default (e.g., no border or non-yellow background)
+            def get_tagged_styles():
+                return page.evaluate(f"""
+                    window.cyGraph.nodes().filter(n => (n.data('tags') || []).includes('{tag}'))
+                        .map(n => ({{ bg: n.style('background-color'), border: n.style('border-width') }}))
+                """)
+            
+            initial_styles = get_tagged_styles()
+            assert len(initial_styles) > 0, f"No nodes tagged with {tag} found in {repo_name}"
+            
+            # Verify style is NOT applied yet
+            for s in initial_styles:
+                if tag == "wip":
+                    assert "rgb(255,255,0)" not in normalize_rgb(s["bg"])
+                else:
+                    assert s["border"] == "0px"
+            
+            # Toggle overlay ON
+            page.click(f"#{mode_id}")
+            page.wait_for_timeout(300)
+            
+            # Verify style IS applied
+            updated_styles = get_tagged_styles()
+            for s in updated_styles:
+                if tag == "wip":
+                    assert "rgb(255,255,0)" in normalize_rgb(s["bg"])
+                else:
+                    assert int(s["border"].replace("px", "")) > 0

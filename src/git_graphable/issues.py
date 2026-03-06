@@ -160,8 +160,7 @@ class ScriptIssueEngine(IssueTracker):
 
 def get_issue_engine(config: Any) -> Optional[IssueTracker]:
     """Factory to create the appropriate engine based on config."""
-    engine_type = getattr(config, "issue_engine", "").lower()
-
+    engine_type = (getattr(config, "issue_engine", "") or "").lower()
     if engine_type == "github":
         return GitHubIssueEngine()
     elif engine_type == "jira":
