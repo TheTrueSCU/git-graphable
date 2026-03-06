@@ -54,6 +54,7 @@ uv run git-graphable init
 
 # Simplify the graph (only show branches/tags)
 uv run git-graphable analyze . --simplify
+```
 
 ## GitHub Action
 
