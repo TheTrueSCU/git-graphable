@@ -11,7 +11,7 @@ from .styler import export_graph
 def get_extension(engine: Engine, as_image: bool) -> str:
     """Get file extension for the given engine and export type."""
     if as_image:
-        return ".svg"  # Default to SVG for images
+        return ".png"  # Default to PNG for images
 
     extensions = {
         Engine.MERMAID: ".mmd",
