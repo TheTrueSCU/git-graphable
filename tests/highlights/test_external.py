@@ -46,8 +46,15 @@ def test_squash_merge_detection(test_repo):
         mergeable="MERGEABLE",
     )
 
-    with patch("git_graphable.highlights.external.get_repo_prs") as mock_get_prs:
-        mock_get_prs.return_value = [pr]
+    with patch(
+        "git_graphable.highlights.external.get_pr_provider"
+    ) as mock_get_provider:
+        mock_provider = MagicMock()
+        mock_provider.get_repo_prs.return_value = [pr]
+        mock_provider.map_prs_to_commits.side_effect = lambda prs: {
+            pr.head_ref_oid: pr for pr in prs
+        }
+        mock_get_provider.return_value = mock_provider
 
         config = GitLogConfig(highlight_squashed=True)
         graph = process_repo(test_repo, config)
@@ -96,10 +103,15 @@ def test_issue_inconsistency_detection(test_repo):
     from git_graphable.issues import IssueInfo, IssueStatus
 
     with (
-        patch("git_graphable.highlights.external.get_repo_prs") as mock_get_prs,
+        patch("git_graphable.highlights.external.get_pr_provider") as mock_get_provider,
         patch("git_graphable.highlights.external.get_issue_engine") as mock_get_engine,
     ):
-        mock_get_prs.return_value = [pr]
+        mock_provider = MagicMock()
+        mock_provider.get_repo_prs.return_value = [pr]
+        mock_provider.map_prs_to_commits.side_effect = lambda prs: {
+            p.head_ref_oid: p for p in prs
+        }
+        mock_get_provider.return_value = mock_provider
         mock_engine = MagicMock()
         mock_engine.get_issue_info.return_value = {
             "JIRA-123": IssueInfo(id="JIRA-123", status=IssueStatus.CLOSED)
@@ -298,8 +310,15 @@ def test_pr_status_highlighting(test_repo):
         mergeable="MERGEABLE",
     )
 
-    with patch("git_graphable.highlights.external.get_repo_prs") as mock_get_prs:
-        mock_get_prs.return_value = [pr]
+    with patch(
+        "git_graphable.highlights.external.get_pr_provider"
+    ) as mock_get_provider:
+        mock_provider = MagicMock()
+        mock_provider.get_repo_prs.return_value = [pr]
+        mock_provider.map_prs_to_commits.side_effect = lambda prs: {
+            p.head_ref_oid: p for p in prs
+        }
+        mock_get_provider.return_value = mock_provider
 
         config = GitLogConfig(highlight_pr_status=True)
         graph = process_repo(test_repo, config)
