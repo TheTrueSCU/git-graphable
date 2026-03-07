@@ -97,3 +97,29 @@ def test_rich_cli_conflicting_highlights(test_repo):
         "Error: Cannot use multiple fill-based highlights" in result.stdout
         or "Error: Cannot use multiple fill-based highlights" in result.stderr
     )
+
+
+def test_cli_check_mode(test_repo):
+    # Create a messy repo
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"], cwd=test_repo, check=True
+    )
+    with open(os.path.join(test_repo, "wip.txt"), "w") as f:
+        f.write("wip")
+    subprocess.run(["git", "add", "wip.txt"], cwd=test_repo, check=True)
+    subprocess.run(["git", "commit", "-m", "WIP: baked"], cwd=test_repo, check=True)
+
+    # 1. Should fail with high min-score
+    result = runner.invoke(
+        app, ["analyze", test_repo, "--check", "--min-score", "99", "--highlight-wip"]
+    )
+    assert result.exit_code != 0
+    assert "Error: Hygiene score" in result.output
+
+    # 2. Should pass with low min-score
+    result = runner.invoke(
+        app, ["analyze", test_repo, "--check", "--min-score", "50", "--highlight-wip"]
+    )
+
+    assert result.exit_code == 0
+    assert "Success: Hygiene score" in result.output
