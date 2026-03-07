@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from .base import PullRequestInfo, PullRequestProvider
 from .github import GitHubPullRequestProvider
+from .gitlab import GitLabPullRequestProvider
 from .script import ScriptPullRequestProvider
 
 
@@ -16,6 +17,8 @@ def get_pr_provider(config: Any) -> Optional[PullRequestProvider]:
 
     if provider_type == "github":
         return GitHubPullRequestProvider()
+    elif provider_type == "gitlab":
+        return GitLabPullRequestProvider()
     elif provider_type == "script":
         return ScriptPullRequestProvider(
             script_path=getattr(config, "pr_script", "") or ""
