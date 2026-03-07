@@ -76,6 +76,8 @@ Analyze git history and generate a graph. This is the default command; if no com
 * `--check`: Exit with non-zero if hygiene score is below threshold
 * `--min-score INTEGER`: Minimum hygiene score required for --check
 * `--bare`: Force bare mode (no rich output)
+* `--hygiene-output TEXT`: Path to save hygiene summary as JSON.
+* `--trust`: Trust configuration files (.git-graphable.toml, pyproject.toml) found in the repository. Required to execute custom scripts from these sources.
 * `--help`: Show this message and exit.
 
 ---

@@ -2,17 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.6.0] - 2026-MM-DD
+## [0.6.0] - 2026-03-06
 
 ### Added
 - **Native GitLab Support**: Added support for GitLab Merge Requests and Issues using the `glab` CLI.
 - **Pull Request Provider Abstraction**: Introduced a new `PullRequestProvider` interface, decoupling PR status logic from GitHub.
     - Added `GitHubPullRequestProvider` (default) using the `gh` CLI.
     - Added `ScriptPullRequestProvider` for custom script-based PR status lookups.
+- **Configuration Trust Mechanism**: Introduced a security layer for local repository configurations.
+    - Added `--trust` CLI flag to explicitly trust automatically loaded `.git-graphable.toml` or `pyproject.toml` files.
+    - Users are now warned when executing custom scripts from untrusted configurations.
 - **Dynamic Project Badges**:
     - Added automated generation of Shields.io-compatible JSON badges for **Git Hygiene** and **Code Coverage**.
     - Updated `README.md` to display live status from GitHub Pages.
     - Added `--hygiene-output <path>` to CLI for machine-readable (JSON) hygiene summaries.
+- **Improved Automatic Visualization**:
+    - Restored the behavior of automatically opening a graph if no output path is provided.
+    - Changed default automatic visualization export format from SVG to **PNG** for broader compatibility.
 - **Modular Architecture Refactor**: Substantially reorganized the codebase into specialized sub-packages for better maintainability:
     - `src/git_graphable/prs/`: Modular PR providers.
     - `src/git_graphable/issues/`: Modular issue tracker engines.
@@ -23,9 +29,15 @@ All notable changes to this project will be documented in this file.
 - **Reorganized Test Suite**: Refactored tests into a modular structure mirroring the source code, including a global `conftest.py` for shared fixtures.
 
 ### Fixed
-- **Security**: Resolved a critical command injection vulnerability in `ScriptIssueEngine` by properly escaping issue IDs using `shlex.quote`.
+- **Comprehensive Security Hardening**: 
+    - Protected against argument injection in `git clone`, `glab`, `gh`, and `git rev-list` commands using the `--` separator.
+    - Resolved potential path traversal and SSRF risks in Jira issue lookups by properly URL-encoding IDs.
+    - Corrected argument passing logic for `git log` limits.
+- **Mermaid Parser Reliability**: Fixed parsing errors in Mermaid graphs by substituting sensitive characters (brackets and parentheses) with visually similar full-width Unicode characters.
+- **CI Stability**: Fixed CI failures in GitHub Pages deployment by preventing automatic visualization triggers during badge generation.
 - **Naming Collisions**: Resolved pytest module collision issues by adding `__init__.py` files to test directories.
 - **Code Maintenance**: Updated `.gitignore` to prevent tracking of build artifacts and coverage data.
+
 
 ## [0.5.0] - 2026-03-06
 
