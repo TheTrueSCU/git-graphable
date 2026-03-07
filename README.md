@@ -21,18 +21,13 @@ Check out the tool in action with our **[Live Interactive Demos](https://thetrue
 ## Features
 
 - **Multi-Engine Support**: Export to Mermaid (.mmd), D2 (.d2), Graphviz (.dot), or HTML (.html).
-- **Automatic Visualization**: Generates and opens an image (SVG/PNG) automatically if no output is specified.
+- **Automatic Visualization**: Generates and opens an image (PNG) automatically if no output is specified.
 - **Advanced Highlighting**: Visualize author patterns, topological distance, and specific merge paths.
-- **GitHub Integration**: Highlight commits based on pull request status (Merged, Open, Closed, Draft) using the `gh` CLI.
+- **VCS Integration**: Highlight commits based on pull request/merge request status using `gh` (GitHub) or `glab` (GitLab) CLIs.
 - **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, squashed PRs, back-merges, and contributor silos.
-- **Issue Tracker Integration**: Connect to Jira, GitHub Issues, or custom scripts to highlight status desyncs.
-- **Release & Assignment Validation**: Verify that "Released" tickets are actually tagged in Git and that commit authors match ticket assignees.
-- **Health Scoring**: Get a numeric "Hygiene Score" (0-100%) with a color-coded grade and detailed breakdown of workflow anti-patterns.
-- **Visual Customization**: Fully customize colors, widths, and line styles for nodes and edges. See [STYLING.md](STYLING.md).
-- **Configurable Penalties**: Fully customize the scoring logic by adjusting penalties and caps for each metric.
-- **CI Gating**: Use the `--check` flag to return a non-zero exit code if the hygiene score falls below a threshold (configurable via `--min-score`).
-- **Flexible Input**: Works with local repository paths or remote Git URLs.
-- **Dual CLI**: Modern Rich/Typer interface with a robust argparse fallback for bare environments.
+- **Issue Tracker Integration**: Connect to Jira, GitHub Issues, GitLab Issues, or custom scripts to highlight status desyncs.
+- **Security First**: Configuration trust mechanism ensures custom scripts only run from trusted sources (use `--trust` to authorize local configs).
+- **Dynamic Badges**: Host live Shields.io badges for Git Hygiene and Code Coverage on GitHub Pages.
 
 ## Installation
 
@@ -76,7 +71,7 @@ jobs:
           fetch-depth: 0 # Required to see full history
 
       - name: Generate Git Graph Reports
-        uses: TheTrueSCU/git-graphable@v0.5.0
+        uses: TheTrueSCU/git-graphable@v0.6.0
         with:
           production_branch: 'main'
           output_dir: 'reports'
@@ -115,7 +110,7 @@ Git Graphable provides several ways to highlight commits and relationships. Mult
 | Option | Target | Effect | Conflicts With |
 | :--- | :--- | :--- | :--- |
 | `--highlight-authors` | **Fill** | Unique color per author | PR Status, Distance, Stale |
-| `--highlight-pr-status` | **Fill/Stroke**| Color by PR state (Merged=Purple, Open=Green) | Authors, Distance, Stale |
+| `--highlight-pr-status` | **Fill/Stroke**| Color by PR/MR state (Merged=Purple, Open=Green) | Authors, Distance, Stale |
 | `--highlight-distance-from` | **Fill** | Blue gradient fading by distance | Authors, PR Status, Stale |
 | `--highlight-stale` | **Fill** | Gradient white to red by age | Authors, PR Status, Distance |
 | `--highlight-path` | **Edge** | Thick Orange edge connecting nodes | None |
