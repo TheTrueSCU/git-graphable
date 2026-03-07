@@ -76,7 +76,7 @@ def get_git_log(repo_path: str, config: GitLogConfig) -> Dict[str, GitCommit]:
     if config.simplify:
         args.append("--simplify-by-decoration")
     if config.limit:
-        args.append(f"-n {config.limit}")
+        args.extend(["-n", str(config.limit)])
 
     output = run_git_command(args, cwd=repo_path)
     lines = output.split("\n")

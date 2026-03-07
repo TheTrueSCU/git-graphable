@@ -28,7 +28,8 @@ def get_issue_engine(config: Any) -> Optional[IssueTracker]:
         )
     elif engine_type == "script":
         return ScriptIssueEngine(
-            script_template=getattr(config, "issue_script", "") or ""
+            script_template=getattr(config, "issue_script", "") or "",
+            trusted=getattr(config, "trusted", False),
         )
 
     return None

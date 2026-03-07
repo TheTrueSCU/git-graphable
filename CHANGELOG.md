@@ -2,24 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.6.0] - 2026-03-06
+## [0.6.0] - 2026-MM-DD
 
 ### Added
 - **Native GitLab Support**: Added support for GitLab Merge Requests and Issues using the `glab` CLI.
 - **Pull Request Provider Abstraction**: Introduced a new `PullRequestProvider` interface, decoupling PR status logic from GitHub.
     - Added `GitHubPullRequestProvider` (default) using the `gh` CLI.
     - Added `ScriptPullRequestProvider` for custom script-based PR status lookups.
+- **Dynamic Project Badges**:
+    - Added automated generation of Shields.io-compatible JSON badges for **Git Hygiene** and **Code Coverage**.
+    - Updated `README.md` to display live status from GitHub Pages.
+    - Added `--hygiene-output <path>` to CLI for machine-readable (JSON) hygiene summaries.
 - **Modular Architecture Refactor**: Substantially reorganized the codebase into specialized sub-packages for better maintainability:
     - `src/git_graphable/prs/`: Modular PR providers.
     - `src/git_graphable/issues/`: Modular issue tracker engines.
     - `src/git_graphable/highlights/`: Specialized highlighting logic (visual, hygiene, external).
     - `src/git_graphable/styling/`: Specialized styling logic per visualization engine.
 - **Enhanced Issue Scripting**: `ScriptIssueEngine` now supports robust JSON output from scripts (with legacy CSV fallback).
+- **Project Governance**: Added official **MIT License** to the repository.
 - **Reorganized Test Suite**: Refactored tests into a modular structure mirroring the source code, including a global `conftest.py` for shared fixtures.
 
 ### Fixed
 - **Security**: Resolved a critical command injection vulnerability in `ScriptIssueEngine` by properly escaping issue IDs using `shlex.quote`.
 - **Naming Collisions**: Resolved pytest module collision issues by adding `__init__.py` files to test directories.
+- **Code Maintenance**: Updated `.gitignore` to prevent tracking of build artifacts and coverage data.
 
 ## [0.5.0] - 2026-03-06
 

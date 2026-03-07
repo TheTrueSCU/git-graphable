@@ -193,6 +193,8 @@ class GitLogConfig:
     longevity_threshold_days: int = (
         14  # Max diff between Issue created and first commit
     )
+    trusted: bool = True  # True if explicitly provided via CLI or from a trusted source
+    trust: bool = False  # CLI override to force trust
     hygiene_weights: HygieneWeights = field(default_factory=HygieneWeights)
     theme: ThemeConfig = field(default_factory=ThemeConfig)
 
@@ -296,6 +298,9 @@ class GitLogConfig:
                     continue
                 else:
                     setattr(new_config, key, value)
+
+        if new_config.trust:
+            new_config.trusted = True
 
         return new_config
 

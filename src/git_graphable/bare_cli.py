@@ -38,7 +38,7 @@ def run_bare_cli():
             default="mermaid",
             help="Visualization engine (mermaid, graphviz, d2, html)",
         )
-        p.add_argument("-o", "--output", default="-", help="Output file path")
+        p.add_argument("-o", "--output", default=None, help="Output file path")
         p.add_argument(
             "--image",
             action="store_true",
@@ -159,6 +159,11 @@ def run_bare_cli():
         p.add_argument(
             "--hygiene-output",
             help="Path to save hygiene summary as JSON",
+        )
+        p.add_argument(
+            "--trust",
+            action="store_true",
+            help="Trust configuration files found in the repository",
         )
         p.add_argument(
             "--penalty",
@@ -292,7 +297,9 @@ def run_bare_cli():
         "theme": parse_style_overrides(args.style) if args.style else {},
         "min_hygiene_score": args.min_score,
         "hygiene_output": args.hygiene_output,
+        "trust": args.trust,
     }
+
 
     try:
         results = convert_command(

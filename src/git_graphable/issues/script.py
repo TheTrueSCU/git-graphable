@@ -13,10 +13,22 @@ from .base import IssueInfo, IssueStatus, IssueTracker
 class ScriptIssueEngine(IssueTracker):
     """Integration using a custom shell script."""
 
-    def __init__(self, script_template: str):
+    def __init__(self, script_template: str, trusted: bool = False):
         self.template = script_template
+        self.trusted = trusted
+        self._warned = False
 
     def get_issue_info(self, issue_ids: List[str]) -> Dict[str, IssueInfo]:
+        if not self.template:
+            return {}
+
+        if not self.trusted and not self._warned:
+            print(
+                "\n[bold yellow]WARNING:[/bold yellow] Executing issue script from an untrusted configuration."
+            )
+            print("Review your configuration if this was unexpected.\n")
+            self._warned = True
+
         results = {}
         for issue_id in issue_ids:
             try:

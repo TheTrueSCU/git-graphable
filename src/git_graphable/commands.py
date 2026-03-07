@@ -11,7 +11,7 @@ from .styler import export_graph
 def get_extension(engine: Engine, as_image: bool) -> str:
     """Get file extension for the given engine and export type."""
     if as_image:
-        return ".svg"  # Default to SVG for images
+        return ".png"  # Default to PNG for images
 
     extensions = {
         Engine.MERMAID: ".mmd",
@@ -83,7 +83,9 @@ def load_config(
     # 4. pyproject.toml in the repo
 
     # Try to find a config file if not explicitly provided
+    is_trusted = True
     if not config_path:
+        is_trusted = False
         possible_paths = [
             os.path.join(path, ".git-graphable.toml"),
             os.path.join(path, "pyproject.toml"),
@@ -96,6 +98,7 @@ def load_config(
     base_config = GitLogConfig()
     if config_path and os.path.exists(config_path):
         base_config = GitLogConfig.from_toml(config_path)
+        base_config.trusted = is_trusted
 
     return base_config.merge(cli_overrides)
 
@@ -108,7 +111,7 @@ def ensure_local_repo(path: str) -> tuple[str, Optional[tempfile.TemporaryDirect
         try:
             # Clone bare repo for speed and less disk space
             subprocess.run(
-                ["git", "clone", "--bare", path, temp_dir.name],
+                ["git", "clone", "--bare", "--", path, temp_dir.name],
                 check=True,
                 capture_output=True,
             )

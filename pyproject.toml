@@ -9,26 +9,32 @@ description = "A powerful Git history visualizer and hygiene linter with CI gati
 keywords = [
     "analysis",
     "automation",
+    "badges",
     "ci",
     "cytoscape",
     "d2",
+    "devops",
     "git",
     "git-flow",
     "github",
     "github-actions",
+    "gitlab",
     "graph",
     "html",
     "hygiene",
     "interactive",
+    "jira",
     "lint",
     "mermaid",
+    "metrics",
     "topology",
     "visualization",
 ]
+license = "MIT"
 name = "git-graphable"
 readme = "README.md"
 requires-python = ">=3.13"
-version = "0.5.0"
+version = "0.6.0"
 
 [project.optional-dependencies]
 cli = [

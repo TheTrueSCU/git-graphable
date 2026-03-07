@@ -218,7 +218,7 @@ def _apply_release_highlights(
 
     # 1. Get all SHAs reachable from tags
     try:
-        cmd = ["git", "rev-list", "--tags"]
+        cmd = ["git", "rev-list", "--tags", "--"]
         result = subprocess.run(
             cmd, cwd=repo_path, capture_output=True, text=True, check=True
         )

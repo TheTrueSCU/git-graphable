@@ -23,12 +23,14 @@ class JiraIssueEngine(IssueTracker):
                 iid: IssueInfo(id=iid, status=IssueStatus.UNKNOWN) for iid in issue_ids
             }
 
+        import urllib.parse
         import urllib.request
 
         results = {}
         for issue_id in issue_ids:
             try:
-                request_url = f"{self.url}/rest/api/2/issue/{issue_id}?fields=status,assignee,created"
+                safe_id = urllib.parse.quote(issue_id)
+                request_url = f"{self.url}/rest/api/2/issue/{safe_id}?fields=status,assignee,created"
                 req = urllib.request.Request(request_url)
                 req.add_header("Authorization", f"Bearer {self.token}")
 
