@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2026-03-06
+
+### Added
+- **Pull Request Provider Abstraction**: Introduced a new `PullRequestProvider` interface, decoupling PR status logic from GitHub.
+    - Added `GitHubPullRequestProvider` (default) using the `gh` CLI.
+    - Added `ScriptPullRequestProvider` for custom script-based PR status lookups.
+- **Modular Architecture Refactor**: Substantially reorganized the codebase into specialized sub-packages for better maintainability:
+    - `src/git_graphable/prs/`: Modular PR providers.
+    - `src/git_graphable/issues/`: Modular issue tracker engines.
+    - `src/git_graphable/highlights/`: Specialized highlighting logic (visual, hygiene, external).
+    - `src/git_graphable/styling/`: Specialized styling logic per visualization engine.
+- **Reorganized Test Suite**: Refactored tests into a modular structure mirroring the source code, including a global `conftest.py` for shared fixtures.
+
+### Fixed
+- **Security**: Resolved a critical command injection vulnerability in `ScriptIssueEngine` by properly escaping issue IDs using `shlex.quote`.
+- **Naming Collisions**: Resolved pytest module collision issues by adding `__init__.py` files to test directories.
+
 ## [0.5.0] - 2026-03-06
 
 ### Added

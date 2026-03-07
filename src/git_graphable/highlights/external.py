@@ -10,9 +10,9 @@ from typing import Optional
 from graphable import Graph
 
 from ..core import GitCommit, GitLogConfig
-from ..github import get_repo_prs, map_prs_to_commits
 from ..issues import IssueStatus, get_issue_engine
 from ..models import Tag
+from ..prs import get_pr_provider
 from .visual import find_node
 
 
@@ -22,12 +22,16 @@ def _apply_pr_highlights(
     repo_path: Optional[str],
     force: bool = False,
 ):
-    """Highlight commits based on GitHub PR status."""
+    """Highlight commits based on Pull Request status."""
     if not repo_path:
         return
 
-    prs = get_repo_prs(repo_path)
-    pr_map = map_prs_to_commits(prs)
+    provider = get_pr_provider(config)
+    if not provider:
+        return
+
+    prs = provider.get_repo_prs(repo_path)
+    pr_map = provider.map_prs_to_commits(prs)
 
     for commit in graph:
         sha = commit.reference.hash
@@ -54,11 +58,15 @@ def _apply_squash_highlights(
     repo_path: Optional[str],
     force: bool = False,
 ):
-    """Detect and highlight 'logical' merges from squashed GitHub PRs."""
+    """Detect and highlight 'logical' merges from squashed PRs."""
     if not repo_path:
         return
 
-    prs = get_repo_prs(repo_path)
+    provider = get_pr_provider(config)
+    if not provider:
+        return
+
+    prs = provider.get_repo_prs(repo_path)
     merged_prs = [pr for pr in prs if pr.state == "MERGED" and pr.merge_commit_oid]
     commits_by_hash = {c.reference.hash: c for c in graph}
 
