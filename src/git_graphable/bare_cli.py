@@ -38,7 +38,7 @@ def run_bare_cli():
             default="mermaid",
             help="Visualization engine (mermaid, graphviz, d2, html)",
         )
-        p.add_argument("-o", "--output", default="-", help="Output file path")
+        p.add_argument("-o", "--output", default=None, help="Output file path")
         p.add_argument(
             "--image",
             action="store_true",

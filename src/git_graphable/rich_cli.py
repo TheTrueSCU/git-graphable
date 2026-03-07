@@ -67,7 +67,7 @@ def analyze(
         "mermaid", "--engine", help="Visualization engine (mermaid, graphviz, d2, html)"
     ),
     output: Optional[str] = typer.Option(
-        "-", "--output", "-o", help="Output file path"
+        None, "--output", "-o", help="Output file path"
     ),
     as_image: bool = typer.Option(
         False, "--image", help="Export as image even when output path is provided"
