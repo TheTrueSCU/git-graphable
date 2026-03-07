@@ -46,7 +46,7 @@ jobs:
 
       - name: Generate Hygiene Badge
         run: |
-          uv run git-graphable analyze . --bare --hygiene-output hygiene.json
+          uv run git-graphable analyze . --bare --hygiene-output hygiene.json --output -
           SCORE=$(grep -oP '"score": \d+' hygiene.json | grep -oP '\d+')
           GRADE=$(grep -oP '"grade": "[^"]+"' hygiene.json | cut -d'"' -f4)
           COLOR=$(grep -oP '"color": "[^"]+"' hygiene.json | cut -d'"' -f4)
