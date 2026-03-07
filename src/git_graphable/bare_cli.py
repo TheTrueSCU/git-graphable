@@ -161,6 +161,11 @@ def run_bare_cli():
             help="Path to save hygiene summary as JSON",
         )
         p.add_argument(
+            "--trust",
+            action="store_true",
+            help="Trust configuration files found in the repository",
+        )
+        p.add_argument(
             "--penalty",
             action="append",
             default=[],
@@ -292,7 +297,9 @@ def run_bare_cli():
         "theme": parse_style_overrides(args.style) if args.style else {},
         "min_hygiene_score": args.min_score,
         "hygiene_output": args.hygiene_output,
+        "trust": args.trust,
     }
+
 
     try:
         results = convert_command(

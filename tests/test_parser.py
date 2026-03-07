@@ -91,3 +91,13 @@ def test_get_git_log_parallel_trigger(test_repo):
             assert len(commits) >= 21
             # Verify executor was actually instantiated and used
             assert mock_executor.called
+
+
+def test_get_git_log_with_limit(test_repo):
+    from git_graphable.core import GitLogConfig
+    from git_graphable.parser import get_git_log
+
+    config = GitLogConfig(limit=1)
+    # This will fail if arguments are incorrectly passed
+    commits = get_git_log(test_repo, config)
+    assert len(commits) == 1

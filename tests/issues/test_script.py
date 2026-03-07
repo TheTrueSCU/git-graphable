@@ -68,3 +68,39 @@ def test_script_engine_failure():
         engine = ScriptIssueEngine(script_template="check {id}")
         info_map = engine.get_issue_info(["123"])
         assert info_map["123"].status == IssueStatus.UNKNOWN
+
+
+def test_script_engine_trust_warning():
+    """Verify that a warning is printed when executing an untrusted script."""
+    import io
+    from contextlib import redirect_stdout
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(stdout="OPEN", returncode=0)
+        # Default is trusted=False
+        engine = ScriptIssueEngine(script_template="echo {id}", trusted=False)
+
+        f = io.StringIO()
+        with redirect_stdout(f):
+            engine.get_issue_info(["123"])
+
+        output = f.getvalue()
+        assert "WARNING" in output
+        assert "untrusted configuration" in output
+
+
+def test_script_engine_no_warning_if_trusted():
+    """Verify that no warning is printed when executing a trusted script."""
+    import io
+    from contextlib import redirect_stdout
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(stdout="OPEN", returncode=0)
+        engine = ScriptIssueEngine(script_template="echo {id}", trusted=True)
+
+        f = io.StringIO()
+        with redirect_stdout(f):
+            engine.get_issue_info(["123"])
+
+        output = f.getvalue()
+        assert "WARNING" not in output

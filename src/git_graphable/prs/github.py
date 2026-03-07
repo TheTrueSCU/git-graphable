@@ -32,6 +32,7 @@ class GitHubPullRequestProvider(PullRequestProvider):
                 "1000",
                 "--json",
                 "number,title,state,isDraft,headRefName,headRefOid,mergeCommit,mergeable",
+                "--",
             ]
             result = subprocess.run(
                 cmd, cwd=repo_path, capture_output=True, text=True, check=True

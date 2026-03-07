@@ -12,17 +12,26 @@ from .base import PullRequestInfo, PullRequestProvider
 class ScriptPullRequestProvider(PullRequestProvider):
     """Integration using a custom shell script."""
 
-    def __init__(self, script_path: str):
+    def __init__(self, script_path: str, trusted: bool = False):
         self.script_path = script_path
+        self.trusted = trusted
+        self._warned = False
 
     def get_repo_prs(self, repo_path: str) -> List[PullRequestInfo]:
         if not self.script_path:
             return []
 
+        if not self.trusted and not self._warned:
+            print(
+                "\n[bold yellow]WARNING:[/bold yellow] Executing PR script from an untrusted configuration."
+            )
+            print("Review your configuration if this was unexpected.\n")
+            self._warned = True
+
         try:
             # Run the script. It should output JSON array of PR objects.
             result = subprocess.run(
-                [self.script_path, repo_path],
+                [self.script_path, "--", repo_path],
                 capture_output=True,
                 text=True,
                 check=True,

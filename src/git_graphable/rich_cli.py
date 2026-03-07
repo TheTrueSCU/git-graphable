@@ -219,6 +219,9 @@ def analyze(
     hygiene_output: Optional[str] = typer.Option(
         None, "--hygiene-output", help="Path to save hygiene summary as JSON"
     ),
+    trust: bool = typer.Option(
+        False, "--trust", help="Trust configuration files found in the repository"
+    ),
 ):
     """Convert Git history to graph."""
     try:
@@ -303,6 +306,7 @@ def analyze(
             "theme": parse_style_overrides(style) if style else {},
             "min_hygiene_score": min_score,
             "hygiene_output": hygiene_output,
+            "trust": trust,
         }
 
         results = convert_command(

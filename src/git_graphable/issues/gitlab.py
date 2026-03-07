@@ -17,7 +17,7 @@ class GitLabIssueEngine(IssueTracker):
         for issue_id in issue_ids:
             try:
                 # We assume issue_id is the iid (number)
-                cmd = ["glab", "issue", "view", issue_id, "-F", "json"]
+                cmd = ["glab", "issue", "view", "--", issue_id, "-F", "json"]
                 result = subprocess.run(cmd, capture_output=True, text=True, check=True)
                 data = json.loads(result.stdout)
 
