@@ -157,6 +157,10 @@ def run_bare_cli():
         )
         p.add_argument("--min-score", type=int, help="Minimum score for --check")
         p.add_argument(
+            "--hygiene-output",
+            help="Path to save hygiene summary as JSON",
+        )
+        p.add_argument(
             "--penalty",
             action="append",
             default=[],
@@ -287,6 +291,7 @@ def run_bare_cli():
         else {},
         "theme": parse_style_overrides(args.style) if args.style else {},
         "min_hygiene_score": args.min_score,
+        "hygiene_output": args.hygiene_output,
     }
 
     try:
@@ -303,7 +308,14 @@ def run_bare_cli():
             print(results["content"])
 
         if results.get("summary"):
+            import json
+
             hygiene = results["summary"].get("Hygiene Score", {})
+
+            if args.hygiene_output:
+                with open(args.hygiene_output, "w") as f:
+                    json.dump(hygiene, f, indent=2)
+
             print("\n--- Git Hygiene Summary ---")
             print(
                 f"Overall Score: {hygiene.get('score', 0)}% ({hygiene.get('grade', 'F')})"

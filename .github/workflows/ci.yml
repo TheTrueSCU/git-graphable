@@ -34,8 +34,21 @@ jobs:
       - name: Run checks
         run: just check
 
+      - name: Generate Coverage Badge
+        run: |
+          if [ -f "htmlcov/index.html" ]; then
+            COVERAGE=$(grep -oP 'pc_cov">\d+%' htmlcov/index.html | head -1 | grep -oP '\d+')
+            echo "{\"schemaVersion\": 1, \"label\": \"coverage\", \"message\": \"$COVERAGE%\", \"color\": \"brightgreen\"}" > coverage.json
+          fi
+
       - name: Git Graph Reports
         uses: ./
         with:
           production_branch: 'main'
           output_dir: 'git-graph-reports'
+
+      - name: Copy Coverage to Reports
+        run: |
+          if [ -f "coverage.json" ]; then
+            cp coverage.json git-graph-reports/
+          fi

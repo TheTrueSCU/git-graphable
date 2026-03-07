@@ -30,8 +30,27 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
+      - name: Install just
+        uses: extractions/setup-just@v3
+
       - name: Generate Demos
         run: uv run python examples/publish_demos.py
+
+      - name: Generate Coverage Badge
+        run: |
+          just coverage
+          if [ -f "htmlcov/index.html" ]; then
+            COVERAGE=$(grep -oP 'pc_cov">\d+%' htmlcov/index.html | head -1 | grep -oP '\d+')
+            echo "{\"schemaVersion\": 1, \"label\": \"coverage\", \"message\": \"$COVERAGE%\", \"color\": \"brightgreen\"}" > demo-site/coverage.json
+          fi
+
+      - name: Generate Hygiene Badge
+        run: |
+          uv run git-graphable analyze . --bare --hygiene-output hygiene.json
+          SCORE=$(grep -oP '"score": \d+' hygiene.json | grep -oP '\d+')
+          GRADE=$(grep -oP '"grade": "[^"]+"' hygiene.json | cut -d'"' -f4)
+          COLOR=$(grep -oP '"color": "[^"]+"' hygiene.json | cut -d'"' -f4)
+          echo "{\"schemaVersion\": 1, \"label\": \"hygiene\", \"message\": \"$SCORE% ($GRADE)\", \"color\": \"$COLOR\"}" > demo-site/hygiene_badge.json
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
