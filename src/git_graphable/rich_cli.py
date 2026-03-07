@@ -216,6 +216,9 @@ def analyze(
     min_score: Optional[int] = typer.Option(
         None, "--min-score", help="Minimum hygiene score required for --check"
     ),
+    hygiene_output: Optional[str] = typer.Option(
+        None, "--hygiene-output", help="Path to save hygiene summary as JSON"
+    ),
 ):
     """Convert Git history to graph."""
     try:
@@ -299,6 +302,7 @@ def analyze(
             else {},
             "theme": parse_style_overrides(style) if style else {},
             "min_hygiene_score": min_score,
+            "hygiene_output": hygiene_output,
         }
 
         results = convert_command(
@@ -308,10 +312,16 @@ def analyze(
             console.print(results["content"])
 
         if results.get("summary"):
+            import json
+
             from rich.table import Table
 
             summary = results["summary"]
             hygiene = summary.get("Hygiene Score", {})
+
+            if hygiene_output:
+                with open(hygiene_output, "w") as f:
+                    json.dump(hygiene, f, indent=2)
 
             table = Table(title="Git Hygiene Summary")
             table.add_column("Metric", style="cyan")

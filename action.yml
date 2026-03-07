@@ -52,14 +52,25 @@ runs:
       shell: bash
       run: mkdir -p ${{ inputs.output_dir }}
 
-    - name: Generate Simplified Graph (Mermaid)
+    - name: Generate Simplified Graph (Mermaid) and Hygiene Stats
       shell: bash
       run: |
-        ARGS="--production-branch ${{ inputs.production_branch }} --simplify --engine mermaid -o ${{ inputs.output_dir }}/summary.mmd"
+        ARGS="--production-branch ${{ inputs.production_branch }} --simplify --engine mermaid -o ${{ inputs.output_dir }}/summary.mmd --hygiene-output ${{ inputs.output_dir }}/hygiene.json"
         if [ -n "${{ inputs.issue_engine }}" ]; then ARGS="$ARGS --issue-engine ${{ inputs.issue_engine }}"; fi
         uv tool run git-graphable --bare ${{ inputs.path }} $ARGS
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Generate Hygiene Badge Data
+      shell: bash
+      run: |
+        if [ -f "${{ inputs.output_dir }}/hygiene.json" ]; then
+          SCORE=$(grep -oP '"score": \d+' ${{ inputs.output_dir }}/hygiene.json | grep -oP '\d+')
+          GRADE=$(grep -oP '"grade": "[^"]+"' ${{ inputs.output_dir }}/hygiene.json | cut -d'"' -f4)
+          COLOR=$(grep -oP '"color": "[^"]+"' ${{ inputs.output_dir }}/hygiene.json | cut -d'"' -f4)
+          # Shields.io JSON endpoint format
+          echo "{\"schemaVersion\": 1, \"label\": \"hygiene\", \"message\": \"$SCORE% ($GRADE)\", \"color\": \"$COLOR\"}" > ${{ inputs.output_dir }}/hygiene_badge.json
+        fi
 
     - name: Generate Full Interactive Graph (HTML)
       shell: bash

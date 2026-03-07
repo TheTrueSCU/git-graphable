@@ -1,5 +1,11 @@
 # Git Graphable
 
+[![CI](https://github.com/TheTrueSCU/git-graphable/actions/workflows/ci.yml/badge.svg)](https://github.com/TheTrueSCU/git-graphable/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Coverage](https://img.shields.io/endpoint?url=https://thetruescu.github.io/git-graphable/coverage.json)](https://thetruescu.github.io/git-graphable/)
+[![Hygiene](https://img.shields.io/endpoint?url=https://thetruescu.github.io/git-graphable/hygiene_badge.json)](https://thetruescu.github.io/git-graphable/)
+
+
 A powerful Python tool to convert Git commit history into beautiful, interactive flowcharts using the `graphable` library. Supporting Mermaid, D2, Graphviz, and HTML.
 
 ## Git Plugin Support

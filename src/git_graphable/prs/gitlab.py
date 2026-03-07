@@ -42,7 +42,8 @@ class GitLabPullRequestProvider(PullRequestProvider):
                         number=item["iid"],
                         title=item["title"],
                         state=state,
-                        is_draft=item.get("draft", False) or item.get("work_in_progress", False),
+                        is_draft=item.get("draft", False)
+                        or item.get("work_in_progress", False),
                         head_ref_name=item["source_branch"],
                         head_ref_oid=item["sha"],
                         merge_commit_oid=item.get("merge_commit_sha"),

@@ -20,7 +20,7 @@ class GitLabIssueEngine(IssueTracker):
                 cmd = ["glab", "issue", "view", issue_id, "-F", "json"]
                 result = subprocess.run(cmd, capture_output=True, text=True, check=True)
                 data = json.loads(result.stdout)
-                
+
                 raw_state = data.get("state", "").upper()
                 status = IssueStatus.UNKNOWN
                 if raw_state == "OPENED":
