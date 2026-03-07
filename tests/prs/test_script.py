@@ -44,7 +44,9 @@ def test_script_pr_provider_trust_warning():
 
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(stdout="[]", returncode=0)
-        provider = ScriptPullRequestProvider(script_path="./my-script.sh", trusted=False)
+        provider = ScriptPullRequestProvider(
+            script_path="./my-script.sh", trusted=False
+        )
 
         f = io.StringIO()
         with redirect_stdout(f):

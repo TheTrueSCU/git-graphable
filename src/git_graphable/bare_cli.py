@@ -300,7 +300,6 @@ def run_bare_cli():
         "trust": args.trust,
     }
 
-
     try:
         results = convert_command(
             args.path,
