@@ -42,6 +42,25 @@ def test_script_engine_full_info():
         assert info.created_at == "2023-01-01T12:00:00Z"
 
 
+def test_script_engine_json_success():
+    """Test JSON info parsing."""
+    import json
+
+    with patch("subprocess.run") as mock_run:
+        mock_data = {
+            "status": "OPEN",
+            "assignee": "Bob",
+            "created_at": "2023-02-02T10:00:00Z",
+        }
+        mock_run.return_value = MagicMock(stdout=json.dumps(mock_data), returncode=0)
+        engine = ScriptIssueEngine(script_template="check {id}")
+        info_map = engine.get_issue_info(["456"])
+        info = info_map["456"]
+        assert info.status == IssueStatus.OPEN
+        assert info.assignee == "Bob"
+        assert info.created_at == "2023-02-02T10:00:00Z"
+
+
 def test_script_engine_failure():
     """Verify handling of script failures."""
     with patch("subprocess.run") as mock_run:

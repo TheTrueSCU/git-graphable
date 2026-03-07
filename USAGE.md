@@ -50,7 +50,9 @@ Analyze git history and generate a graph. This is the default command; if no com
 * `--highlight-long-running`: Highlight long-running branches
 * `--long-running-days INTEGER`: Threshold in days for long-running branches
 * `--long-running-base TEXT`: Base branch for long-running analysis
-* `--highlight-pr-status`: Highlight commits based on GitHub PR status
+* `--highlight-pr-status`: Highlight commits based on PR status (GitHub or GitLab)
+* `--pr-provider [github|gitlab|script]`: Provider to fetch PR statuses (default: github)
+* `--pr-script TEXT`: Path to a script that returns PR data in JSON format
 * `--highlight-wip`: Highlight WIP/TODO commits
 * `--wip-keyword TEXT`: Additional keyword to trigger WIP highlighting
 * `--highlight-direct-pushes`: Highlight non-merge commits on protected branches
@@ -61,7 +63,7 @@ Analyze git history and generate a graph. This is the default command; if no com
 * `--silo-author-count INTEGER`: Author count threshold for silo detection
 * `--highlight-issue-inconsistencies`: Highlight mismatches between Git and Issue Tracker
 * `--issue-pattern TEXT`: Regex pattern to extract issue IDs
-* `--issue-engine [github|jira|script]`: Engine to fetch issue statuses
+* `--issue-engine [github|gitlab|jira|script]`: Engine to fetch issue statuses
 * `--jira-url TEXT`: Base URL for Jira instance
 * `--issue-script TEXT`: Shell command template for script engine
 * `--highlight-release-inconsistencies`: Highlight issues marked Released but not tagged

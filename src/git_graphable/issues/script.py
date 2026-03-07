@@ -2,6 +2,7 @@
 Script-based issue tracker integration.
 """
 
+import json
 import shlex
 import subprocess
 from typing import Dict, List
@@ -27,11 +28,19 @@ class ScriptIssueEngine(IssueTracker):
                     cmd_str, shell=True, capture_output=True, text=True, check=True
                 )
                 output = result.stdout.strip()
-                # Simple parsing logic for script output: "STATUS,ASSIGNEE,CREATED_AT"
-                parts = output.split(",")
-                raw_status = parts[0].upper()
-                assignee = parts[1].strip() if len(parts) > 1 else None
-                created_at = parts[2].strip() if len(parts) > 2 else None
+
+                # Try JSON parsing first
+                try:
+                    data = json.loads(output)
+                    raw_status = data.get("status", "").upper()
+                    assignee = data.get("assignee")
+                    created_at = data.get("created_at")
+                except json.JSONDecodeError:
+                    # Fallback to simple parsing logic: "STATUS,ASSIGNEE,CREATED_AT"
+                    parts = output.split(",")
+                    raw_status = parts[0].upper()
+                    assignee = parts[1].strip() if len(parts) > 1 else None
+                    created_at = parts[2].strip() if len(parts) > 2 else None
 
                 status = IssueStatus.UNKNOWN
                 if "OPEN" in raw_status:

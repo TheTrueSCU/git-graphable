@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [0.6.0] - 2026-03-06
 
 ### Added
+- **Native GitLab Support**: Added support for GitLab Merge Requests and Issues using the `glab` CLI.
 - **Pull Request Provider Abstraction**: Introduced a new `PullRequestProvider` interface, decoupling PR status logic from GitHub.
     - Added `GitHubPullRequestProvider` (default) using the `gh` CLI.
     - Added `ScriptPullRequestProvider` for custom script-based PR status lookups.
@@ -13,6 +14,7 @@ All notable changes to this project will be documented in this file.
     - `src/git_graphable/issues/`: Modular issue tracker engines.
     - `src/git_graphable/highlights/`: Specialized highlighting logic (visual, hygiene, external).
     - `src/git_graphable/styling/`: Specialized styling logic per visualization engine.
+- **Enhanced Issue Scripting**: `ScriptIssueEngine` now supports robust JSON output from scripts (with legacy CSV fallback).
 - **Reorganized Test Suite**: Refactored tests into a modular structure mirroring the source code, including a global `conftest.py` for shared fixtures.
 
 ### Fixed

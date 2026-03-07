@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from .base import IssueInfo, IssueStatus, IssueTracker
 from .github import GitHubIssueEngine
+from .gitlab import GitLabIssueEngine
 from .jira import JiraIssueEngine
 from .script import ScriptIssueEngine
 
@@ -15,6 +16,8 @@ def get_issue_engine(config: Any) -> Optional[IssueTracker]:
     engine_type = (getattr(config, "issue_engine", "") or "").lower()
     if engine_type == "github":
         return GitHubIssueEngine()
+    elif engine_type == "gitlab":
+        return GitLabIssueEngine()
     elif engine_type == "jira":
         return JiraIssueEngine(
             url=getattr(config, "jira_url", "") or "",
