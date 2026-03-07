@@ -1,5 +1,6 @@
 import json
 import os
+import shlex
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -78,8 +79,8 @@ class GitHubIssueEngine(IssueTracker):
 class JiraIssueEngine(IssueTracker):
     """Jira integration using REST API."""
 
-    def __init__(self, url: str, token_env: str, closed_statuses: List[str]):
-        self.url = url.rstrip("/")
+    def __init__(self, url: Optional[str], token_env: str, closed_statuses: List[str]):
+        self.url = (url or "").rstrip("/")
         self.token = os.environ.get(token_env)
         self.closed_statuses = [s.lower() for s in closed_statuses]
 
@@ -133,7 +134,10 @@ class ScriptIssueEngine(IssueTracker):
         results = {}
         for issue_id in issue_ids:
             try:
-                cmd_str = self.template.replace("{id}", issue_id)
+                # Use shlex.quote to prevent command injection if the issue_id
+                # contains malicious characters.
+                safe_id = shlex.quote(issue_id)
+                cmd_str = self.template.replace("{id}", safe_id)
                 result = subprocess.run(
                     cmd_str, shell=True, capture_output=True, text=True, check=True
                 )
@@ -165,13 +169,15 @@ def get_issue_engine(config: Any) -> Optional[IssueTracker]:
         return GitHubIssueEngine()
     elif engine_type == "jira":
         return JiraIssueEngine(
-            url=getattr(config, "jira_url", ""),
+            url=getattr(config, "jira_url", "") or "",
             token_env=getattr(config, "jira_token_env", "JIRA_TOKEN"),
             closed_statuses=getattr(
                 config, "jira_closed_statuses", ["Done", "Closed", "Resolved"]
             ),
         )
     elif engine_type == "script":
-        return ScriptIssueEngine(script_template=getattr(config, "issue_script", ""))
+        return ScriptIssueEngine(
+            script_template=getattr(config, "issue_script", "") or ""
+        )
 
     return None
