@@ -118,7 +118,7 @@ def get_node_text(
     if engine == Engine.MERMAID:
         # Mermaid labels in graphable are wrapped in [] and escaped by replacing " with #quot;
         # Nested delimiters like [], (), and {} often break the Mermaid parser when not properly quoted.
-        # Since we cannot force literal quotes through graphable, we use visually similar full-width 
+        # Since we cannot force literal quotes through graphable, we use visually similar full-width
         # Unicode equivalents which are treated as standard text by the parser.
         return (
             label.replace('"', "")

@@ -21,12 +21,12 @@ class ScriptPullRequestProvider(PullRequestProvider):
         if not self.script_path:
             return []
 
-        if not self.trusted and not self._warned:
+        if not self.trusted:
             print(
-                "\n[bold yellow]WARNING:[/bold yellow] Executing PR script from an untrusted configuration."
+                "\n[bold red]ERROR:[/bold red] Executing PR script from an untrusted configuration is disabled."
             )
-            print("Review your configuration if this was unexpected.\n")
-            self._warned = True
+            print("To enable this script, use --config or --trust.\n")
+            return []
 
         try:
             # Run the script. It should output JSON array of PR objects.

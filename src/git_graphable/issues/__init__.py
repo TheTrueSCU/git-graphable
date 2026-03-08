@@ -25,6 +25,7 @@ def get_issue_engine(config: Any) -> Optional[IssueTracker]:
             closed_statuses=getattr(
                 config, "jira_closed_statuses", ["Done", "Closed", "Resolved"]
             ),
+            trusted=getattr(config, "trusted", False),
         )
     elif engine_type == "script":
         return ScriptIssueEngine(
