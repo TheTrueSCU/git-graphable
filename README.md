@@ -26,7 +26,7 @@ Check out the tool in action with our **[Live Interactive Demos](https://thetrue
 - **VCS Integration**: Highlight commits based on pull request/merge request status using `gh` (GitHub) or `glab` (GitLab) CLIs.
 - **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, squashed PRs, back-merges, and contributor silos.
 - **Issue Tracker Integration**: Connect to Jira, GitHub Issues, GitLab Issues, or custom scripts to highlight status desyncs.
-- **Security First**: Configuration trust mechanism ensures custom scripts only run from trusted sources (use `--trust` to authorize local configs).
+- **Security First**: Configuration trust mechanism enforces security by requiring explicit authorization (use `--trust`) to execute custom scripts or send credentials from repository-local configs.
 - **Dynamic Badges**: Host live Shields.io badges for Git Hygiene and Code Coverage on GitHub Pages.
 
 ## Installation

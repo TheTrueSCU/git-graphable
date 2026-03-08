@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - Unreleased
+
+### Added
+- **Security Trust Enforcement**: Custom scripts (`issue_script`, `pr_script`) and sensitive API integrations (Jira) are now disabled by default for untrusted local configurations. Users must explicitly use `--trust` to enable these features for repository-local configs.
+
+### Fixed
+- **Critical Command Injection Mitigation**: Fixed a vulnerability in `ScriptIssueEngine` where malicious `issue_id` strings could inject shell commands. Switched to `sh -c` with positional arguments for safe execution.
+- **Credential Theft Prevention**: Prevented potential Jira token exposure to untrusted URLs by enforcing the trust model for Jira configurations.
+- **XSS Mitigation**: Fixed a medium-severity XSS vulnerability in interactive HTML export legend generation by properly escaping repository-derived data.
+
 ## [0.6.0] - 2026-03-06
 
 ### Added

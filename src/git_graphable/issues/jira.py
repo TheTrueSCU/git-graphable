@@ -12,13 +12,30 @@ from .base import IssueInfo, IssueStatus, IssueTracker
 class JiraIssueEngine(IssueTracker):
     """Jira integration using REST API."""
 
-    def __init__(self, url: Optional[str], token_env: str, closed_statuses: List[str]):
+    def __init__(
+        self,
+        url: Optional[str],
+        token_env: str,
+        closed_statuses: List[str],
+        trusted: bool = False,
+    ):
         self.url = (url or "").rstrip("/")
         self.token = os.environ.get(token_env)
         self.closed_statuses = [s.lower() for s in closed_statuses]
+        self.trusted = trusted
 
     def get_issue_info(self, issue_ids: List[str]) -> Dict[str, IssueInfo]:
-        if not self.token:
+        if not self.token or not self.url:
+            return {
+                iid: IssueInfo(id=iid, status=IssueStatus.UNKNOWN) for iid in issue_ids
+            }
+
+        if not self.trusted:
+            # Prevent sending token to potentially malicious URL from untrusted config
+            print(
+                "\n[bold red]ERROR:[/bold red] Jira configuration is untrusted. Skipping."
+            )
+            print("To enable Jira integration, use --config or --trust.\n")
             return {
                 iid: IssueInfo(id=iid, status=IssueStatus.UNKNOWN) for iid in issue_ids
             }

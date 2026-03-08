@@ -3,7 +3,6 @@ Script-based issue tracker integration.
 """
 
 import json
-import shlex
 import subprocess
 from typing import Dict, List
 
@@ -22,22 +21,24 @@ class ScriptIssueEngine(IssueTracker):
         if not self.template:
             return {}
 
-        if not self.trusted and not self._warned:
+        if not self.trusted:
             print(
-                "\n[bold yellow]WARNING:[/bold yellow] Executing issue script from an untrusted configuration."
+                "\n[bold red]ERROR:[/bold red] Executing issue script from an untrusted configuration is disabled."
             )
-            print("Review your configuration if this was unexpected.\n")
-            self._warned = True
+            print("To enable this script, use --config or --trust.\n")
+            return {}
 
         results = {}
         for issue_id in issue_ids:
             try:
-                # Use shlex.quote to prevent command injection if the issue_id
-                # contains malicious characters.
-                safe_id = shlex.quote(issue_id)
-                cmd_str = self.template.replace("{id}", safe_id)
+                # Use positional arguments to prevent command injection.
+                # We replace {id} with "$1" and pass issue_id as the first argument to sh -c.
+                cmd_template = self.template.replace("{id}", '"$1"')
                 result = subprocess.run(
-                    cmd_str, shell=True, capture_output=True, text=True, check=True
+                    ["sh", "-c", cmd_template, "--", issue_id],
+                    capture_output=True,
+                    text=True,
+                    check=True,
                 )
                 output = result.stdout.strip()
 

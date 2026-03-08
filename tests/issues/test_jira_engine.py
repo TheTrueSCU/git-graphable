@@ -15,7 +15,11 @@ def test_jira_engine_success():
 
         with patch.dict("os.environ", {"JIRA_TOKEN": "secret"}):
             engine = JiraIssueEngine(
-                url="http://jira", token_env="JIRA_TOKEN", closed_statuses=["Done"]
+                url="http://jira",
+                token_env="JIRA_TOKEN",
+                closed_statuses=["Done"],
+                trusted=True,
             )
+
             statuses = engine.get_statuses(["PROJ-123"])
             assert statuses["PROJ-123"] == IssueStatus.CLOSED
