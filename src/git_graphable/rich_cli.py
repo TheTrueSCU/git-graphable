@@ -339,9 +339,11 @@ def analyze(
 
             for deduction in hygiene.get("deductions", []):
                 table.add_row(
-                    f"  - {deduction['message']}",
+                    f"[yellow]- {deduction['message']}[/yellow]",
                     f"[red]-{deduction['amount']}%[/red]",
                 )
+                for item in deduction.get("items", []):
+                    table.add_row(f"    [dim]{item}[/dim]", "")
 
             console.print(table)
 

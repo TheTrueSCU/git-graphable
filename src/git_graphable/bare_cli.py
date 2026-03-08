@@ -328,6 +328,8 @@ def run_bare_cli():
             )
             for deduction in hygiene.get("deductions", []):
                 print(f"  - {deduction['message']} (-{deduction['amount']}%)")
+                for item in deduction.get("items", []):
+                    print(f"    * {item}")
 
             if args.check:
                 min_s = args.min_score or 80
