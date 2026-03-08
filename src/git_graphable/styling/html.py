@@ -2,6 +2,7 @@
 HTML and Cytoscape-specific styling logic.
 """
 
+import html
 import json
 import os
 import re
@@ -189,11 +190,13 @@ def export_html(
                 "Release Inconsistency", "Rel. Gap"
             )
             is_checked = "checked" if tag == Tag.CRITICAL.value else ""
+            escaped_tag = html.escape(tag, quote=True)
+            escaped_label = html.escape(label)
             overlays.append(
-                f'<div class="legend-item" onclick="toggleOverlay(\'{tag}\', event)">'
+                f'<div class="legend-item" onclick="toggleOverlay(\'{escaped_tag}\', event)">'
                 f'<div class="legend-color" style="border-color: {color}; border-width: 2px; background: none;"></div>'
-                f'<span class="legend-label">{label}</span>'
-                f'<input type="checkbox" id="overlay-{tag}" class="legend-input" {is_checked} onclick="event.stopPropagation(); toggleOverlay(\'{tag}\', event)">'
+                f'<span class="legend-label">{escaped_label}</span>'
+                f'<input type="checkbox" id="overlay-{escaped_tag}" class="legend-input" {is_checked} onclick="event.stopPropagation(); toggleOverlay(\'{escaped_tag}\', event)">'
                 f"</div>"
             )
 
