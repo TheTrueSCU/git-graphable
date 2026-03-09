@@ -137,6 +137,7 @@ Identify problematic patterns like direct pushes to `main`, messy WIP commits, b
 ```bash
 uv run git-graphable analyze . --highlight-direct-pushes --highlight-wip --highlight-squashed --highlight-back-merges --highlight-silos
 ```
+> **Tip:** See [HYGIENE.md](HYGIENE.md) for a detailed guide on how to remediate these issues and improve your score.
 
 ### PR Status Highlighting
 View the current state of all PRs in your repository graph:

@@ -346,6 +346,7 @@ def analyze(
                     table.add_row(f"    [dim]{item}[/dim]", "")
 
             console.print(table)
+            console.print("\n[dim]See HYGIENE.md for remediation guidelines.[/dim]\n")
 
             if check:
                 min_s = min_score or 80

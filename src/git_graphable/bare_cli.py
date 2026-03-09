@@ -331,6 +331,8 @@ def run_bare_cli():
                 for item in deduction.get("items", []):
                     print(f"    * {item}")
 
+            print("\nSee HYGIENE.md for remediation guidelines.")
+
             if args.check:
                 min_s = args.min_score or 80
                 if hygiene.get("score", 0) < min_s:
