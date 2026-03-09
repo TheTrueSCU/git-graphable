@@ -151,21 +151,6 @@ def run_bare_cli():
             help="Threshold in days for longevity mismatch detection",
         )
         p.add_argument(
-            "--check",
-            action="store_true",
-            help="Exit with non-zero if hygiene score is below threshold",
-        )
-        p.add_argument("--min-score", type=int, help="Minimum score for --check")
-        p.add_argument(
-            "--hygiene-output",
-            help="Path to save hygiene summary as JSON",
-        )
-        p.add_argument(
-            "--trust",
-            action="store_true",
-            help="Trust configuration files found in the repository",
-        )
-        p.add_argument(
             "--penalty",
             action="append",
             default=[],
@@ -176,6 +161,24 @@ def run_bare_cli():
             action="append",
             default=[],
             help="Override visual style (format: key:property:value, e.g. critical:stroke:teal)",
+        )
+        p.add_argument(
+            "--check",
+            action="store_true",
+            help="Exit with non-zero if hygiene score is below threshold",
+        )
+        p.add_argument("--min-score", type=int, help="Minimum score for --check")
+        p.add_argument("--hygiene-output", help="Path to save hygiene summary as JSON")
+        p.add_argument(
+            "--ignore",
+            action="append",
+            default=[],
+            help="Ignore hygiene rules for specific SHAs (format: sha:rule)",
+        )
+        p.add_argument(
+            "--trust",
+            action="store_true",
+            help="Trust configuration files found in the repository",
         )
 
     add_analyze_args(analyze_parser)
@@ -294,11 +297,22 @@ def run_bare_cli():
         }
         if args.penalty
         else {},
+        "ignore": {},
         "theme": parse_style_overrides(args.style) if args.style else {},
         "min_hygiene_score": args.min_score,
         "hygiene_output": args.hygiene_output,
         "trust": args.trust,
     }
+
+    if args.ignore:
+        ignore_dict = {}
+        for item in args.ignore:
+            if ":" in item:
+                key, val = item.split(":", 1)
+                if key not in ignore_dict:
+                    ignore_dict[key] = []
+                ignore_dict[key].append(val)
+        overrides["ignore"] = ignore_dict
 
     try:
         results = convert_command(
@@ -328,6 +342,10 @@ def run_bare_cli():
             )
             for deduction in hygiene.get("deductions", []):
                 print(f"  - {deduction['message']} (-{deduction['amount']}%)")
+                for item in deduction.get("items", []):
+                    print(f"    * {item}")
+
+            print("\nSee HYGIENE.md for remediation guidelines.")
 
             if args.check:
                 min_s = args.min_score or 80

@@ -1,6 +1,6 @@
 import concurrent.futures
 import threading
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from graphable import Graph
 
@@ -59,12 +59,16 @@ class HygieneScorer:
             "deductions": self.deductions,
         }
 
-    def _add_deduction(self, amount: int, message: str):
+    def _add_deduction(
+        self, amount: int, message: str, items: Optional[List[str]] = None
+    ):
         if amount <= 0:
             return
         with self._lock:
             self.score -= amount
-            self.deductions.append({"amount": amount, "message": message})
+            self.deductions.append(
+                {"amount": amount, "message": message, "items": items or []}
+            )
 
     def _check_process_integrity(self):
         # Direct Pushes
@@ -74,8 +78,13 @@ class HygieneScorer:
                 self.weights.direct_push_cap,
                 len(direct_pushes) * self.weights.direct_push_penalty,
             )
+            items = [
+                f"{c.reference.hash[:7]} ({c.reference.author})" for c in direct_pushes
+            ]
             self._add_deduction(
-                deduction, f"Direct pushes to protected branches ({len(direct_pushes)})"
+                deduction,
+                f"Direct pushes to protected branches ({len(direct_pushes)})",
+                items=items,
             )
 
         # Conflicting PRs
@@ -85,8 +94,12 @@ class HygieneScorer:
                 self.weights.pr_conflict_cap,
                 len(conflicts) * self.weights.pr_conflict_penalty,
             )
+            items = [
+                f"{c.reference.hash[:7]}: {c.reference.message.splitlines()[0]}"
+                for c in conflicts
+            ]
             self._add_deduction(
-                deduction, f"Conflicting pull requests ({len(conflicts)})"
+                deduction, f"Conflicting pull requests ({len(conflicts)})", items=items
             )
 
         # Orphan Commits
@@ -96,8 +109,11 @@ class HygieneScorer:
                 self.weights.orphan_commit_cap,
                 len(orphans) * self.weights.orphan_commit_penalty,
             )
+            items = [f"{c.reference.hash[:7]} ({c.reference.author})" for c in orphans]
             self._add_deduction(
-                deduction, f"Orphan/Dangling commits found ({len(orphans)})"
+                deduction,
+                f"Orphan/Dangling commits found ({len(orphans)})",
+                items=items,
             )
 
     def _check_cleanliness(self):
@@ -108,8 +124,14 @@ class HygieneScorer:
                 self.weights.wip_commit_cap,
                 len(wip_commits) * self.weights.wip_commit_penalty,
             )
+            items = [
+                f"{c.reference.hash[:7]}: {c.reference.message.splitlines()[0]}"
+                for c in wip_commits
+            ]
             self._add_deduction(
-                deduction, f"WIP/Fixup commits in history ({len(wip_commits)})"
+                deduction,
+                f"WIP/Fixup commits in history ({len(wip_commits)})",
+                items=items,
             )
 
         # Stale Branches
@@ -119,7 +141,15 @@ class HygieneScorer:
                 self.weights.stale_branch_cap,
                 len(stale) * self.weights.stale_branch_penalty,
             )
-            self._add_deduction(deduction, f"Stale branch tips found ({len(stale)})")
+            items = []
+            for c in stale:
+                for b in c.reference.branches:
+                    items.append(b)
+            self._add_deduction(
+                deduction,
+                f"Stale branch tips found ({len(stale)})",
+                items=sorted(list(set(items))),
+            )
 
     def _check_connectivity(self):
         # Long-Running Branches
@@ -133,16 +163,29 @@ class HygieneScorer:
                 self.weights.long_running_branch_cap,
                 len(long_running) * self.weights.long_running_branch_penalty,
             )
+            items = []
+            for c in long_running:
+                for b in c.reference.branches:
+                    items.append(b)
             self._add_deduction(
-                deduction, f"Long-running unmerged branches ({len(long_running)})"
+                deduction,
+                f"Long-running unmerged branches ({len(long_running)})",
+                items=sorted(list(set(items))),
             )
 
         # Behind Base (Divergence)
         behind = [c for c in self.graph if c.is_tagged(Tag.BEHIND.value)]
         if behind:
+            items = [
+                f"{c.reference.hash[:7]} missing from feature branches"
+                for c in behind[:5]
+            ]
+            if len(behind) > 5:
+                items.append(f"... and {len(behind) - 5} more")
             self._add_deduction(
                 self.weights.divergence_penalty,
                 "Repository has commits missing from feature branches (divergence)",
+                items=items,
             )
 
     def _check_back_merges(self):
@@ -153,9 +196,14 @@ class HygieneScorer:
                 self.weights.back_merge_cap,
                 len(back_merges) * self.weights.back_merge_penalty,
             )
+            items = [
+                f"{c.reference.hash[:7]} in {', '.join(c.reference.branches)}"
+                for c in back_merges
+            ]
             self._add_deduction(
                 deduction,
                 f"Redundant back-merges from base branch ({len(back_merges)})",
+                items=items,
             )
 
     def _check_contributor_silos(self):
@@ -166,8 +214,14 @@ class HygieneScorer:
                 self.weights.contributor_silo_cap,
                 len(silos) * self.weights.contributor_silo_penalty,
             )
+            items = []
+            for c in silos:
+                for b in c.reference.branches:
+                    items.append(b)
             self._add_deduction(
-                deduction, f"Branches dominated by too few authors ({len(silos)})"
+                deduction,
+                f"Branches dominated by too few authors ({len(silos)})",
+                items=sorted(list(set(items))),
             )
 
     def _check_issue_inconsistencies(self):
@@ -180,9 +234,18 @@ class HygieneScorer:
                 self.weights.issue_inconsistency_cap,
                 len(inconsistencies) * self.weights.issue_inconsistency_penalty,
             )
+            items = []
+            for c in inconsistencies:
+                status_tag = next(
+                    (t for t in c.tags if t.startswith("issue_status:")), "unknown"
+                )
+                items.append(
+                    f"{c.reference.hash[:7]}: Git status desync with tracker ({status_tag})"
+                )
             self._add_deduction(
                 deduction,
                 f"Inconsistencies between Git and Issue Tracker ({len(inconsistencies)})",
+                items=items,
             )
 
     def _check_release_inconsistencies(self):
@@ -195,9 +258,14 @@ class HygieneScorer:
                 self.weights.release_inconsistency_cap,
                 len(inconsistencies) * self.weights.release_inconsistency_penalty,
             )
+            items = [
+                f"{c.reference.hash[:7]} (marked Released but no tag)"
+                for c in inconsistencies
+            ]
             self._add_deduction(
                 deduction,
                 f"Issues marked 'Released' but not tagged in Git ({len(inconsistencies)})",
+                items=items,
             )
 
     def _check_collaboration_gaps(self):
@@ -208,8 +276,18 @@ class HygieneScorer:
                 self.weights.collaboration_gap_cap,
                 len(gaps) * self.weights.collaboration_gap_penalty,
             )
+            items = []
+            for c in gaps:
+                assignee_tag = next(
+                    (t for t in c.tags if t.startswith("issue_assignee:")), "unknown"
+                )
+                items.append(
+                    f"{c.reference.hash[:7]}: Author {c.reference.author} != {assignee_tag}"
+                )
             self._add_deduction(
-                deduction, f"Git author doesn't match issue assignee ({len(gaps)})"
+                deduction,
+                f"Git author doesn't match issue assignee ({len(gaps)})",
+                items=items,
             )
 
     def _check_longevity_mismatches(self):
@@ -222,7 +300,14 @@ class HygieneScorer:
                 self.weights.longevity_mismatch_cap,
                 len(mismatches) * self.weights.longevity_mismatch_penalty,
             )
+            items = []
+            for c in mismatches:
+                gap_tag = next(
+                    (t for t in c.tags if t.startswith("longevity_gap:")), "unknown"
+                )
+                items.append(f"{c.reference.hash[:7]}: {gap_tag} days")
             self._add_deduction(
                 deduction,
                 f"Significant gap between issue creation and code commit ({len(mismatches)})",
+                items=items,
             )

@@ -219,6 +219,11 @@ def analyze(
     hygiene_output: Optional[str] = typer.Option(
         None, "--hygiene-output", help="Path to save hygiene summary as JSON"
     ),
+    ignore: List[str] = typer.Option(
+        [],
+        "--ignore",
+        help="Ignore hygiene rules for specific SHAs (format: sha:rule)",
+    ),
     trust: bool = typer.Option(
         False, "--trust", help="Trust configuration files found in the repository"
     ),
@@ -303,11 +308,22 @@ def analyze(
             }
             if penalty
             else {},
+            "ignore": {},
             "theme": parse_style_overrides(style) if style else {},
             "min_hygiene_score": min_score,
             "hygiene_output": hygiene_output,
             "trust": trust,
         }
+
+        if ignore:
+            ignore_dict = {}
+            for item in ignore:
+                if ":" in item:
+                    key, val = item.split(":", 1)
+                    if key not in ignore_dict:
+                        ignore_dict[key] = []
+                    ignore_dict[key].append(val)
+            overrides["ignore"] = ignore_dict
 
         results = convert_command(
             path, config_path, overrides, engine_enum, output, as_image, check
@@ -339,11 +355,14 @@ def analyze(
 
             for deduction in hygiene.get("deductions", []):
                 table.add_row(
-                    f"  - {deduction['message']}",
+                    f"[yellow]- {deduction['message']}[/yellow]",
                     f"[red]-{deduction['amount']}%[/red]",
                 )
+                for item in deduction.get("items", []):
+                    table.add_row(f"    [dim]{item}[/dim]", "")
 
             console.print(table)
+            console.print("\n[dim]See HYGIENE.md for remediation guidelines.[/dim]\n")
 
             if check:
                 min_s = min_score or 80
