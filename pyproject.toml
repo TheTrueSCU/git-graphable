@@ -93,3 +93,6 @@ skip_covered = true
 markers = [
     "ui: UI and browser-based tests",
 ]
+
+[tool.git-graphable.ignore]
+"9bd5377" = ["wip"]
