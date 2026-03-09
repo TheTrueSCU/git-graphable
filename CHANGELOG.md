@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.7.0] - Unreleased
+## [0.7.0] - 2026-03-07
 
 ### Added
 - **Security Trust Enforcement**: Custom scripts (`issue_script`, `pr_script`) and sensitive API integrations (Jira) are now disabled by default for untrusted local configurations. Users must explicitly use `--trust` to enable these features for repository-local configs.
