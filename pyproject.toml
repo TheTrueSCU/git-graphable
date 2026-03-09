@@ -96,3 +96,4 @@ markers = [
 
 [tool.git-graphable.ignore]
 "9bd5377" = ["wip"]
+"7a2409e" = ["wip"]
