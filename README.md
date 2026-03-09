@@ -24,9 +24,11 @@ Check out the tool in action with our **[Live Interactive Demos](https://thetrue
 - **Automatic Visualization**: Generates and opens an image (PNG) automatically if no output is specified.
 - **Advanced Highlighting**: Visualize author patterns, topological distance, and specific merge paths.
 - **VCS Integration**: Highlight commits based on pull request/merge request status using `gh` (GitHub) or `glab` (GitLab) CLIs.
-- **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, squashed PRs, back-merges, and contributor silos.
+- **Hygiene Analysis**: Automatically detect WIP commits, direct pushes to protected branches, squashed PRs, back-merges, and contributor silos. Provides actionable intelligence with exact commit hashes and branch names.
 - **Issue Tracker Integration**: Connect to Jira, GitHub Issues, GitLab Issues, or custom scripts to highlight status desyncs.
 - **Security First**: Configuration trust mechanism enforces security by requiring explicit authorization (use `--trust`) to execute custom scripts or send credentials from repository-local configs.
+- **Selective Ignores**: Suppress specific hygiene rules for given commit SHAs using the configuration file or `--ignore` CLI flag.
+- **Remediation Guide**: Detailed guidelines in [HYGIENE.md](HYGIENE.md) help you reach a 100% score.
 - **Dynamic Badges**: Host live Shields.io badges for Git Hygiene and Code Coverage on GitHub Pages.
 
 ## Installation

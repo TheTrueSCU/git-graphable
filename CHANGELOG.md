@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Security Trust Enforcement**: Custom scripts (`issue_script`, `pr_script`) and sensitive API integrations (Jira) are now disabled by default for untrusted local configurations. Users must explicitly use `--trust` to enable these features for repository-local configs.
+- **Actionable Hygiene Intelligence**: The hygiene summary now provides specific details (commit hashes, branch names) for every deduction, allowing users to precisely identify and fix hygiene issues.
+- **Selective Hygiene Ignore**: Introduced a SHA-based ignore mechanism to suppress specific hygiene rules. Supported via `.git-graphable.toml` (or `pyproject.toml`) and the `--ignore` CLI flag.
+- **Remediation Guidelines**: Added a comprehensive [HYGIENE.md](HYGIENE.md) guide with actionable Git commands to help users improve their project's hygiene score.
 
 ### Fixed
 - **Critical Command Injection Mitigation**: Fixed a vulnerability in `ScriptIssueEngine` where malicious `issue_id` strings could inject shell commands. Switched to `sh -c` with positional arguments for safe execution.
