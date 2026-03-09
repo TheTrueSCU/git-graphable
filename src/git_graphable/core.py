@@ -193,6 +193,7 @@ class GitLogConfig:
     longevity_threshold_days: int = (
         14  # Max diff between Issue created and first commit
     )
+    ignore: Dict[str, List[str]] = field(default_factory=dict)
     trusted: bool = True  # True if explicitly provided via CLI or from a trusted source
     trust: bool = False  # CLI override to force trust
     hygiene_weights: HygieneWeights = field(default_factory=HygieneWeights)
@@ -222,6 +223,8 @@ class GitLogConfig:
             weights_data = config_data.pop("hygiene_weights", {})
             # Handle nested theme
             theme_data = config_data.pop("theme", {})
+            # Handle nested ignore
+            ignore_data = config_data.pop("ignore", {})
 
             config = cls(
                 **{
@@ -234,6 +237,9 @@ class GitLogConfig:
                 for k, v in weights_data.items():
                     if hasattr(config.hygiene_weights, k):
                         setattr(config.hygiene_weights, k, v)
+
+            if ignore_data:
+                config.ignore = ignore_data
 
             if theme_data:
                 for k, v in theme_data.items():
@@ -293,6 +299,10 @@ class GitLogConfig:
                                         setattr(current_style, s_key, s_val)
                             else:
                                 setattr(new_config.theme, t_key, t_val)
+                elif key == "ignore" and isinstance(value, dict):
+                    # Merge ignore if provided as dict
+                    for i_key, i_val in value.items():
+                        new_config.ignore[i_key] = i_val
                 elif isinstance(value, list) and not value:
                     # Special case for lists: only override if not empty
                     continue

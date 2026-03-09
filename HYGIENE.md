@@ -128,3 +128,41 @@ git push
 **Remediation:**
 - **Review Backlog**: Don't open tickets until work is ready to start.
 - **Re-evaluate**: If a ticket sits for 2 weeks, check if requirements have changed before starting code.
+
+## 6. Ignoring Hygiene Rules
+
+Sometimes a commit or branch is flagged for a reason that is acceptable or intended. You can selectively ignore these rules.
+
+### Via Configuration (`.git-graphable.toml`)
+
+Add an `[git-graphable.ignore]` section to your configuration:
+
+```toml
+[git-graphable.ignore]
+# Ignore specific rules for specific SHAs (prefix or full SHA)
+"9bd5377" = ["wip", "direct_push"]
+"abc1234" = ["all"]  # Ignore all hygiene rules for this commit
+```
+
+### Via CLI
+
+Use the `--ignore` flag:
+
+```bash
+# Ignore WIP rule for a specific SHA
+uv run git-graphable analyze . --ignore 9bd5377:wip
+
+# Ignore multiple items
+uv run git-graphable analyze . --ignore 9bd5377:wip --ignore abc1234:all
+```
+
+### Supported Rule Names
+- `wip`
+- `direct_push`
+- `divergence`
+- `orphan`
+- `stale`
+- `long_running`
+- `back_merge`
+- `silo`
+- `all` (ignores everything for that SHA)

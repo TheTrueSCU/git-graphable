@@ -11,6 +11,20 @@ from ..models import Tag
 from .visual import find_node
 
 
+def _should_ignore(commit: GitCommit, rule: str, config: GitLogConfig) -> bool:
+    """Check if a commit should be ignored for a specific hygiene rule."""
+    if not config.ignore:
+        return False
+
+    # Check exact SHA or prefix
+    for key, rules in config.ignore.items():
+        if commit.reference.hash.startswith(key):
+            if rule in rules or "all" in rules:
+                return True
+
+    return False
+
+
 def _apply_divergence_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
@@ -37,7 +51,8 @@ def _apply_divergence_highlights(
                 branch_reach.add(commit)
 
                 if base_reach - branch_reach:
-                    commit.add_tag(Tag.BEHIND.value)
+                    if not _should_ignore(commit, "divergence", config):
+                        commit.add_tag(Tag.BEHIND.value)
 
 
 def _apply_orphan_highlights(
@@ -52,7 +67,8 @@ def _apply_orphan_highlights(
 
     for commit in graph:
         if commit not in branch_reachable:
-            commit.add_tag(Tag.ORPHAN.value)
+            if not _should_ignore(commit, "orphan", config):
+                commit.add_tag(Tag.ORPHAN.value)
 
 
 def _apply_stale_highlights(
@@ -72,8 +88,10 @@ def _apply_stale_highlights(
                 commit.add_tag(f"{Tag.STALE_COLOR.value}{color}")
 
                 # ONLY apply visual highlight if explicitly requested
-                if config.highlight_stale:
-                    commit.add_tag(f"{Tag.COLOR.value}{color}")
+                if config.highlight_stale and not _should_ignore(
+                    commit, "stale", config
+                ):
+                    commit.add_tag(Tag.COLOR.value)
 
 
 def _apply_long_running_highlights(
@@ -109,12 +127,13 @@ def _apply_long_running_highlights(
 
                     if age_sec > threshold_sec:
                         for commit in unique_commits:
-                            commit.add_tag(Tag.LONG_RUNNING.value)
-                            for parent, _ in graph.internal_depends_on(commit):
-                                if parent in unique_commits or parent in base_reach:
-                                    commit.set_edge_attribute(
-                                        parent, Tag.EDGE_LONG_RUNNING.value, True
-                                    )
+                            if not _should_ignore(commit, "long_running", config):
+                                commit.add_tag(Tag.LONG_RUNNING.value)
+                                for parent, _ in graph.internal_depends_on(commit):
+                                    if parent in unique_commits or parent in base_reach:
+                                        commit.set_edge_attribute(
+                                            parent, Tag.EDGE_LONG_RUNNING.value, True
+                                        )
 
 
 def _apply_wip_highlights(
@@ -123,6 +142,8 @@ def _apply_wip_highlights(
     """Highlight commits with WIP/TODO keywords in message."""
     keywords = [k.lower() for k in config.wip_keywords]
     for commit in graph:
+        if _should_ignore(commit, "wip", config):
+            continue
         message = commit.reference.message.lower()
         if any(k in message for k in keywords):
             commit.add_tag(Tag.WIP.value)
@@ -139,6 +160,8 @@ def _apply_direct_push_highlights(
     }
 
     for commit in graph:
+        if _should_ignore(commit, "direct_push", config):
+            continue
         if len(commit.reference.parents) > 1:
             continue
         for branch in commit.reference.branches:
@@ -181,7 +204,8 @@ def _apply_back_merge_highlights(
         has_base_parent = any(p in base_reach for p in parents)
         has_non_base_parent = any(p not in base_reach for p in parents)
         if has_base_parent and has_non_base_parent:
-            commit.add_tag(Tag.BACK_MERGE.value)
+            if not _should_ignore(commit, "back_merge", config):
+                commit.add_tag(Tag.BACK_MERGE.value)
 
 
 def _apply_silo_highlights(
@@ -209,4 +233,5 @@ def _apply_silo_highlights(
             if len(unique_commits) >= config.silo_commit_threshold:
                 authors = {c.reference.author for c in unique_commits}
                 if len(authors) <= config.silo_author_count:
-                    tip.add_tag(Tag.CONTRIBUTOR_SILO.value)
+                    if not _should_ignore(tip, "silo", config):
+                        tip.add_tag(Tag.CONTRIBUTOR_SILO.value)
