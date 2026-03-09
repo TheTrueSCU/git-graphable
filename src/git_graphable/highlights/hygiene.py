@@ -140,12 +140,17 @@ def _apply_wip_highlights(
     graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight commits with WIP/TODO keywords in message."""
-    keywords = [k.lower() for k in config.wip_keywords]
+    import re
+
+    # Use word boundaries to avoid matching keywords inside other words (e.g. 'swiping')
+    # We also ignore cases.
+    patterns = [re.compile(rf"\b{re.escape(k)}\b", re.IGNORECASE) for k in config.wip_keywords]
+    
     for commit in graph:
         if _should_ignore(commit, "wip", config):
             continue
-        message = commit.reference.message.lower()
-        if any(k in message for k in keywords):
+        message = commit.reference.message
+        if any(p.search(message) for p in patterns):
             commit.add_tag(Tag.WIP.value)
 
 

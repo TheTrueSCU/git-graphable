@@ -164,7 +164,7 @@ class GitLogConfig:
     long_running_base: Optional[str] = None
     highlight_wip: bool = False
     wip_keywords: List[str] = field(
-        default_factory=lambda: ["wip", "fixup!", "squash!"]
+        default_factory=lambda: ["wip", "todo", "fixme", "temp", "fixup!", "squash!"]
     )
     highlight_direct_pushes: bool = False
     highlight_pr_status: bool = False
