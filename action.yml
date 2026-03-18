@@ -30,7 +30,7 @@ runs:
   using: 'composite'
   steps:
     - name: Setup uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         enable-cache: true
 
@@ -82,7 +82,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github_token }}
 
     - name: Upload Reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: git-graph-reports
         path: ${{ inputs.output_dir }}
