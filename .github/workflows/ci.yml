@@ -6,7 +6,6 @@ on:
   pull_request:
     branches: [ main ]
 
-# Grant minimal permissions by default
 permissions:
   contents: read
 
@@ -52,3 +51,28 @@ jobs:
           if [ -f "coverage.json" ]; then
             cp coverage.json git-graph-reports/
           fi
+
+  hypothesis:
+    name: Property-based Testing
+    needs: check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install just
+        uses: extractions/setup-just@f8a3cce218d9f83db3a2ecd90e41ac3de6cdfd9b # v3.1.0
+
+      - name: Run hypothesis tests
+        run: just test tests/hypothesis

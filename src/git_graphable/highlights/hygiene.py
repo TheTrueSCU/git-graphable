@@ -144,8 +144,10 @@ def _apply_wip_highlights(
 
     # Use word boundaries to avoid matching keywords inside other words (e.g. 'swiping')
     # We also ignore cases.
-    patterns = [re.compile(rf"\b{re.escape(k)}\b", re.IGNORECASE) for k in config.wip_keywords]
-    
+    patterns = [
+        re.compile(rf"\b{re.escape(k)}\b", re.IGNORECASE) for k in config.wip_keywords
+    ]
+
     for commit in graph:
         if _should_ignore(commit, "wip", config):
             continue

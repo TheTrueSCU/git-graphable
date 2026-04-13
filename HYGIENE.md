@@ -13,11 +13,11 @@ This document explains the hygiene metrics analyzed by `git-graphable` and provi
     ```bash
     # Move the commit to a new branch
     git checkout -b feature/my-fix
-    
+
     # Reset main back to before the direct push
     git checkout main
     git reset --hard <commit-before-push>
-    
+
     # Push the new branch and open a PR
     git push -u origin feature/my-fix
     ```
