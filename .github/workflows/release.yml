@@ -1,16 +1,16 @@
 name: Release
+
 on:
   push:
     branches:
       - main
+
 jobs:
-  release:
+  propose:
     runs-on: ubuntu-latest
-    concurrency: release
+    if: "!startsWith(github.event.head_commit.message, 'chore: release')"
     permissions:
-      id-token: write
       contents: write
-      issues: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -26,11 +26,65 @@ jobs:
           python-version-file: ".python-version"
       - name: Install dependencies
         run: uv sync
-      - name: Python Semantic Release
+      - name: Prepare Release Proposal
+        id: prepare
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          uv run semantic-release version
+
+          # Use semantic-release to determine if a release is needed
+          VERSION=$(uv run semantic-release version --print)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          if [ -n "$VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release PR
+        if: steps.prepare.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/release-${{ steps.prepare.outputs.version }}
+          title: "chore: release ${{ steps.prepare.outputs.version }}"
+          body: |
+            This PR was automatically generated to propose the next release.
+
+            **Release Version**: ${{ steps.prepare.outputs.version }}
+
+            Merging this PR will trigger the final automated publishing to GitHub and PyPI.
+          commit-message: "chore: release ${{ steps.prepare.outputs.version }}"
+          labels: release
+
+  publish:
+    runs-on: ubuntu-latest
+    if: "startsWith(github.event.head_commit.message, 'chore: release')"
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - name: Install dependencies
+        run: uv sync
+      - name: Publish Release
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          # Publish (which picks up the tag)
           uv run semantic-release publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
