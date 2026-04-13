@@ -98,7 +98,7 @@ markers = [
 ]
 
 [tool.semantic_release]
-version_variables = ["pyproject.toml:version"]
+version_toml = ["pyproject.toml:version"]
 build_command = "uv build"
 
 [tool.git-graphable.ignore]
