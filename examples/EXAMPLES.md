@@ -275,4 +275,3 @@ git-graphable analyze repo-messy --engine html -o graph.html
 - **Searchable**: Find specific commits by hash or message.
 - **Hierarchical Layout**: Powered by Dagre for a clean top-down flow.
 - **Details Sidebar**: View full commit metadata upon selection.
-

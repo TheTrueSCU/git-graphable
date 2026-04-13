@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **Development Standards**: Implemented tiered CI pipeline (check -> hypothesis) for improved code reliability.
+- **Pre-commit Enforcement**: Added `pre-commit` hooks for linting, formatting, and type-checking.
+- **Property-based Testing**: Added initial `hypothesis` tests to enforce core structural invariants and hygiene scoring constraints.
+
 ## [0.7.0] - 2026-03-07
 
 ### Added
@@ -42,7 +49,7 @@ All notable changes to this project will be documented in this file.
 - **Reorganized Test Suite**: Refactored tests into a modular structure mirroring the source code, including a global `conftest.py` for shared fixtures.
 
 ### Fixed
-- **Comprehensive Security Hardening**: 
+- **Comprehensive Security Hardening**:
     - Protected against argument injection in `git clone`, `glab`, `gh`, and `git rev-list` commands using the `--` separator.
     - Resolved potential path traversal and SSRF risks in Jira issue lookups by properly URL-encoding IDs.
     - Corrected argument passing logic for `git log` limits.
@@ -71,7 +78,7 @@ All notable changes to this project will be documented in this file.
 - **Performance Optimizations**:
     - **Parallel Log Parsing**: Parallelized `GitCommit` instantiation using `ProcessPoolExecutor` for large repositories.
     - **Parallel Hygiene Scoring**: Concurrent execution of hygiene checks using `ThreadPoolExecutor` for faster report generation.
-- **Modular CLI Architecture**: 
+- **Modular CLI Architecture**:
     - Split into `rich_cli` (Typer/Rich) and `bare_cli` (Argparse) for better environment support.
     - Intelligent switcher logic in `cli.py` handles optional dependencies and fallbacks.
 - **New `init` Command**: Easily initialize a default `.git-graphable.toml` configuration file.

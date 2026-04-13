@@ -76,6 +76,10 @@ lint:
     uv run ruff check --fix
 
 [group('qa')]
+@pre-commit:
+    uv run pre-commit run --all-files
+
+[group('qa')]
 @test *args:
     uv run -m pytest --git-branch {{ GIT_BRANCH }} --git-commit {{ GIT_COMMIT }} --html-output htmlrep -n auto --should-open-report never -m "not ui" {{ args }}
 

@@ -54,9 +54,9 @@ def get_toggle_logic(tag_to_style_json, tags):
         var activeMode = 'none';
         var disabledOverlays = new Set();
         var fillTags = [
-            "{tags.PR_OPEN.value}", 
-            "{tags.PR_MERGED.value}", 
-            "{tags.PR_CLOSED.value}", 
+            "{tags.PR_OPEN.value}",
+            "{tags.PR_MERGED.value}",
+            "{tags.PR_CLOSED.value}",
             "{tags.PR_DRAFT.value}"
         ];
 
@@ -78,14 +78,14 @@ def get_toggle_logic(tag_to_style_json, tags):
         function toggleOverlay(tag, event) {{
             var checkbox = document.getElementById('overlay-' + tag);
             if (event && event.target !== checkbox) {{ checkbox.checked = !checkbox.checked; }}
-            if (checkbox.checked) {{ disabledOverlays.delete(tag); }} 
+            if (checkbox.checked) {{ disabledOverlays.delete(tag); }}
             else {{ disabledOverlays.add(tag); }}
             applyStyles();
         }}
 
         function applyStyles() {{
             if (typeof cyGraph === 'undefined') return;
-            
+
             // 1. Reset base styles
             cyGraph.nodes().style({{
                 'background-color': '#007bff', 'color': '#333', 'border-width': 0,
@@ -120,17 +120,17 @@ def get_toggle_logic(tag_to_style_json, tags):
                 if (fillTags.includes(tag) || tag === '{tags.PR_STATUS.value}') return;
                 if (tag.startsWith('{tags.AUTHOR_HIGHLIGHT.value}') || tag.startsWith('{tags.DISTANCE_COLOR.value}') || tag.startsWith('{tags.STALE_COLOR.value}')) return;
                 if (disabledOverlays.has(tag)) return;
-                
+
                 var selector = (tag.includes('edge') || tag.includes('highlight') || tag.includes('logical_merge') || tag.includes('long_running_edge')) ? 'edge' : 'node';
                 cyGraph.elements(selector).filter(el => (el.data('tags') || []).includes(tag)).style(tagStyles[tag]);
             }});
-            
+
             // 4. Re-apply selection style
             cyGraph.elements(':selected').style({{ 'border-width': '4px', 'border-color': '#ff0', 'background-color': '#0056b3' }});
         }}
 
         function initStyles() {{
-            if (typeof cyGraph !== 'undefined') {{ syncOverlayState(); applyStyles(); }} 
+            if (typeof cyGraph !== 'undefined') {{ syncOverlayState(); applyStyles(); }}
             else {{ setTimeout(initStyles, 50); }}
         }}
         initStyles();

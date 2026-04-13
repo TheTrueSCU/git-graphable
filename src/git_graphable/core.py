@@ -345,7 +345,7 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
     from .hygiene import HygieneScorer
     from .models import Tag
 
-    summary = {
+    summary: dict[str, Any] = {
         "Critical": [],
         "PR Status": [],
         "WIP": [],
@@ -357,6 +357,7 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
         "Release Inconsistencies": [],
         "Collaboration Gaps": [],
         "Longevity Mismatches": [],
+        "Hygiene Score": {},
     }
 
     for commit in graph:
