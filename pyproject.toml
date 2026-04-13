@@ -66,6 +66,7 @@ dev = [
     "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.8.0",
     "pytest>=9.0.2",
+    "python-semantic-release>=9.21.1",
     "ruff>=0.15.4",
     "ty>=0.0.20",
     "typer-cli>=0.24.0",
@@ -95,6 +96,10 @@ skip_covered = true
 markers = [
     "ui: UI and browser-based tests",
 ]
+
+[tool.semantic_release]
+version_variables = ["pyproject.toml:version"]
+build_command = "uv build"
 
 [tool.git-graphable.ignore]
 "9bd5377" = ["wip"]

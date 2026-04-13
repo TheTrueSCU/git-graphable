@@ -1,5 +1,7 @@
-from hypothesis import given, strategies as st
-from git_graphable.core import GitCommit, CommitMetadata, Graph
+from hypothesis import given
+from hypothesis import strategies as st
+
+from git_graphable.core import CommitMetadata, GitCommit, Graph
 from git_graphable.models import Tag
 from git_graphable.parser import GitLogConfig
 
