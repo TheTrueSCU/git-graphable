@@ -101,6 +101,10 @@ markers = [
 version_toml = ["pyproject.toml:version"]
 build_command = "uv build"
 
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
 [tool.git-graphable.ignore]
 "9bd5377" = ["wip"]
 "7a2409e" = ["wip"]
