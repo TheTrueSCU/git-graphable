@@ -137,3 +137,8 @@ demo-site/
 examples/repos/
 examples/assets/
 graph.html
+
+# Gemini
+.gemini/
+.gemini_security/
+conductor/
