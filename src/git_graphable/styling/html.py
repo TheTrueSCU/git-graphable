@@ -8,7 +8,7 @@ import os
 import re
 from typing import Any, Dict, List
 
-from graphable import Graph
+from graphable.graph import AcyclicGraph
 from graphable.views import (
     CytoscapeStylingConfig,
     HtmlStylingConfig,
@@ -22,7 +22,7 @@ from .base import get_contrast_color, get_node_text
 
 
 def export_html(
-    graph: Graph[GitCommit],
+    graph: AcyclicGraph[GitCommit],
     output_path: str,
     config: GitLogConfig,
     node_ref_fnc: Any,

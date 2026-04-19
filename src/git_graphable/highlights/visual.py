@@ -4,14 +4,14 @@ Visual highlights (colors, paths, critical branches).
 
 from typing import Optional
 
-from graphable import Graph
+from graphable.graph import AcyclicGraph
 
 from ..core import GitCommit, GitLogConfig
 from ..models import Tag
 
 
 def _apply_author_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Assign colors to different authors."""
     authors = sorted(list(set(c.reference.author for c in graph)))
@@ -32,7 +32,7 @@ def _apply_author_highlights(
 
 
 def _apply_critical_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Ensure critical branches are tagged for overlay support."""
     critical_set = {
@@ -48,7 +48,7 @@ def _apply_critical_highlights(
 
 
 def _apply_distance_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight commits based on distance from a base branch/hash."""
     base_query = config.highlight_distance_from
@@ -90,7 +90,7 @@ def _apply_distance_highlights(
                     commit.add_tag(f"{Tag.COLOR.value}{color}")
 
 
-def _apply_path_highlights(graph: Graph[GitCommit], config: GitLogConfig):
+def _apply_path_highlights(graph: AcyclicGraph[GitCommit], config: GitLogConfig):
     """Highlight path between two SHAs."""
     if not config.highlight_path:
         return
@@ -109,7 +109,7 @@ def _apply_path_highlights(graph: Graph[GitCommit], config: GitLogConfig):
                     commit.set_edge_attribute(parent, Tag.EDGE_PATH.value, True)
 
 
-def find_node(graph: Graph[GitCommit], query: str) -> Optional[GitCommit]:
+def find_node(graph: AcyclicGraph[GitCommit], query: str) -> Optional[GitCommit]:
     """Helper to find a node by branch name or SHA prefix."""
     for commit in graph:
         if query in commit.reference.branches or commit.reference.hash.startswith(

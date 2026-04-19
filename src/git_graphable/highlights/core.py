@@ -4,7 +4,7 @@ Core highlights application logic.
 
 from typing import Optional
 
-from graphable import Graph
+from graphable.graph import AcyclicGraph
 
 from ..core import Engine, GitCommit, GitLogConfig
 from .external import (
@@ -32,7 +32,9 @@ from .visual import (
 
 
 def apply_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, repo_path: Optional[str] = None
+    graph: AcyclicGraph[GitCommit],
+    config: GitLogConfig,
+    repo_path: Optional[str] = None,
 ):
     """Apply highlighting tags based on configuration."""
     is_html = config.engine == Engine.HTML

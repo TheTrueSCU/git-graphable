@@ -2,7 +2,8 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
-from graphable import Graph, Graphable
+from graphable import Graphable
+from graphable.graph import AcyclicGraph
 from graphable.enums import Engine as BaseEngine
 
 
@@ -340,7 +341,9 @@ class GitCommit(Graphable[CommitMetadata]):
         self.add_tag(Tag.GIT_COMMIT.value)
 
 
-def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str, Any]:
+def generate_summary(
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig
+) -> Dict[str, Any]:
     """Generate a summary of flagged commits."""
     from .hygiene import HygieneScorer
     from .models import Tag
@@ -391,12 +394,12 @@ def generate_summary(graph: Graph[GitCommit], config: GitLogConfig) -> Dict[str,
     return summary
 
 
-def process_repo(repo_path: str, config: GitLogConfig) -> Graph[GitCommit]:
+def process_repo(repo_path: str, config: GitLogConfig) -> AcyclicGraph[GitCommit]:
     """Process a repository and return a graph of commits."""
     from .parser import get_git_log
 
     commits_dict = get_git_log(repo_path, config)
-    graph = Graph()
+    graph = AcyclicGraph()
 
     # Create nodes
     for node in commits_dict.values():

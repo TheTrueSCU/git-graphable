@@ -7,7 +7,7 @@ import subprocess
 from datetime import datetime
 from typing import Optional
 
-from graphable import Graph
+from graphable.graph import AcyclicGraph
 
 from ..core import GitCommit, GitLogConfig
 from ..issues import IssueStatus, get_issue_engine
@@ -17,7 +17,7 @@ from .visual import find_node
 
 
 def _apply_pr_highlights(
-    graph: Graph[GitCommit],
+    graph: AcyclicGraph[GitCommit],
     config: GitLogConfig,
     repo_path: Optional[str],
     force: bool = False,
@@ -53,7 +53,7 @@ def _apply_pr_highlights(
 
 
 def _apply_squash_highlights(
-    graph: Graph[GitCommit],
+    graph: AcyclicGraph[GitCommit],
     config: GitLogConfig,
     repo_path: Optional[str],
     force: bool = False,
@@ -105,7 +105,7 @@ def _apply_squash_highlights(
 
 
 def _apply_issue_highlights(
-    graph: Graph[GitCommit],
+    graph: AcyclicGraph[GitCommit],
     config: GitLogConfig,
     repo_path: Optional[str],
     force: bool = False,
@@ -207,7 +207,7 @@ def _apply_issue_highlights(
 
 
 def _apply_release_highlights(
-    graph: Graph[GitCommit],
+    graph: AcyclicGraph[GitCommit],
     config: GitLogConfig,
     repo_path: Optional[str],
     force: bool = False,
