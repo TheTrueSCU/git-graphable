@@ -2,7 +2,7 @@
 Main entry point for graph styling and export.
 """
 
-from graphable import Graph
+from graphable.graph import AcyclicGraph
 from graphable.views import (
     D2StylingConfig,
     GraphvizStylingConfig,
@@ -26,7 +26,7 @@ __all__ = ["export_graph", "get_node_text", "get_contrast_color"]
 
 
 def export_graph(
-    graph: Graph[GitCommit],
+    graph: AcyclicGraph[GitCommit],
     output_path: str,
     config: GitLogConfig,
     engine: Engine = Engine.MERMAID,

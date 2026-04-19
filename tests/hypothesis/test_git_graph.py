@@ -1,7 +1,7 @@
 from hypothesis import given
 from hypothesis import strategies as st
 
-from git_graphable.core import CommitMetadata, GitCommit, Graph
+from git_graphable.core import CommitMetadata, GitCommit, AcyclicGraph
 from git_graphable.models import Tag
 from git_graphable.parser import GitLogConfig
 
@@ -20,12 +20,12 @@ commit_metadata_strategy = st.builds(
 @given(st.lists(commit_metadata_strategy, min_size=1))
 def test_graph_invariants(metadata_list):
     """
-    Property: Graph construction should at least contain the provided commits
+    Property: AcyclicGraph construction should at least contain the provided commits
     and maintain basic structure.
     """
     config = GitLogConfig()
     commits = [GitCommit(meta, config) for meta in metadata_list]
-    graph = Graph(commits)
+    graph = AcyclicGraph(commits)
     assert len(graph) == len(commits)
     for commit in commits:
         assert commit in graph
@@ -40,7 +40,7 @@ def test_hygiene_score_range(metadata_list):
 
     config = GitLogConfig()
     commits = [GitCommit(meta, config) for meta in metadata_list]
-    graph = Graph(commits)
+    graph = AcyclicGraph(commits)
     scorer = HygieneScorer(graph, config)
     score = scorer.calculate()
 

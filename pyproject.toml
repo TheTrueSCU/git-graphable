@@ -3,7 +3,7 @@ authors = [
     { name = "Richard West", email = "dopplereffect.us@gmail.com" },
 ]
 dependencies = [
-    "graphable>=0.6.0",
+    "graphable>=0.7.0",
 ]
 description = "A powerful Git history visualizer and hygiene linter with CI gating."
 keywords = [

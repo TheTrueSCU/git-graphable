@@ -380,7 +380,7 @@ ui = [
 
 [package.metadata]
 requires-dist = [
-    { name = "graphable", specifier = ">=0.6.0" },
+    { name = "graphable", specifier = ">=0.7.0" },
     { name = "rich", marker = "extra == 'cli'", specifier = ">=13.0.0" },
     { name = "typer", marker = "extra == 'cli'", specifier = ">=0.12.0" },
 ]
@@ -434,14 +434,14 @@ wheels = [
 
 [[package]]
 name = "graphable"
-version = "0.6.0"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "defusedxml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5d/f9/38d23037180bde3c2df3892d56b56b03f5cd382b7a151b50030fd51cf0c1/graphable-0.6.0.tar.gz", hash = "sha256:5f69a51b78ddb43a76d64a1ad47f8afa86cf228742fb520911bb5458108fb543", size = 42331, upload-time = "2026-02-16T21:44:50.902Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/70/92a12cee5546c02c4530182d863febd6d7d005ef45e532e02fa2bbb2851b/graphable-0.7.0.tar.gz", hash = "sha256:6cf5ae8816520ea9cdc1915be2b055442f8c7c2394b66bf0a1c7583149e5a760", size = 42921, upload-time = "2026-04-19T18:52:23.042Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/74/89d764e701f616a77b7d90f51469f557266bf2977e248ed0d611a32e49d3/graphable-0.6.0-py3-none-any.whl", hash = "sha256:06e5e290f76a477f8ce6ff6db3d3869365dbba04c59fd94d4fc3906bd76099ce", size = 62701, upload-time = "2026-02-16T21:44:49.417Z" },
+    { url = "https://files.pythonhosted.org/packages/78/ea/9e1205d07627c91d7e4eb1ffd033abad82073292f9830cb16912d9b13c0c/graphable-0.7.0-py3-none-any.whl", hash = "sha256:fa552b4afd7f0d5c3b82ae62b8928ddba23a332d97912f51714239976ba896a2", size = 63982, upload-time = "2026-04-19T18:52:21.409Z" },
 ]
 
 [[package]]

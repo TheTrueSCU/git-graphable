@@ -4,7 +4,7 @@ Hygiene highlights (WIP, direct push, stale branches, etc).
 
 import time
 
-from graphable import Graph
+from graphable.graph import AcyclicGraph
 
 from ..core import GitCommit, GitLogConfig
 from ..models import Tag
@@ -26,7 +26,7 @@ def _should_ignore(commit: GitCommit, rule: str, config: GitLogConfig) -> bool:
 
 
 def _apply_divergence_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight divergence/behind analysis from a base branch/hash."""
     base_branch = (config.highlight_diverging_from or "").strip()
@@ -56,7 +56,7 @@ def _apply_divergence_highlights(
 
 
 def _apply_orphan_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight dangling/orphan commits."""
     branch_reachable = set()
@@ -72,7 +72,7 @@ def _apply_orphan_highlights(
 
 
 def _apply_stale_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight stale branch tips."""
     now = time.time()
@@ -95,7 +95,7 @@ def _apply_stale_highlights(
 
 
 def _apply_long_running_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight long-running branches."""
     now = time.time()
@@ -137,7 +137,7 @@ def _apply_long_running_highlights(
 
 
 def _apply_wip_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight commits with WIP/TODO keywords in message."""
     import re
@@ -157,7 +157,7 @@ def _apply_wip_highlights(
 
 
 def _apply_direct_push_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight non-merge commits made directly to protected branches."""
     protected = {
@@ -180,7 +180,7 @@ def _apply_direct_push_highlights(
 
 
 def _apply_back_merge_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight redundant merges (base branch merged into feature branch)."""
 
@@ -216,7 +216,7 @@ def _apply_back_merge_highlights(
 
 
 def _apply_silo_highlights(
-    graph: Graph[GitCommit], config: GitLogConfig, force: bool = False
+    graph: AcyclicGraph[GitCommit], config: GitLogConfig, force: bool = False
 ):
     """Highlight branches with high commit counts but low author diversity."""
 

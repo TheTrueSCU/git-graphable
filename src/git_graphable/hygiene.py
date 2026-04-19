@@ -2,14 +2,14 @@ import concurrent.futures
 import threading
 from typing import Any, Dict, List, Optional
 
-from graphable import Graph
+from graphable.graph import AcyclicGraph
 
 from .core import GitCommit, GitLogConfig
 from .models import Tag
 
 
 class HygieneScorer:
-    def __init__(self, graph: Graph[GitCommit], config: GitLogConfig):
+    def __init__(self, graph: AcyclicGraph[GitCommit], config: GitLogConfig):
         self.graph = graph
         self.config = config
         self.score = 100
